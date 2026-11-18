@@ -11,12 +11,14 @@ import {
 } from '../constants'
 import { precheckProfileImage } from '../utils/imageCheck'
 import { CampmatchLogo, CheckCircleIcon, CloseXIcon } from '../components/Icons'
+import { CourseSelect } from '../components/CourseSelect'
 
 interface OnboardingPageProps {
   token: string
   initialName?: string
   existingPhotos?: string[]
   rooms?: ExploreVibe[]
+  school?: string
   onDone: () => void
 }
 
@@ -25,6 +27,7 @@ export function OnboardingPage({
   initialName = '',
   existingPhotos = [],
   rooms,
+  school,
   onDone,
 }: OnboardingPageProps) {
   const roomCatalogue = rooms && rooms.length > 0 ? rooms : EXPLORE_VIBES
@@ -243,11 +246,11 @@ export function OnboardingPage({
             </div>
 
             <label className="field-label">Programme / Course</label>
-            <input
-              className="modern-input"
-              placeholder="e.g. BSc Computer Science & Engineering"
+            <CourseSelect
               value={course}
-              onChange={e => setCourse(e.target.value)}
+              onChange={setCourse}
+              school={school}
+              placeholder="Search your programme"
             />
 
             <label className="field-label">Hall or Hostel (Optional)</label>

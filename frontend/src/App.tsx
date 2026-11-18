@@ -766,6 +766,7 @@ function StudentApp() {
         initialName={me?.name || ''}
         existingPhotos={me?.photo_urls || []}
         rooms={exploreRooms}
+        school={me?.school || ''}
         onDone={loadMe}
       />
     )

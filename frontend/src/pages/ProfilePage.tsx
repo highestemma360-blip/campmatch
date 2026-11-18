@@ -15,6 +15,7 @@ import {
 } from '../constants'
 import { precheckProfileImage } from '../utils/imageCheck'
 import { getPushState, enablePush, disablePush, pushSupported, PushState } from '../utils/push'
+import { CourseSelect } from '../components/CourseSelect'
 import {
   VerifiedBadge,
   CloseXIcon,
@@ -659,7 +660,7 @@ export function ProfilePage({
                 </div>
                 <div>
                   <label className="field-label">Programme</label>
-                  <input className="modern-input" value={course} onChange={e => setCourse(e.target.value)} />
+                  <CourseSelect value={course} onChange={setCourse} school={me.school} placeholder="Search your programme" />
                 </div>
               </div>
 

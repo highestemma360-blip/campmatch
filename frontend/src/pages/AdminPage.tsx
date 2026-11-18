@@ -46,6 +46,23 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     loadOverviewAndSettings()
   }, [token])
 
+  // Live real-time refresh — the console updates itself as students act.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      loadOverviewAndSettings()
+      if (section === 'users') loadUsers(userFilter, userSearch)
+      else if (section === 'vault') loadUsers('deleted', userSearch)
+      else if (section === 'reports') loadReports()
+      else if (section === 'moderation') {
+        loadModLogs(rejectedOnly)
+        loadPendingReviews()
+      }
+      else if (section === 'payments') loadPayments()
+      else if (section === 'audit') loadAudit()
+    }, 10000)
+    return () => window.clearInterval(id)
+  }, [section, userFilter, userSearch, rejectedOnly, token])
+
   useEffect(() => {
     if (section === 'users') loadUsers(userFilter, userSearch)
     else if (section === 'vault') loadUsers('deleted', userSearch)

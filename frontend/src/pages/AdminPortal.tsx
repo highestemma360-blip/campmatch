@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { AdminPage } from './AdminPage'
-import { CampmatchMark, ShieldIcon, ArrowLeftIcon } from '../components/Icons'
+import { CampmatchMark, ShieldIcon } from '../components/Icons'
 
 const ADMIN_TOKEN_KEY = 'campmatch_admin_token'
 const ADMIN_NAME_KEY = 'campmatch_admin_name'
@@ -149,14 +149,10 @@ export function AdminPortal() {
             <div style={{ color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: '-0.4px' }}>
               Administrator Portal
             </div>
-            <div style={{ color: '#8E98AD', fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
-              Restricted access. Credentials are verified against the ADMIN_USERNAME and ADMIN_PASSWORD
-              environment variables configured on Render.
-            </div>
 
             <form onSubmit={submit} style={{ marginTop: 20 }}>
               <label className="field-label" style={{ color: '#9AA4B8', marginTop: 0 }}>
-                Admin Username or Email
+                Username
               </label>
               <input
                 className="modern-input"
@@ -217,29 +213,9 @@ export function AdminPortal() {
               )}
 
               <button className="btn-brand" type="submit" disabled={loading} style={{ marginTop: 18 }}>
-                {loading ? 'Verifying...' : 'Enter Admin Console'}
+                {loading ? 'Verifying...' : 'Sign In'}
               </button>
             </form>
-
-            <a
-              href="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                marginTop: 18,
-                color: '#7D8798',
-                fontSize: 12,
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              <ArrowLeftIcon size={14} /> Back to Campmatch
-            </a>
-          </div>
-
-          <div style={{ textAlign: 'center', color: '#4B5567', fontSize: 11.5, marginTop: 18 }}>
-            This page is only available at /admin and is never linked from the student app.
           </div>
         </div>
       </div>

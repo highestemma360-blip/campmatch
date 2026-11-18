@@ -92,6 +92,8 @@ export function ExploreRoomsAdmin({ token, onNotify }: AdminPanelProps) {
 
   useEffect(() => {
     load()
+    const id = window.setInterval(load, 10000)
+    return () => window.clearInterval(id)
   }, [])
 
   async function load() {
@@ -361,6 +363,8 @@ export function NotificationsAdmin({ token, onNotify }: AdminPanelProps) {
 
   useEffect(() => {
     load()
+    const id = window.setInterval(load, 10000)
+    return () => window.clearInterval(id)
   }, [])
 
   async function load() {
