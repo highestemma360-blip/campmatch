@@ -19,12 +19,21 @@ from ..security import (
     get_allowed_domains,
     get_bool_setting,
     get_setting,
+    lift_expired_ban,
     DEFAULT_SCHOOL_DOMAINS,
 )
 
 router = APIRouter()
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip() or os.environ.get("VITE_GOOGLE_CLIENT_ID", "").strip()
 DUMMY_BCRYPT_HASH = hash_password("campmatch-timing-guard-placeholder")
+
+
+def _ban_error_message(user: User) -> str:
+    if (user.ban_type or "") == "permanent":
+        return "This account has been permanently banned for violating community guidelines."
+    if (user.ban_type or "") == "temporary" and user.banned_until:
+        return f"Your account is temporarily banned until {user.banned_until.strftime('%d %b %Y')}. Contact campus support for assistance."
+    return "Your account has been suspended. Contact campus support for assistance."
 
 BLOCKED_CONSUMER_DOMAINS = {
     "@gmail.com",
@@ -164,8 +173,10 @@ def login(data: LoginIn, db: Session = Depends(get_db)):
         raise HTTPException(401, "Invalid email or password.")
     if get_bool_setting(db, "maintenance_mode", False):
         raise HTTPException(503, "Platform is currently in maintenance mode.")
+    if lift_expired_ban(user):
+        db.commit()
     if not user.is_active:
-        raise HTTPException(403, "Your account has been suspended. Contact campus support for assistance.")
+        raise HTTPException(403, _ban_error_message(user))
 
     if not user.school:
         user.school = detect_school(email_clean)
@@ -237,8 +248,10 @@ async def google_login(data: GoogleAuthIn, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     else:
+        if lift_expired_ban(user):
+            db.commit()
         if not user.is_active:
-            raise HTTPException(403, "Your account has been suspended.")
+            raise HTTPException(403, _ban_error_message(user))
         if not user.school:
             user.school = detect_school(email)
         user.last_active = datetime.utcnow()

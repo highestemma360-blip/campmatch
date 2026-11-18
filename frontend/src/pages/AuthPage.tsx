@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { CampmatchLogo, VerifiedBadge, ShieldIcon } from '../components/Icons'
+import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon } from '../components/Icons'
 import { TERMS_SUMMARY, PRIVACY_SUMMARY } from '../constants'
 
 interface AuthPageProps {
@@ -207,21 +207,22 @@ export function AuthPage({ onAuth }: AuthPageProps) {
 
       <div className="auth-grid" style={{ margin: 'auto 0' }}>
         <div className="auth-hero-copy" style={{ color: '#fff', padding: '8px 4px' }}>
-          <div style={{ marginBottom: 16 }}>
-            <CampmatchLogo iconSize={42} fontSize={34} gap={12} />
+          <div style={{ marginBottom: 22 }}>
+            <CampmatchLogo iconSize={46} fontSize={36} gap={13} />
           </div>
 
           <h1
             className="auth-hero-sub"
             style={{
-              fontSize: 'clamp(30px, 4.6vw, 46px)',
+              fontSize: 'clamp(32px, 4.8vw, 50px)',
               fontWeight: 800,
-              lineHeight: 1.1,
-              letterSpacing: '-1.2px',
-              margin: '0 0 14px',
+              lineHeight: 1.08,
+              letterSpacing: '-1.4px',
+              margin: '0 0 16px',
             }}
           >
-            Meet real students on{' '}
+            Meet students from
+            <br />
             <span
               style={{
                 background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
@@ -236,79 +237,55 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           <p
             style={{
               color: '#9ba6bc',
-              fontSize: 15,
-              lineHeight: 1.55,
-              margin: '0 0 16px',
-              maxWidth: 420,
+              fontSize: 16,
+              lineHeight: 1.6,
+              margin: '0 0 22px',
+              maxWidth: 440,
             }}
           >
-            Sign in with your university Google account. Verified students only — consumer Gmail
-            accounts and unapproved domains are declined automatically.
+            Campmatch is where verified university students in Ghana connect — for dates, new
+            friends, and study partners.
           </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'inherit', gap: 8, marginBottom: 14 }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
-                borderRadius: 999,
-                background: 'rgba(29, 161, 242, 0.13)',
-                border: '1px solid rgba(29, 161, 242, 0.32)',
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#7dd3fc',
-              }}
-            >
-              <VerifiedBadge size={15} /> Verified .edu.gh Access
-            </span>
-            <span
-              style={{
-                padding: '6px 12px',
-                borderRadius: 999,
-                background: 'rgba(255, 170, 0, 0.11)',
-                border: '1px solid rgba(255, 170, 0, 0.28)',
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#ffd84d',
-              }}
-            >
-              Date · BFF · Study
-            </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+            {[
+              'Verified students only — no fakes',
+              'Dates, BFFs and study partners',
+              'Private, safe and on your campus',
+            ].map((line, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: '#e8ecf4' }}>
+                <span
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    background: 'rgba(34,197,94,0.16)',
+                    color: '#22c55e',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <CheckIcon size={13} />
+                </span>
+                {line}
+              </div>
+            ))}
           </div>
 
-          <div className="auth-schools-row">
-            {schools.slice(0, 8).map(s => (
-              <span
-                key={s}
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  padding: '4px 10px',
-                  borderRadius: 8,
-                  background: 'rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.72)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                {s}
-              </span>
-            ))}
-            {schools.length > 8 && (
-              <span
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  padding: '4px 10px',
-                  borderRadius: 8,
-                  background: 'rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.72)',
-                }}
-              >
-                +{schools.length - 8} more
-              </span>
-            )}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.62)',
+            }}
+          >
+            <VerifiedBadge size={16} />
+            {schools.length > 1 ? `${schools.length} universities on board` : 'University students only'}
           </div>
         </div>
 

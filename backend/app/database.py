@@ -176,6 +176,18 @@ def run_migrations():
             ("verified_only", "BOOLEAN DEFAULT 0"),
             ("boosted_until", "DATETIME"),
             ("last_active", "DATETIME"),
+            ("ban_type", "VARCHAR(20) DEFAULT ''"),
+            ("banned_until", "DATETIME"),
+            ("ban_reason", "VARCHAR(255) DEFAULT ''"),
+            ("banned_at", "DATETIME"),
+            ("banned_by", "INTEGER"),
+        ],
+        "image_moderation_logs": [
+            ("stored_path", "VARCHAR(255) DEFAULT ''"),
+            ("review_status", "VARCHAR(20) DEFAULT 'auto'"),
+            ("reviewed_at", "DATETIME"),
+            ("reviewed_by", "INTEGER"),
+            ("review_note", "VARCHAR(255) DEFAULT ''"),
         ],
         "matches": [
             ("expires_at", "DATETIME"),

@@ -32,7 +32,7 @@ export function NotificationsSheet({ items, onClose, onRead, onReadAll }: Notifi
       <div
         className="modal-card"
         onClick={e => e.stopPropagation()}
-        style={{ padding: 0, overflow: 'hidden', maxWidth: 520 }}
+        style={{ padding: 0, overflow: 'hidden', maxWidth: 560, border: 'none' }}
       >
         <div
           style={{
@@ -124,8 +124,8 @@ export function NotificationsSheet({ items, onClose, onRead, onReadAll }: Notifi
               style={{
                 textAlign: 'left',
                 padding: 0,
-                border: item.read ? '1px solid var(--border-subtle)' : '1px solid rgba(255,79,94,0.4)',
-                background: item.read ? 'var(--bg-elevated)' : 'rgba(255,79,94,0.05)',
+                border: 'none',
+                background: item.read ? 'var(--bg-elevated)' : 'rgba(255,79,94,0.06)',
                 borderRadius: 16,
                 overflow: 'hidden',
                 cursor: 'pointer',
@@ -136,7 +136,7 @@ export function NotificationsSheet({ items, onClose, onRead, onReadAll }: Notifi
                 <img
                   src={item.flyer_url}
                   alt={item.title}
-                  style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }}
+                  style={{ width: '100%', maxHeight: 360, objectFit: 'contain', display: 'block', background: '#05070c' }}
                 />
               )}
               <div style={{ padding: '13px 15px 15px' }}>

@@ -36,6 +36,7 @@ from ..security import (
 )
 from ..realtime import hub
 from ..explore_rooms import all_rooms, active_slugs, serialize_room, ICON_CHOICES
+from .. import push
 from .profiles import get_current_user, parse_list, parse_prompts
 
 router = APIRouter()
@@ -359,6 +360,10 @@ def inspect_user(user_id: int, admin: User = Depends(require_admin), db: Session
         "is_active": bool(u.is_active),
         "is_admin": bool(u.is_admin),
         "is_premium": bool(u.is_premium),
+        "ban_type": u.ban_type or "",
+        "banned_until": u.banned_until.isoformat() if u.banned_until else None,
+        "ban_reason": u.ban_reason or "",
+        "banned_at": u.banned_at.isoformat() if u.banned_at else None,
         "premium_until": u.premium_until.isoformat() if u.premium_until else None,
         "is_deleted": bool(u.is_deleted),
         "deleted_at": u.deleted_at.isoformat() if u.deleted_at else None,
@@ -487,6 +492,52 @@ async def toggle_active(user_id: int, admin: User = Depends(require_admin), db: 
     return {"ok": True, "is_active": u.is_active}
 
 
+class BanUserIn(BaseModel):
+    mode: str = "temporary"  # temporary | permanent
+    days: int = 7
+    reason: str = ""
+
+
+@router.post("/users/{user_id}/ban")
+async def ban_user(user_id: int, data: BanUserIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        raise HTTPException(404, "User not found.")
+    if u.id == admin.id:
+        raise HTTPException(400, "You cannot ban your own administrator account.")
+    mode = "permanent" if data.mode == "permanent" else "temporary"
+    u.ban_type = mode
+    u.ban_reason = data.reason.strip()[:255]
+    u.banned_at = datetime.utcnow()
+    u.banned_by = admin.id
+    u.banned_until = None if mode == "permanent" else (datetime.utcnow() + timedelta(days=max(1, min(365, int(data.days or 7)))))
+    u.is_active = False
+    u.snoozed = True
+    u.token_version = (u.token_version or 1) + 1
+    log_audit(db, admin.id, f"ban_{mode}", target_user_id=u.id, details=u.ban_reason or f"{data.days}d")
+    db.commit()
+    await hub.send_to_user(u.id, {"type": "account_terminated"})
+    return {"ok": True, "ban_type": mode, "banned_until": u.banned_until.isoformat() if u.banned_until else None}
+
+
+@router.post("/users/{user_id}/unban")
+async def unban_user(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        raise HTTPException(404, "User not found.")
+    u.ban_type = ""
+    u.banned_until = None
+    u.ban_reason = ""
+    u.banned_at = None
+    u.banned_by = None
+    u.is_active = True
+    u.snoozed = False
+    log_audit(db, admin.id, "unban", target_user_id=u.id)
+    db.commit()
+    await hub.send_to_user(u.id, {"type": "account_restored"})
+    return {"ok": True}
+
+
 @router.post("/users/{user_id}/toggle-premium")
 async def toggle_premium(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     u = db.query(User).filter(User.id == user_id).first()
@@ -579,8 +630,10 @@ def admin_restore_deleted_user(user_id: int, admin: User = Depends(require_admin
 
 
 class ReportActionIn(BaseModel):
-    action: str  # resolve / dismiss / suspend_user
+    action: str  # resolve / dismiss / suspend_user / ban_temporary / ban_permanent
     admin_note: str = ""
+    days: int = 7
+    reason: str = ""
 
 
 @router.get("/reports")
@@ -650,10 +703,20 @@ async def act_on_report(
     r.admin_note = data.admin_note.strip()[:500]
     r.status = "dismissed" if data.action == "dismiss" else "resolved"
 
-    if data.action == "suspend_user":
+    if data.action in ("suspend_user", "ban_temporary", "ban_permanent"):
         target = db.query(User).filter(User.id == r.reported_id).first()
         if target and target.id != admin.id:
+            if data.action == "ban_temporary":
+                target.ban_type = "temporary"
+                target.banned_until = datetime.utcnow() + timedelta(days=max(1, min(365, int(data.days or 7))))
+            else:  # ban_permanent / legacy suspend_user
+                target.ban_type = "permanent"
+                target.banned_until = None
+            target.ban_reason = (data.reason or f"Reported: {r.reason}")[:255]
+            target.banned_at = datetime.utcnow()
+            target.banned_by = admin.id
             target.is_active = False
+            target.snoozed = True
             target.token_version = (target.token_version or 1) + 1
             await hub.send_to_user(target.id, {"type": "account_terminated"})
 
@@ -702,9 +765,96 @@ def list_moderation_logs(
             "reject_code": row.reject_code,
             "reason": row.reason,
             "metrics": metrics,
+            "stored_path": row.stored_path or "",
+            "image_url": row.stored_path or "",
+            "review_status": row.review_status or "auto",
+            "review_note": row.review_note or "",
             "created_at": row.created_at.isoformat() if row.created_at else "",
         })
     return out
+
+
+@router.get("/moderation/review")
+def list_pending_reviews(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    rows = (
+        db.query(ImageModerationLog)
+        .filter(ImageModerationLog.review_status == "pending", ImageModerationLog.stored_path != "")
+        .order_by(ImageModerationLog.created_at.asc())
+        .limit(200)
+        .all()
+    )
+    out = []
+    for row in rows:
+        u = db.query(User).filter(User.id == row.user_id).first()
+        try:
+            metrics = json.loads(row.metrics_json or "{}")
+        except Exception:
+            metrics = {}
+        out.append({
+            "id": row.id,
+            "user_id": row.user_id,
+            "user_email": (u.original_email or u.email) if u else "",
+            "user_name": u.name if u else "",
+            "filename": row.filename,
+            "reject_code": row.reject_code,
+            "reason": row.reason,
+            "metrics": metrics,
+            "image_url": row.stored_path or "",
+            "created_at": row.created_at.isoformat() if row.created_at else "",
+        })
+    return out
+
+
+class ModerationReviewIn(BaseModel):
+    note: str = ""
+
+
+@router.post("/moderation/{log_id}/approve")
+def approve_review(log_id: int, data: ModerationReviewIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    row = db.query(ImageModerationLog).filter(ImageModerationLog.id == log_id).first()
+    if not row:
+        raise HTTPException(404, "Review item not found.")
+    if not row.stored_path:
+        raise HTTPException(400, "No image copy is available to approve.")
+    user = db.query(User).filter(User.id == row.user_id).first()
+    if not user or user.is_deleted:
+        raise HTTPException(400, "The owning student account no longer exists.")
+
+    existing = parse_list(user.photo_urls)
+    if len(existing) >= 6:
+        row.review_status = "declined"
+        row.review_note = (data.note or "Photo limit reached; could not approve.")[:255]
+        row.reviewed_at = datetime.utcnow()
+        row.reviewed_by = admin.id
+        db.commit()
+        raise HTTPException(400, "Student already has the maximum of 6 photos.")
+
+    user.photo_urls = ",".join(existing + [row.stored_path])
+    if user.name and user.course:
+        user.profile_complete = True
+    row.accepted = True
+    row.review_status = "approved"
+    row.review_note = data.note.strip()[:255]
+    row.reviewed_at = datetime.utcnow()
+    row.reviewed_by = admin.id
+    log_audit(db, admin.id, "moderation_approve", target_user_id=user.id, details=f"photo #{row.id}")
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/moderation/{log_id}/decline")
+def decline_review(log_id: int, data: ModerationReviewIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    row = db.query(ImageModerationLog).filter(ImageModerationLog.id == log_id).first()
+    if not row:
+        raise HTTPException(404, "Review item not found.")
+    row.accepted = False
+    row.review_status = "declined"
+    row.review_note = data.note.strip()[:255]
+    row.reviewed_at = datetime.utcnow()
+    row.reviewed_by = admin.id
+    log_audit(db, admin.id, "moderation_decline", target_user_id=row.user_id, details=f"photo #{row.id}")
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/payments")
@@ -1006,6 +1156,7 @@ async def create_notification(data: NotificationIn, admin: User = Depends(requir
     db.commit()
     db.refresh(n)
     await hub.broadcast({"type": "notification_created", "notification_id": n.id})
+    push.push_notification(db, n)
     return {"ok": True, "id": n.id}
 
 
@@ -1053,6 +1204,8 @@ async def update_notification(
     log_audit(db, admin.id, "update_notification", details=n.title)
     db.commit()
     await hub.broadcast({"type": "notification_created", "notification_id": n.id})
+    if n.is_active:
+        push.push_notification(db, n)
     return {"ok": True}
 
 
@@ -1066,6 +1219,33 @@ def delete_notification(notification_id: int, admin: User = Depends(require_admi
     log_audit(db, admin.id, "delete_notification", details=n.title)
     db.commit()
     return {"ok": True}
+
+
+class BulkDeleteNotificationsIn(BaseModel):
+    mode: str = "expired"  # expired | inactive | all
+
+
+@router.post("/notifications/delete-bulk")
+def bulk_delete_notifications(data: BulkDeleteNotificationsIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    now = datetime.utcnow()
+    q = db.query(Notification)
+    if data.mode == "expired":
+        q = q.filter(Notification.expires_at.isnot(None), Notification.expires_at < now)
+    elif data.mode == "inactive":
+        q = q.filter(Notification.is_active == False)  # noqa: E712
+    elif data.mode == "all":
+        pass
+    else:
+        raise HTTPException(400, "Unknown deletion mode.")
+    rows = q.all()
+    ids = [n.id for n in rows]
+    if ids:
+        db.query(NotificationRead).filter(NotificationRead.notification_id.in_(ids)).delete(synchronize_session=False)
+        for n in rows:
+            db.delete(n)
+        log_audit(db, admin.id, "delete_notifications_bulk", details=f"{data.mode} ({len(ids)})")
+        db.commit()
+    return {"ok": True, "deleted": len(ids)}
 
 
 # ---------------------------------------------------------------------------

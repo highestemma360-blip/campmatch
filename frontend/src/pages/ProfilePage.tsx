@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { CurrentUser, PlusConfig, PromptItem } from '../types'
 import {
   LEVELS,
@@ -14,6 +14,7 @@ import {
   makeAvatarPlaceholder,
 } from '../constants'
 import { precheckProfileImage } from '../utils/imageCheck'
+import { getPushState, enablePush, disablePush, pushSupported, PushState } from '../utils/push'
 import {
   VerifiedBadge,
   CloseXIcon,
@@ -27,6 +28,7 @@ import {
   PlusIcon,
   MusicIcon,
   MapPinIcon,
+  BellIcon,
 } from '../components/Icons'
 
 interface ProfilePageProps {
@@ -100,6 +102,32 @@ export function ProfilePage({
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [pwStatus, setPwStatus] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  // Phone alerts (web push) state
+  const [pushState, setPushState] = useState<PushState>({ supported: pushSupported(), permission: 'default', enabled: false })
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushMsg, setPushMsg] = useState('')
+
+  useEffect(() => {
+    getPushState().then(s => setPushState(s))
+  }, [])
+
+  async function handleTogglePush() {
+    setPushBusy(true)
+    setPushMsg('')
+    if (pushState.enabled) {
+      await disablePush(token)
+      setPushState(await getPushState())
+      setPushMsg('Phone alerts turned off.')
+    } else {
+      const res = await enablePush(token)
+      setPushState(await getPushState())
+      if (res.denied) setPushMsg('Notifications are blocked in your browser settings.')
+      else if (!res.ok) setPushMsg(res.error || 'Could not enable notifications.')
+      else setPushMsg('Phone alerts are on. You will get match and campus notifications.')
+    }
+    setPushBusy(false)
+  }
 
   function openEditor() {
     setName(me.name || '')
@@ -744,6 +772,30 @@ export function ProfilePage({
               {me.snoozed ? 'Resume' : 'Snooze'}
             </button>
           </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BellIcon size={14} /> Phone Alerts
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {pushState.enabled
+                  ? 'Matches & campus updates sent to your phone'
+                  : 'Get matches and notifications on your phone'}
+              </div>
+            </div>
+            <button
+              className={pushState.enabled ? 'btn-ghost' : 'btn-brand'}
+              style={{ padding: '7px 14px', fontSize: 12 }}
+              disabled={!pushState.supported || pushBusy}
+              onClick={handleTogglePush}
+            >
+              {pushBusy ? 'Working…' : pushState.enabled ? 'Turn Off' : 'Turn On'}
+            </button>
+          </div>
+          {pushMsg && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0 2px', lineHeight: 1.45 }}>{pushMsg}</div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
             <div>

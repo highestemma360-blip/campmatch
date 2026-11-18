@@ -441,6 +441,21 @@ export function NotificationsAdmin({ token, onNotify }: AdminPanelProps) {
     }
   }
 
+  async function bulkDelete(mode: 'expired' | 'inactive') {
+    const label = mode === 'expired' ? 'Delete all expired notifications?' : 'Delete all paused notifications?'
+    if (!window.confirm(label)) return
+    const r = await fetch('/api/admin/notifications/delete-bulk', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ mode }),
+    })
+    const d = await r.json().catch(() => ({}))
+    if (r.ok) {
+      onNotify(`${d.deleted || 0} notification(s) deleted.`)
+      load()
+    }
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
       <div style={cardStyle}>
@@ -535,7 +550,17 @@ export function NotificationsAdmin({ token, onNotify }: AdminPanelProps) {
       </div>
 
       <div style={cardStyle}>
-        <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12 }}>Sent Notifications</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontWeight: 800, fontSize: 14 }}>Sent Notifications</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn-ghost" style={{ padding: '5px 10px', fontSize: 11 }} onClick={() => bulkDelete('expired')}>
+              Delete expired
+            </button>
+            <button className="btn-ghost" style={{ padding: '5px 10px', fontSize: 11 }} onClick={() => bulkDelete('inactive')}>
+              Delete paused
+            </button>
+          </div>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 640, overflowY: 'auto' }}>
           {items.map(item => (
             <div key={item.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 14, overflow: 'hidden', opacity: item.is_active ? 1 : 0.6 }}>

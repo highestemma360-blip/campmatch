@@ -14,6 +14,7 @@ from .models import User, Match
 from .security import bootstrap_defaults, decode_token
 from .realtime import hub
 from .routers import auth, profiles, swipes, chat, admin, payments, notifications
+from .routers import push as push_router
 from .explore_rooms import seed_default_rooms
 
 models.Base.metadata.create_all(bind=database.engine)
@@ -131,6 +132,7 @@ app.include_router(chat.router, prefix="/api")
 app.include_router(admin.router, prefix="/api/admin")
 app.include_router(payments.router, prefix="/api/payments")
 app.include_router(notifications.router, prefix="/api")
+app.include_router(push_router.router, prefix="/api")
 
 
 @app.get("/api/health")

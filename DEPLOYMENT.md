@@ -192,3 +192,35 @@ Keep an off-Render copy of important backups; a disk protects against redeploys,
 | Mobile Money button missing | Moolre credentials incomplete or “Accept payments” unchecked. |
 | Webhook rejected | Wallet secret does not match the Moolre dashboard, or the signature is older than 5 minutes. |
 | Admin login fails | `ADMIN_USERNAME`/`ADMIN_EMAIL` and `ADMIN_PASSWORD` must be set on the service; restart after changes. |
+| No phone notifications | Student must tap **Profile → Settings → Phone Alerts**, and the browser must allow notifications. |
+| Push not delivered | `pywebpush` installed, `VAPID_SUBJECT` set to a `mailto:` or `https:` URL, and the service worker registered. |
+
+
+## 9. Safety, moderation & web push
+
+### Photo review
+Automatically-rejected profile photos are kept in a **pending queue** (Image Guard → Pending Photo Review).
+The administrator can **Accept & Add** (the photo is added to the student's profile) or **Decline**. False positives
+from the AI detector are recovered without asking the student to re-upload.
+
+### Reporting & bans
+Students can report another user with a reason (and block them). From **Reports**, the administrator can:
+
+- Mark resolved / dismiss
+- **Ban 7 days** or **Ban 30 days** (temporary)
+- **Ban permanently**
+
+Temporary bans lift automatically when they expire. Permanent bans block sign-in with a clear message.
+Bans can also be managed from any user's inspector (Inspect → Ban / Lift Ban).
+
+### Automatic Plus activation
+The moment Moolre confirms a successful payment (webhook `payment.succeeded`, or the in-app
+`/api/payments/verify/{reference}` poll), the student's Campmatch Plus is granted automatically —
+no manual approval step. The admin "Approve & Grant Plus" button remains as a fallback.
+
+### Web push (phone notifications)
+Students opt in from **Profile → Settings → Phone Alerts**. Matches and campus notifications are then
+delivered to their phone via the browser Push API + `sw.js` service worker. VAPID keys are auto-generated
+and persisted on the disk; optionally set `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`
+in Render to pin them.
+

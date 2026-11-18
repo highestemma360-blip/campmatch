@@ -9,6 +9,7 @@ from ..database import get_db
 from ..models import User, Swipe, Match, Block
 from ..security import get_bool_setting, get_int_setting
 from ..realtime import hub
+from .. import push
 from .profiles import (
     get_current_user,
     serialize_user,
@@ -357,6 +358,30 @@ async def swipe(
                 "match_id": match.id,
                 "partner": serialize_user(user, full=False),
                 "is_super": bool(match.is_super),
+            },
+        )
+        # Deliver a phone notification so matches surface even when the app is closed.
+        other = db.query(User).filter(User.id == swiped_id).first()
+        push.push_to_user(
+            db,
+            swiped_id,
+            {
+                "title": "New match!",
+                "body": f"You and {user.name or 'someone new'} matched — say hi!",
+                "url": "/",
+                "icon": "/favicon.svg",
+                "tag": f"match-{match.id}",
+            },
+        )
+        push.push_to_user(
+            db,
+            user.id,
+            {
+                "title": "New match!",
+                "body": f"You and {other.name if other else 'someone new'} matched — say hi!",
+                "url": "/",
+                "icon": "/favicon.svg",
+                "tag": f"match-{match.id}",
             },
         )
     elif liked or super_like:

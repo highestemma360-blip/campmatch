@@ -34,6 +34,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
   const [reports, setReports] = useState<any[]>([])
   const [reportMessages, setReportMessages] = useState<Record<number, any[]>>({})
   const [modLogs, setModLogs] = useState<any[]>([])
+  const [pendingReviews, setPendingReviews] = useState<any[]>([])
   const [rejectedOnly, setRejectedOnly] = useState(false)
   const [payments, setPayments] = useState<any[]>([])
   const [auditLogs, setAuditLogs] = useState<any[]>([])
@@ -49,7 +50,10 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     if (section === 'users') loadUsers(userFilter, userSearch)
     else if (section === 'vault') loadUsers('deleted', userSearch)
     else if (section === 'reports') loadReports()
-    else if (section === 'moderation') loadModLogs(rejectedOnly)
+    else if (section === 'moderation') {
+      loadModLogs(rejectedOnly)
+      loadPendingReviews()
+    }
     else if (section === 'payments') loadPayments()
     else if (section === 'audit') loadAudit()
   }, [section, userFilter, rejectedOnly])
@@ -90,6 +94,59 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
   async function loadModLogs(onlyRejected: boolean) {
     const r = await fetch(`/api/admin/moderation-logs?rejected_only=${onlyRejected}`, { headers })
     if (r.ok) setModLogs(await r.json())
+  }
+
+  async function loadPendingReviews() {
+    const r = await fetch('/api/admin/moderation/review', { headers })
+    if (r.ok) setPendingReviews(await r.json())
+  }
+
+  async function approveReview(id: number) {
+    const r = await fetch(`/api/admin/moderation/${id}/approve`, { method: 'POST', headers, body: JSON.stringify({}) })
+    const d = await r.json().catch(() => ({}))
+    if (!r.ok) {
+      onNotify(typeof d.detail === 'string' ? d.detail : 'Could not approve this photo.')
+      loadPendingReviews()
+      return
+    }
+    onNotify('Photo approved and added to the student profile.')
+    loadPendingReviews()
+    loadModLogs(rejectedOnly)
+  }
+
+  async function declineReview(id: number) {
+    const r = await fetch(`/api/admin/moderation/${id}/decline`, { method: 'POST', headers, body: JSON.stringify({}) })
+    if (r.ok) {
+      onNotify('Photo declined and removed from review.')
+      loadPendingReviews()
+      loadModLogs(rejectedOnly)
+    }
+  }
+
+  async function banUser(userId: number, mode: 'temporary' | 'permanent', days = 7) {
+    const reason = window.prompt(mode === 'permanent' ? 'Reason for the permanent ban:' : `Reason for the ${days}-day ban:`) || ''
+    if (reason === null) return
+    const r = await fetch(`/api/admin/users/${userId}/ban`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ mode, days, reason }),
+    })
+    if (r.ok) {
+      onNotify(mode === 'permanent' ? 'Account permanently banned.' : `Account temporarily banned for ${days} days.`)
+      if (selectedUser?.id === userId) openUserInspector(userId)
+      loadUsers(section === 'vault' ? 'deleted' : userFilter, userSearch)
+      loadOverviewAndSettings()
+    }
+  }
+
+  async function unbanUser(userId: number) {
+    const r = await fetch(`/api/admin/users/${userId}/unban`, { method: 'POST', headers })
+    if (r.ok) {
+      onNotify('Ban lifted; account restored.')
+      if (selectedUser?.id === userId) openUserInspector(userId)
+      loadUsers(section === 'vault' ? 'deleted' : userFilter, userSearch)
+      loadOverviewAndSettings()
+    }
   }
 
   async function loadPayments() {
@@ -187,11 +244,18 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     if (r.ok) onNotify('Active sessions invalidated.')
   }
 
-  async function handleReportAction(reportId: number, action: 'resolve' | 'dismiss' | 'suspend_user') {
+  async function handleReportAction(reportId: number, action: 'resolve' | 'dismiss' | 'suspend_user' | 'ban_temporary' | 'ban_permanent', days = 7) {
+    let reason = ''
+    if (action === 'ban_temporary' || action === 'ban_permanent') {
+      const label = action === 'ban_permanent' ? 'Reason for permanent ban' : `Reason for ${days}-day ban`
+      const input = window.prompt(label)
+      if (input === null) return
+      reason = input
+    }
     const r = await fetch(`/api/admin/reports/${reportId}/action`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ action, days, reason }),
     })
     if (r.ok) {
       onNotify('Report updated.')
@@ -798,6 +862,27 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                     >
                       Suspend Reported User
                     </button>
+                    <button
+                      className="btn-ghost"
+                      style={{ padding: '6px 12px', fontSize: 12, color: '#ffb15c' }}
+                      onClick={() => handleReportAction(r.id, 'ban_temporary', 7)}
+                    >
+                      Ban 7 Days
+                    </button>
+                    <button
+                      className="btn-ghost"
+                      style={{ padding: '6px 12px', fontSize: 12, color: '#ff8f5c' }}
+                      onClick={() => handleReportAction(r.id, 'ban_temporary', 30)}
+                    >
+                      Ban 30 Days
+                    </button>
+                    <button
+                      className="btn-ghost"
+                      style={{ padding: '6px 12px', fontSize: 12, color: '#ff5a67' }}
+                      onClick={() => handleReportAction(r.id, 'ban_permanent')}
+                    >
+                      Ban Permanently
+                    </button>
                   </>
                 )}
               </div>
@@ -814,6 +899,89 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
       {/* 5. IMAGE MODERATION LOGS */}
       {section === 'moderation' && (
         <div>
+          {pendingReviews.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                Pending Photo Review
+                <span style={{ fontSize: 11, fontWeight: 800, background: 'rgba(245,158,11,0.16)', color: '#f59e0b', padding: '2px 9px', borderRadius: 99 }}>
+                  {pendingReviews.length}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {pendingReviews.map(m => (
+                  <div
+                    key={m.id}
+                    style={{
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 16,
+                      padding: 14,
+                      display: 'flex',
+                      gap: 14,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <img
+                      src={m.image_url}
+                      alt="Pending review"
+                      style={{ width: 120, height: 150, objectFit: 'cover', borderRadius: 12, background: '#05070c' }}
+                    />
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ fontWeight: 800, fontSize: 13.5 }}>
+                        {m.user_name || m.user_email || `User #${m.user_id}`}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                        {m.filename}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#ff8f5c', marginTop: 4, fontWeight: 600 }}>
+                        Auto-rejected: {m.reject_code}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.45 }}>
+                        {m.reason}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                        Faces: {m.metrics?.faces_detected ?? '-'} · Skin: {m.metrics?.body_skin_ratio ?? '-'} · {m.created_at?.slice(0, 16)}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => approveReview(m.id)}
+                          style={{
+                            padding: '7px 14px',
+                            borderRadius: 99,
+                            border: 'none',
+                            background: 'rgba(34,197,94,0.18)',
+                            color: '#22c55e',
+                            fontWeight: 800,
+                            fontSize: 12,
+                          }}
+                        >
+                          Accept & Add
+                        </button>
+                        <button
+                          onClick={() => declineReview(m.id)}
+                          style={{
+                            padding: '7px 14px',
+                            borderRadius: 99,
+                            border: 'none',
+                            background: 'rgba(255,68,88,0.16)',
+                            color: '#ff5a67',
+                            fontWeight: 800,
+                            fontSize: 12,
+                          }}
+                        >
+                          Decline
+                        </button>
+                        <button className="btn-ghost" style={{ padding: '7px 12px', fontSize: 12 }} onClick={() => openUserInspector(m.user_id)}>
+                          Inspect User
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               Automated human presence, blank/black/white, and explicit skin-exposure checks.
@@ -982,6 +1150,25 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
               </button>
             </div>
 
+            {selectedUser.ban_type && (
+              <div
+                style={{
+                  marginBottom: 14,
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  background: 'rgba(255,68,88,0.1)',
+                  border: '1px solid rgba(255,68,88,0.3)',
+                  color: '#ff7b88',
+                  fontSize: 12.5,
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong>Banned</strong> ({selectedUser.ban_type})
+                {selectedUser.banned_until ? ` until ${String(selectedUser.banned_until).slice(0, 16)}` : ' — permanent'}
+                {selectedUser.ban_reason ? <div style={{ marginTop: 2, color: 'var(--text-secondary)' }}>Reason: {selectedUser.ban_reason}</div> : null}
+              </div>
+            )}
+
             {/* Activity Summary */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(84px, 1fr))', gap: 8, marginBottom: 16 }}>
               {[
@@ -1074,6 +1261,48 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                   >
                     Force Logout
                   </button>
+                  {selectedUser.ban_type ? (
+                    <>
+                      <button
+                        onClick={() => unbanUser(selectedUser.id)}
+                        style={{
+                          padding: '8px 13px',
+                          borderRadius: 99,
+                          border: 'none',
+                          background: 'rgba(34,197,94,0.16)',
+                          color: '#22c55e',
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                      >
+                        Lift Ban
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="btn-ghost"
+                        style={{ fontSize: 12, padding: '8px 12px', color: '#ffb15c' }}
+                        onClick={() => banUser(selectedUser.id, 'temporary', 7)}
+                      >
+                        Ban 7 Days
+                      </button>
+                      <button
+                        className="btn-ghost"
+                        style={{ fontSize: 12, padding: '8px 12px', color: '#ff8f5c' }}
+                        onClick={() => banUser(selectedUser.id, 'temporary', 30)}
+                      >
+                        Ban 30 Days
+                      </button>
+                      <button
+                        className="btn-ghost"
+                        style={{ fontSize: 12, padding: '8px 12px', color: '#ff5a67' }}
+                        onClick={() => banUser(selectedUser.id, 'permanent')}
+                      >
+                        Ban Permanently
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => updateUserAction(selectedUser.id, { is_active: !selectedUser.is_active })}
                     style={{

@@ -79,6 +79,24 @@ def decode_token(token: str) -> dict:
     return jwt.decode(token, SECRET, algorithms=[ALGORITHM])
 
 
+def lift_expired_ban(user: User) -> bool:
+    """Auto-lift a temporary ban whose window has elapsed. Mutates the user
+    object; the caller is responsible for committing."""
+    if (
+        user
+        and not user.is_active
+        and (user.ban_type or "") == "temporary"
+        and user.banned_until is not None
+        and user.banned_until < datetime.utcnow()
+    ):
+        user.is_active = True
+        user.ban_type = ""
+        user.banned_until = None
+        user.ban_reason = ""
+        return True
+    return False
+
+
 def get_setting(db: Session, key: str, default: str = "") -> str:
     row = db.query(Setting).filter(Setting.key == key).first()
     if row and row.value is not None:

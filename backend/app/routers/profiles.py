@@ -1,4 +1,5 @@
 import os
+import io
 import json
 import time
 import uuid
@@ -7,6 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from PIL import Image, ImageOps
 
 from ..database import get_db, UPLOAD_DIR
 from ..models import User, Swipe, Match, ImageModerationLog
@@ -20,6 +22,7 @@ from ..security import (
     get_int_setting,
     get_float_setting,
     get_setting,
+    lift_expired_ban,
 )
 from ..image_guard import validate_and_optimize_profile_photo
 from ..realtime import hub
@@ -217,7 +220,11 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
         raise HTTPException(401, "Invalid or expired session token.")
 
     user = db.query(User).filter(User.id == user_id).first()
-    if not user or user.is_deleted or not user.is_active:
+    if not user or user.is_deleted:
+        raise HTTPException(401, "Account is inactive or no longer available.")
+    if lift_expired_ban(user):
+        db.commit()
+    if not user.is_active:
         raise HTTPException(401, "Account is inactive or no longer available.")
     if (user.token_version or 1) != token_ver:
         raise HTTPException(401, "Session has expired. Please sign in again.")
@@ -296,6 +303,26 @@ def update_profile(data: ProfileIn, user: User = Depends(get_current_user), db: 
     return {"ok": True, "profile_complete": user.profile_complete, "user": serialize_user(user, full=True, db=db)}
 
 
+def _store_review_copy(raw_bytes: bytes, user_id: int) -> str:
+    """Persist a small reviewable copy of a rejected upload so the campus admin
+    can inspect and, if appropriate, approve it. Returns the served URL path or
+    an empty string when the file cannot be decoded."""
+    try:
+        img = Image.open(io.BytesIO(raw_bytes))
+        img = ImageOps.exif_transpose(img)
+        if getattr(img, "is_animated", False):
+            return ""
+        img = img.convert("RGB")
+        img.thumbnail((900, 900), Image.Resampling.LANCZOS)
+        pending_dir = os.path.join(UPLOAD_DIR, "pending")
+        os.makedirs(pending_dir, exist_ok=True)
+        name = f"pending_{user_id}_{uuid.uuid4().hex[:10]}.webp"
+        img.save(os.path.join(pending_dir, name), "WEBP", quality=82, method=4)
+        return f"/uploads/pending/{name}"
+    except Exception:
+        return ""
+
+
 @router.post("/profile/photos")
 async def upload_photos(
     files: list[UploadFile] = File(...),
@@ -315,6 +342,16 @@ async def upload_photos(
         raw_bytes = await file.read()
         check = validate_and_optimize_profile_photo(raw_bytes)
 
+        stored_path = ""
+        review_status = "auto"
+        if check.accepted:
+            pass
+        else:
+            # Save a reviewable copy so the campus admin can still approve a
+            # false-positive rejection from the moderation queue.
+            stored_path = _store_review_copy(raw_bytes, user.id)
+            review_status = "pending" if stored_path else "auto"
+
         db.add(
             ImageModerationLog(
                 user_id=user.id,
@@ -323,6 +360,8 @@ async def upload_photos(
                 reject_code=check.reject_code,
                 reason=check.reason,
                 metrics_json=json.dumps(check.metrics),
+                stored_path=stored_path,
+                review_status=review_status,
             )
         )
 
@@ -331,6 +370,7 @@ async def upload_photos(
                 "filename": fname,
                 "code": check.reject_code,
                 "reason": check.reason,
+                "pending_review": bool(stored_path),
             })
             continue
 
@@ -349,10 +389,13 @@ async def upload_photos(
 
     if not accepted_urls and rejected_files:
         primary = rejected_files[0]
+        base = primary["reason"]
+        if primary.get("pending_review"):
+            base += " It has been sent to campus review; an administrator may still approve it."
         raise HTTPException(
             status_code=400,
             detail={
-                "message": primary["reason"],
+                "message": base,
                 "code": primary["code"],
                 "rejected": rejected_files,
             },

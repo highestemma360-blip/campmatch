@@ -44,6 +44,14 @@ services:
         sync: false
       - key: MOOLRE_CALLBACK_URL
         sync: false
+      # Web push (VAPID). Optional — keys are auto-generated and persisted on the
+      # disk if these are left empty. Set VAPID_SUBJECT to a mailto: or https: URL.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
     disk:
       name: data
       mountPath: /var/data

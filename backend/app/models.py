@@ -41,6 +41,12 @@ class User(Base):
     deleted_at = Column(DateTime, nullable=True)
     deletion_reason = Column(String(255), default="")
 
+    ban_type = Column(String(20), default="")  # "" | temporary | permanent
+    banned_until = Column(DateTime, nullable=True)
+    ban_reason = Column(String(255), default="")
+    banned_at = Column(DateTime, nullable=True)
+    banned_by = Column(Integer, nullable=True)
+
     is_premium = Column(Boolean, default=False)
     premium_until = Column(DateTime, nullable=True)
     boosted_until = Column(DateTime, nullable=True)
@@ -160,6 +166,25 @@ class ImageModerationLog(Base):
     reason = Column(String(255), default="")
     metrics_json = Column(Text, default="{}")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    stored_path = Column(String(255), default="")
+    review_status = Column(String(20), default="auto")  # auto | pending | approved | declined
+    reviewed_at = Column(DateTime, nullable=True)
+    reviewed_by = Column(Integer, nullable=True)
+    review_note = Column(String(255), default="")
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    endpoint = Column(String(500), unique=True, index=True)
+    p256dh = Column(String(255))
+    auth = Column(String(255))
+    user_agent = Column(String(255), default="")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=True)
 
 
 class AdminAuditLog(Base):
