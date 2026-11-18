@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 104" fill="none">
+  <defs>
+    <linearGradient id="cmMarkGrad" x1="12" y1="10" x2="86" y2="94" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF4C5E"/>
+      <stop offset="52%" stop-color="#FF7334"/>
+      <stop offset="100%" stop-color="#FFAA00"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M50 25C43 9 20 6 10 23C3 36 9 57 28 76C36 84 40 90 37 96C56 87 83 66 90 47C92 41 91 35 87 31C86 42 76 51 68 48C62 45 63 37 72 31C81 25 82 13 70 9C60 6 53 14 50 25Z"
+    fill="url(#cmMarkGrad)"
+  />
+</svg>

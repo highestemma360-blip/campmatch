@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 120" fill="none">
+  <defs>
+    <linearGradient id="cmIconGrad" x1="16" y1="14" x2="96" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF4C5E"/>
+      <stop offset="52%" stop-color="#FF7334"/>
+      <stop offset="100%" stop-color="#FFAA00"/>
+    </linearGradient>
+    <linearGradient id="cmWordGrad" x1="126" y1="62" x2="544" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF4F5E"/>
+      <stop offset="48%" stop-color="#FF7534"/>
+      <stop offset="100%" stop-color="#FFA800"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8, 8)">
+    <path
+      d="M50 25C43 9 20 6 10 23C3 36 9 57 28 76C36 84 40 90 37 96C56 87 83 66 90 47C92 41 91 35 87 31C86 42 76 51 68 48C62 45 63 37 72 31C81 25 82 13 70 9C60 6 53 14 50 25Z"
+      fill="url(#cmIconGrad)"
+    />
+  </g>
+  <text
+    x="122"
+    y="83"
+    fill="url(#cmWordGrad)"
+    font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="68"
+    font-weight="700"
+    letter-spacing="-1.6"
+  >Campmatch</text>
+</svg>
