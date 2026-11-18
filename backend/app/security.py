@@ -31,6 +31,10 @@ DEFAULT_SETTINGS = {
     "free_daily_swipe_limit": "10",
     "plus_price_ghs": "25",
     "plus_duration_days": "30",
+    "plus_price_3m": "60",
+    "plus_price_12m": "200",
+    "plus_discount_percent": "0",
+    "plus_discount_enabled": "false",
     "free_daily_super_likes": "3",
     "plus_daily_super_likes": "10",
     "umat_only": "true",
@@ -38,6 +42,7 @@ DEFAULT_SETTINGS = {
     "signups_enabled": "true",
     "maintenance_mode": "false",
     "announcement_banner": "",
+    "message_retention_days": "30",
     # Moolre payment gateway. Values entered in the admin console override the
     # matching Render environment variables, so keys can be rotated live.
     "moolre_enabled": "true",
@@ -134,6 +139,44 @@ def set_setting(db: Session, key: str, value: str):
         row.value = str(value)
     db.commit()
     return row
+
+
+# Campmatch Plus subscription plans. "plus_price_ghs" is the 1-month price;
+# the other tiers are priced separately so the admin can tune each.
+PLUS_PLAN_DEFS = [
+    {"id": "1m", "label": "1 Month", "months": 1, "days": 30, "price_key": "plus_price_ghs", "default_price": 25.0},
+    {"id": "3m", "label": "3 Months", "months": 3, "days": 90, "price_key": "plus_price_3m", "default_price": 60.0},
+    {"id": "12m", "label": "12 Months", "months": 12, "days": 365, "price_key": "plus_price_12m", "default_price": 200.0},
+]
+
+
+def get_plus_plans(db: Session) -> list:
+    discount_enabled = get_bool_setting(db, "plus_discount_enabled", False)
+    percent = get_float_setting(db, "plus_discount_percent", 0.0)
+    plans = []
+    for p in PLUS_PLAN_DEFS:
+        base = get_float_setting(db, p["price_key"], p["default_price"])
+        price = base
+        if discount_enabled and percent > 0:
+            price = round(base * (1.0 - percent / 100.0), 2)
+        plans.append({
+            "id": p["id"],
+            "label": p["label"],
+            "months": p["months"],
+            "duration_days": p["days"],
+            "base_price": round(base, 2),
+            "price": price,
+            "discounted": bool(price < base),
+        })
+    return plans
+
+
+def resolve_plus_plan(db: Session, plan_id: str = "") -> dict:
+    plans = get_plus_plans(db)
+    for p in plans:
+        if p["id"] == plan_id:
+            return p
+    return plans[0] if plans else {"id": "1m", "label": "1 Month", "duration_days": 30, "price": 25.0, "base_price": 25.0, "discounted": False}
 
 
 def detect_school(email: str) -> str:

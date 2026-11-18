@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from ..database import get_db
 from ..models import User, Payment, WebhookEvent
-from ..security import get_bool_setting, get_float_setting, get_int_setting, get_setting
+from ..security import get_bool_setting, get_float_setting, get_int_setting, get_setting, resolve_plus_plan
 from ..realtime import hub
 from .profiles import get_current_user
 
@@ -101,7 +101,7 @@ def _normalize_ghana_phone(raw: str) -> str:
 async def _grant_plus_for_payment(payment: Payment, db: Session):
     if payment.status == "success":
         return
-    days = get_int_setting(db, "plus_duration_days", 30)
+    days = payment.duration_days or get_int_setting(db, "plus_duration_days", 30)
     payment.status = "success"
     payment.completed_at = datetime.utcnow()
 
@@ -157,20 +157,31 @@ async def _check_moolre_payment_status(cfg: dict, externalref: str) -> dict:
 @router.get("/config")
 def payment_config(db: Session = Depends(get_db)):
     cfg = moolre_config(db)
+    plus_enabled = get_bool_setting(db, "plus_enabled", False)
+    discount_enabled = get_bool_setting(db, "plus_discount_enabled", False)
+    discount_percent = get_float_setting(db, "plus_discount_percent", 0.0)
+    plans = get_plus_plans(db)
     return {
         "provider": "moolre",
-        "plus_enabled": get_bool_setting(db, "plus_enabled", False),
+        "plus_enabled": plus_enabled,
         "enabled": cfg["enabled"],
         "configured": cfg["configured"],
         "environment": cfg["env"],
         "channels": sorted(VALID_MOMO_CHANNELS),
-        "price_ghs": get_float_setting(db, "plus_price_ghs", 25.0),
-        "duration_days": get_int_setting(db, "plus_duration_days", 30),
+        "price_ghs": plans[0]["price"],
+        "duration_days": plans[0]["duration_days"],
+        "discount_enabled": discount_enabled,
+        "discount_percent": discount_percent,
+        "plans": [
+            {"id": p["id"], "label": p["label"], "duration_days": p["duration_days"], "price": p["price"]}
+            for p in plans
+        ],
     }
 
 
 class InitiateLinkIn(BaseModel):
     description: str = "Campmatch Plus"
+    plan: str = "1m"
 
 
 class MoolreMomoCollectIn(BaseModel):
@@ -179,6 +190,7 @@ class MoolreMomoCollectIn(BaseModel):
     otpcode: Optional[str] = None
     reference: Optional[str] = None
     description: str = "Campmatch Plus"
+    plan: str = "1m"
 
 
 @router.post("/moolre/collect")
@@ -198,8 +210,9 @@ async def moolre_collect_momo(
     if channel not in VALID_MOMO_CHANNELS:
         raise HTTPException(400, "Select MTN, Telecel, or AT.")
     payer = _normalize_ghana_phone(data.payer)
-    price_ghs = get_float_setting(db, "plus_price_ghs", 25.0)
-    amount_str = f"{price_ghs:.2f}"
+    plan = resolve_plus_plan(db, data.plan)
+    price_ghs = plan["price"]
+    duration_days = plan["duration_days"]
 
     if data.reference:
         payment = db.query(Payment).filter(
@@ -209,6 +222,8 @@ async def moolre_collect_momo(
         if not payment:
             raise HTTPException(404, "Payment attempt not found.")
         ext_ref = payment.reference
+        price_ghs = payment.amount
+        duration_days = payment.duration_days or duration_days
     else:
         ext_ref = f"CM-{user.id}-{uuid.uuid4().hex[:10].upper()}"
         payment = Payment(
@@ -219,9 +234,12 @@ async def moolre_collect_momo(
             reference=ext_ref,
             status="pending",
             description=data.description[:200],
+            duration_days=duration_days,
         )
         db.add(payment)
         db.commit()
+
+    amount_str = f"{price_ghs:.2f}"
 
     base_payload = {
         "type": 1,
@@ -299,7 +317,9 @@ async def initiate_payment_link(
     if not cfg["enabled"]:
         raise HTTPException(400, "Online payments are temporarily switched off.")
 
-    price_ghs = get_float_setting(db, "plus_price_ghs", 25.0)
+    plan = resolve_plus_plan(db, data.plan)
+    price_ghs = plan["price"]
+    duration_days = plan["duration_days"]
     ext_ref = f"CML-{user.id}-{uuid.uuid4().hex[:10].upper()}"
     origin = os.environ.get("PUBLIC_BASE_URL", str(request.base_url).rstrip("/"))
 
@@ -343,6 +363,7 @@ async def initiate_payment_link(
         reference=ext_ref,
         status="pending",
         description=data.description[:200],
+        duration_days=duration_days,
     )
     db.add(p)
     db.commit()

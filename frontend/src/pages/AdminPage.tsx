@@ -496,6 +496,31 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                 />
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label className="field-label">Discount Enabled</label>
+                <select
+                  value={settings.plus_discount_enabled ? 'true' : 'false'}
+                  onChange={e => setSettings({ ...settings, plus_discount_enabled: e.target.value === 'true' })}
+                  className="modern-input"
+                >
+                  <option value="false">Off</option>
+                  <option value="true">On</option>
+                </select>
+              </div>
+              <div>
+                <label className="field-label">Discount %</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={90}
+                  step="5"
+                  className="modern-input"
+                  value={settings.plus_discount_percent || 0}
+                  onChange={e => setSettings({ ...settings, plus_discount_percent: Number(e.target.value) })}
+                />
+              </div>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               <div>

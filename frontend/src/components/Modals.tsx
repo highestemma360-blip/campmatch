@@ -149,6 +149,8 @@ interface PaymentConfig {
   channels: string[]
   price_ghs: number
   duration_days: number
+  discount_enabled?: boolean
+  discount_percent?: number
 }
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -182,6 +184,7 @@ export function PlusModal({
   const [otp, setOtp] = useState('')
   const [needOtp, setNeedOtp] = useState(false)
   const [reference, setReference] = useState('')
+  const [plan, setPlan] = useState('1m')
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<'idle' | 'waiting' | 'success' | 'failed'>('idle')
   const [message, setMessage] = useState('')
@@ -253,6 +256,7 @@ export function PlusModal({
           otpcode: otpCode || undefined,
           reference: reference || undefined,
           description: 'Campmatch Plus',
+          plan,
         }),
       })
       const d = await r.json().catch(() => ({}))
@@ -283,6 +287,9 @@ export function PlusModal({
   const days = cfg?.duration_days ?? plusConfig.duration_days
   const momoAvailable = Boolean(cfg?.configured && cfg?.enabled)
   const channels = cfg?.channels?.length ? cfg.channels : ['MTN', 'TELECEL', 'AT']
+  const discountEnabled = plusConfig.discount_enabled && cfg?.discount_enabled
+  const displayPrice = discountEnabled ? price * (100 - (plusConfig.discount_percent || 0)) / 100 : price
+  const displayDays = days
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -411,8 +418,28 @@ export function PlusModal({
                 Mobile Money checkout is being activated for Campmatch. Try the hosted payment link, or
                 check back shortly if it is still being configured.
               </div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, fontSize: 13, color: '#f59e0b' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14 }}>Plan</div>
+                  <select
+                    onChange={e => setPlan(e.target.value)}
+                    defaultValue="1m"
+                    style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #555' }}
+                  >
+                    <option value="1m">1 Month</option>
+                    <option value="3m">3 Months</option>
+                    <option value="12m">12 Months</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14 }}>Price</div>
+                  <span style={{ fontWeight: 800, color: '#f59e0b' }}>
+                    GHS {displayPrice.toFixed(2)} / {displayDays} days
+                  </span>
+                </div>
+              </div>
               <button className="btn-gold" onClick={onCheckout}>
-                Open Secure Checkout — GHS {price.toFixed(2)}
+                Open Secure Checkout — GHS {displayPrice.toFixed(2)}
               </button>
             </div>
           ) : (

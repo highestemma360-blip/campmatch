@@ -103,6 +103,8 @@ export interface PlusConfig {
   duration_days: number
   free_daily_swipe_limit: number
   announcement_banner?: string
+  discount_enabled?: boolean
+  discount_percent?: number
 }
 
 export interface AppNotification {

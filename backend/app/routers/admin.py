@@ -65,6 +65,10 @@ def build_platform_settings_snapshot(db: Session) -> dict:
         "free_daily_swipe_limit": get_int_setting(db, "free_daily_swipe_limit", 10),
         "plus_price_ghs": get_float_setting(db, "plus_price_ghs", 25.0),
         "plus_duration_days": get_int_setting(db, "plus_duration_days", 30),
+        "plus_price_3m": get_float_setting(db, "plus_price_3m", 60.0),
+        "plus_price_12m": get_float_setting(db, "plus_price_12m", 200.0),
+        "plus_discount_percent": get_float_setting(db, "plus_discount_percent", 0.0),
+        "plus_discount_enabled": get_bool_setting(db, "plus_discount_enabled", False),
         "free_daily_super_likes": get_int_setting(db, "free_daily_super_likes", 3),
         "plus_daily_super_likes": get_int_setting(db, "plus_daily_super_likes", 10),
         "umat_only": get_bool_setting(db, "umat_only", True),
@@ -152,6 +156,10 @@ class PlatformSettingsIn(BaseModel):
     free_daily_swipe_limit: Optional[int] = None
     plus_price_ghs: Optional[float] = None
     plus_duration_days: Optional[int] = None
+    plus_price_3m: Optional[float] = None
+    plus_price_12m: Optional[float] = None
+    plus_discount_percent: Optional[float] = None
+    plus_discount_enabled: Optional[bool] = None
     free_daily_super_likes: Optional[int] = None
     plus_daily_super_likes: Optional[int] = None
     umat_only: Optional[bool] = None
@@ -184,6 +192,21 @@ async def update_settings(data: PlatformSettingsIn, admin: User = Depends(requir
         dur = max(1, min(365, int(data.plus_duration_days)))
         set_setting(db, "plus_duration_days", str(dur))
         changes.append(f"plus_duration_days={dur}")
+    if data.plus_price_3m is not None:
+        p3 = max(1.0, round(float(data.plus_price_3m), 2))
+        set_setting(db, "plus_price_3m", str(p3))
+        changes.append(f"plus_price_3m={p3}")
+    if data.plus_price_12m is not None:
+        p12 = max(1.0, round(float(data.plus_price_12m), 2))
+        set_setting(db, "plus_price_12m", str(p12))
+        changes.append(f"plus_price_12m={p12}")
+    if data.plus_discount_percent is not None:
+        pct = max(0.0, min(90.0, round(float(data.plus_discount_percent), 2)))
+        set_setting(db, "plus_discount_percent", str(pct))
+        changes.append(f"plus_discount_percent={pct}")
+    if data.plus_discount_enabled is not None:
+        set_setting(db, "plus_discount_enabled", "true" if data.plus_discount_enabled else "false")
+        changes.append(f"plus_discount_enabled={data.plus_discount_enabled}")
     if data.free_daily_super_likes is not None:
         sf = max(0, min(50, int(data.free_daily_super_likes)))
         set_setting(db, "free_daily_super_likes", str(sf))

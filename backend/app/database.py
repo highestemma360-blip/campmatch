@@ -206,6 +206,9 @@ def run_migrations():
             ("admin_note", "TEXT DEFAULT ''"),
             ("resolved_at", "DATETIME"),
         ],
+        "payments": [
+            ("duration_days", "INTEGER DEFAULT 30"),
+        ],
     }
 
     with engine.begin() as conn:

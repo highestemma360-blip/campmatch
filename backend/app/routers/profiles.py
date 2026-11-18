@@ -23,6 +23,7 @@ from ..security import (
     get_float_setting,
     get_setting,
     lift_expired_ban,
+    get_plus_plans,
 )
 from ..image_guard import validate_and_optimize_profile_photo
 from ..realtime import hub
@@ -258,6 +259,9 @@ def plus_status(db: Session = Depends(get_db)):
         "duration_days": get_int_setting(db, "plus_duration_days", 30),
         "free_daily_swipe_limit": get_int_setting(db, "free_daily_swipe_limit", 10),
         "announcement_banner": get_setting(db, "announcement_banner", ""),
+        "plans": get_plus_plans(db),
+        "discount_enabled": get_bool_setting(db, "plus_discount_enabled", False),
+        "discount_percent": get_float_setting(db, "plus_discount_percent", 0.0),
     }
 
 

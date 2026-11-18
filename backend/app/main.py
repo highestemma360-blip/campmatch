@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import threading
+from datetime import datetime, timedelta
 from collections import defaultdict
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +18,7 @@ from .realtime import hub
 from .routers import auth, profiles, swipes, chat, admin, payments, notifications
 from .routers import push as push_router
 from .explore_rooms import seed_default_rooms
+from .security import bootstrap_defaults, decode_token, get_int_setting
 
 models.Base.metadata.create_all(bind=database.engine)
 database.run_migrations()
@@ -31,6 +34,48 @@ print(
     f"[campmatch] data_dir={database.DATA_DIR} sqlite={database.sqlite_file_path()} "
     f"uploads={UPLOAD_DIR} startup_backup={_STARTUP_BACKUP.get('file') or _STARTUP_BACKUP.get('reason')}"
 )
+
+
+def purge_expired_messages() -> int:
+    """Auto-delete chat message text older than the retention window.
+
+    Message *rows* are retained (soft-deleted) so match transcripts and safety
+    records remain intact, but the readable text is cleared for privacy.
+    """
+    from .models import Message
+
+    try:
+        with SessionLocal() as s:
+            days = get_int_setting(s, "message_retention_days", 30)
+            cutoff = datetime.utcnow() - timedelta(days=max(1, days))
+            rows = (
+                s.query(Message)
+                .filter(Message.created_at < cutoff, Message.is_deleted == False)  # noqa: E712
+                .all()
+            )
+            for m in rows:
+                m.content = ""
+                m.is_deleted = True
+            s.commit()
+            return len(rows)
+    except Exception as exc:  # pragma: no cover
+        print(f"[campmatch] message purge failed: {exc}")
+        return 0
+
+
+def _retention_loop():
+    import time as _time
+
+    while True:
+        _time.sleep(3600)  # hourly sweep
+        try:
+            purge_expired_messages()
+        except Exception:
+            pass
+
+
+purge_expired_messages()
+threading.Thread(target=_retention_loop, daemon=True).start()
 
 app = FastAPI(title="Campmatch", docs_url=None, redoc_url=None)
 

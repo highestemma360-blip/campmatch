@@ -138,6 +138,7 @@ class Payment(Base):
     reference = Column(String(100), unique=True, index=True)
     status = Column(String(20), default="pending")
     description = Column(String(200))
+    duration_days = Column(Integer, default=30)
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
