@@ -148,6 +148,7 @@ def get_deck(
     }
 
     now = datetime.utcnow()
+    plus_enabled = get_bool_setting(db, "plus_enabled", False)
     scored = []
     for u in candidates:
         if not matches_vibe(u, user, vibe):
@@ -169,7 +170,7 @@ def get_deck(
         card["distance_km"] = max(1, round(d)) if d < 9000 else None
         card["compatibility"] = comp
         card["super_liked_me"] = bool(inc and inc.super_liked)
-        card["liked_me_hint"] = bool(inc) if user.is_premium else False
+        card["liked_me_hint"] = bool(inc) if (user.is_premium or not plus_enabled) else False
         result.append(card)
     return result
 

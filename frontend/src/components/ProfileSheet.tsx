@@ -87,7 +87,7 @@ export function ProfileSheet({
               {profile.verified !== false && <VerifiedBadge size={21} />}
             </div>
             <div style={{ fontSize: 14.5, opacity: 0.9, marginTop: 3, fontWeight: 600 }}>
-              {profile.school || 'UMaT'} · Level {profile.level} · {profile.course}
+              {profile.school || ''} · Level {profile.level} · {profile.course}
             </div>
           </div>
         </div>
@@ -149,7 +149,7 @@ export function ProfileSheet({
           <div style={{ marginBottom: 20 }}>
             <div className="field-label">Campus & Details</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <span className="selectable-chip selected">{profile.school || 'UMaT'}</span>
+              <span className="selectable-chip selected">{profile.school || ''}</span>
               <span className="selectable-chip">Level {profile.level}</span>
               {profile.hall && <span className="selectable-chip">{profile.hall}</span>}
               {profile.distance_km != null && (

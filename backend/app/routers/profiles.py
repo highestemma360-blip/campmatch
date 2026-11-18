@@ -120,7 +120,15 @@ def compute_swipe_quota(user: User, db: Session) -> dict:
     if is_limited and recent_swipes and used_swipes >= daily_limit:
         resets_at = (recent_swipes[0].created_at + timedelta(hours=24)).isoformat()
 
-    super_limit = super_plus if user.is_premium else super_free
+    # Super Like allowance. Before Plus is enabled, every premium feature is free,
+    # so the cap is effectively unlimited until the admin turns Plus on.
+    if user.is_premium:
+        super_limit = super_plus
+    elif plus_enabled:
+        super_limit = super_free
+    else:
+        super_limit = 1_000_000
+
     return {
         "limited": is_limited,
         "daily_limit": daily_limit if is_limited else None,

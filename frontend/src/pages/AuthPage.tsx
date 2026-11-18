@@ -29,16 +29,13 @@ function loadGoogleScript(): Promise<void> {
 }
 
 export function AuthPage({ onAuth }: AuthPageProps) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
-  const [umatOnly, setUmatOnly] = useState(true)
-  const [schools, setSchools] = useState<string[]>(['UMaT'])
+  const [schools, setSchools] = useState<string[]>([])
   const [domains, setDomains] = useState<string[]>([])
-  const [signupsEnabled, setSignupsEnabled] = useState(true)
   const [maintenance, setMaintenance] = useState(false)
   const [banner, setBanner] = useState('')
   const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null)
@@ -56,10 +53,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       .then(r => (r.ok ? r.json() : null))
       .then(d => {
         if (!d) return
-        setUmatOnly(Boolean(d.umat_only))
         if (Array.isArray(d.schools) && d.schools.length) setSchools(d.schools)
         if (Array.isArray(d.domains)) setDomains(d.domains)
-        setSignupsEnabled(d.signups_enabled !== false)
         setMaintenance(Boolean(d.maintenance_mode))
         setBanner(d.announcement_banner || '')
 
@@ -145,7 +140,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     setErr('')
     setLoading(true)
     try {
-      const r = await fetch('/api/' + mode, {
+      const r = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -165,9 +160,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
 
   const domainHint = domains.length
     ? domains.map(d => '@' + d.replace(/^@/, '')).slice(0, 3).join(', ')
-    : umatOnly
-      ? '@st.umat.edu.gh'
-      : 'approved university domains'
+    : 'approved university domains'
 
   return (
     <div
@@ -408,55 +401,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
 
           {showEmailForm && (
             <>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  background: '#1b1f2d',
-                  padding: 4,
-                  borderRadius: 999,
-                  margin: '8px 0 20px',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('login')
-                    setErr('')
-                  }}
-                  style={{
-                    padding: '9px 14px',
-                    borderRadius: 999,
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: 13,
-                    background: mode === 'login' ? 'var(--brand-grad)' : 'transparent',
-                    color: mode === 'login' ? '#fff' : '#8e98ad',
-                  }}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  disabled={!signupsEnabled}
-                  onClick={() => {
-                    setMode('signup')
-                    setErr('')
-                  }}
-                  style={{
-                    padding: '9px 14px',
-                    borderRadius: 999,
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: 13,
-                    background: mode === 'signup' ? 'var(--brand-grad)' : 'transparent',
-                    color: mode === 'signup' ? '#fff' : '#8e98ad',
-                  }}
-                >
-                  Create Account
-                </button>
-              </div>
-
               <form onSubmit={submit}>
                 <label className="field-label" style={{ color: '#9aa4b8', marginTop: 0 }}>
                   Student Email
@@ -465,14 +409,14 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                   type="email"
                   className="modern-input"
                   style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)' }}
-                  placeholder={umatOnly ? 'student@st.umat.edu.gh' : 'student@st.umat.edu.gh / @st.ug.edu.gh'}
+                  placeholder="you@university.edu.gh"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   autoComplete="email"
                 />
 
                 <label className="field-label" style={{ color: '#9aa4b8' }}>
-                  Password {mode === 'signup' && '(8+ characters)'}
+                  Password
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
@@ -482,7 +426,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                     placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -504,7 +448,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 </div>
 
                 <button className="btn-brand" type="submit" disabled={loading} style={{ marginTop: 18 }}>
-                  {loading ? 'Signing in...' : mode === 'login' ? 'Sign In' : 'Create Student Account'}
+                  {loading ? 'Signing in...' : 'Sign In'}
                 </button>
               </form>
             </>

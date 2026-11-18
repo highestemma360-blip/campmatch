@@ -293,7 +293,7 @@ export function ExplorePage({
                     <VerifiedBadge size={14} />
                   </div>
                   <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.78)', marginTop: 2 }}>
-                    {m.school || 'UMaT'} · L{m.level}
+                    {m.school || ''} · L{m.level}
                   </div>
 
                   {m.already_swiped ? (

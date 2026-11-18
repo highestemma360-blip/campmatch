@@ -382,7 +382,7 @@ export function ProfilePage({
                   <VerifiedBadge size={20} />
                 </div>
                 <div style={{ fontSize: 13.5, opacity: 0.9, marginTop: 3, fontWeight: 600 }}>
-                  {me.school || 'UMaT'} · Level {level} · {course}
+                  {me.school || ''} · Level {level} · {course}
                 </div>
                 {hall && (
                   <div style={{ fontSize: 12.5, opacity: 0.78, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1012,7 +1012,7 @@ export function ProfilePage({
           <VerifiedBadge size={20} />
         </div>
         <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', marginTop: 3 }}>
-          {me.school || 'UMaT'} · Level {me.level} · {me.course}
+          {me.school || ''} · Level {me.level} · {me.course}
         </div>
 
         {/* Classic Tinder 3-Button Action Row */}
@@ -1224,46 +1224,48 @@ export function ProfilePage({
           </div>
         </div>
 
-        {/* Campmatch Plus Merchandising Card */}
-        <div
-          onClick={onOpenPlus}
-          style={{
-            background: 'linear-gradient(135deg, #241c06 0%, #4a3508 55%, #d97706 135%)',
-            borderRadius: 20,
-            padding: '18px 18px',
-            color: '#fff',
-            cursor: 'pointer',
-            border: '1px solid rgba(255, 216, 77, 0.32)',
-            boxShadow: '0 14px 32px rgba(0,0,0,0.22)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span
-              style={{
-                padding: '3px 10px',
-                borderRadius: 999,
-                background: 'var(--gold-grad)',
-                color: '#111',
-                fontSize: 10,
-                fontWeight: 900,
-                letterSpacing: 0.6,
-              }}
-            >
-              {me.is_premium ? 'PLUS ACTIVE' : 'CAMPMATCH PLUS'}
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#ffd84d' }}>
-              {me.is_premium ? 'Manage' : `GHS ${plusConfig.price_ghs.toFixed(0)}`}
-            </span>
+        {/* Campmatch Plus Merchandising Card (hidden until Plus launches) */}
+        {(plusConfig.enabled || me.is_premium) && (
+          <div
+            onClick={onOpenPlus}
+            style={{
+              background: 'linear-gradient(135deg, #241c06 0%, #4a3508 55%, #d97706 135%)',
+              borderRadius: 20,
+              padding: '18px 18px',
+              color: '#fff',
+              cursor: 'pointer',
+              border: '1px solid rgba(255, 216, 77, 0.32)',
+              boxShadow: '0 14px 32px rgba(0,0,0,0.22)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span
+                style={{
+                  padding: '3px 10px',
+                  borderRadius: 999,
+                  background: 'var(--gold-grad)',
+                  color: '#111',
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: 0.6,
+                }}
+              >
+                {me.is_premium ? 'PLUS ACTIVE' : 'CAMPMATCH PLUS'}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#ffd84d' }}>
+                {me.is_premium ? 'Manage' : `GHS ${plusConfig.price_ghs.toFixed(0)}`}
+              </span>
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 9 }}>
+              {me.is_premium ? 'Unlimited Swipes & Full Beeline Unlocked' : 'See Who Likes You & Swipe Without Limits'}
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
+              {plusConfig.enabled && !me.is_premium
+                ? `Includes Rewind, 10 Super Likes/day & removes the ${plusConfig.free_daily_swipe_limit}/day cap`
+                : 'View all Plus membership privileges'}
+            </div>
           </div>
-          <div style={{ fontSize: 17, fontWeight: 900, marginTop: 9 }}>
-            {me.is_premium ? 'Unlimited Swipes & Full Beeline Unlocked' : 'See Who Likes You & Swipe Without Limits'}
-          </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
-            {plusConfig.enabled && !me.is_premium
-              ? `Includes Rewind, 10 Super Likes/day & removes the ${plusConfig.free_daily_swipe_limit}/day cap`
-              : 'View all Plus membership privileges'}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

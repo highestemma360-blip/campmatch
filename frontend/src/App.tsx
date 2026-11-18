@@ -807,7 +807,7 @@ function StudentApp() {
             <div>
               <div style={{ fontWeight: 800, fontSize: 15 }}>{me?.name || 'My Profile'}</div>
               <div style={{ fontSize: 11, opacity: 0.9 }}>
-                {me?.is_premium ? 'Plus Member' : `${me?.school || 'UMaT'}`}
+                {me?.is_premium ? 'Plus Member' : `${me?.school || ''}`}
               </div>
             </div>
           </div>

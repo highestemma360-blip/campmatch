@@ -149,7 +149,7 @@ export function LikesYouPage({
                   {!card.blurred && !locked && <VerifiedBadge size={15} />}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.78)', marginTop: 2 }}>
-                  Level {card.level} · {card.school || 'UMaT'}
+                  Level {card.level} · {card.school || ''}
                 </div>
 
                 {!card.blurred && !locked && (

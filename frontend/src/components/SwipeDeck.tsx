@@ -403,7 +403,7 @@ export function SwipeDeck({
                     </div>
 
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', marginTop: 4, fontWeight: 600 }}>
-                      {topCard.school || 'UMaT'} · Level {topCard.level} · {topCard.course}
+                      {topCard.school || ''} · Level {topCard.level} · {topCard.course}
                     </div>
 
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 12.5, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
