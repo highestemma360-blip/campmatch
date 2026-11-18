@@ -7,6 +7,7 @@ import {
   OPENING_MOVES,
   ZODIAC_SIGNS,
   EXPLORE_VIBES,
+  ExploreVibe,
 } from '../constants'
 import { precheckProfileImage } from '../utils/imageCheck'
 import { CampmatchLogo, CheckCircleIcon, CloseXIcon } from '../components/Icons'
@@ -15,6 +16,7 @@ interface OnboardingPageProps {
   token: string
   initialName?: string
   existingPhotos?: string[]
+  rooms?: ExploreVibe[]
   onDone: () => void
 }
 
@@ -22,8 +24,10 @@ export function OnboardingPage({
   token,
   initialName = '',
   existingPhotos = [],
+  rooms,
   onDone,
 }: OnboardingPageProps) {
+  const roomCatalogue = rooms && rooms.length > 0 ? rooms : EXPLORE_VIBES
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
@@ -444,7 +448,7 @@ export function OnboardingPage({
 
             <label className="field-label">Opt Into Explore Rooms (Optional)</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {EXPLORE_VIBES.map(room => {
+              {roomCatalogue.map(room => {
                 const active = exploreVibes.includes(room.id)
                 return (
                   <button

@@ -58,14 +58,18 @@ export type ExploreRoomId =
   | 'night_stand'
   | 'walk_around'
   | 'escort_tonight'
+  | string
 
 export interface ExploreVibe {
-  id: ExploreRoomId
+  id: string
   title: string
   subtitle: string
   tag: string
+  icon?: string
   gradient: string
   accent: string
+  member_count?: number
+  opted_in?: boolean
 }
 
 export const EXPLORE_VIBES: ExploreVibe[] = [
@@ -74,6 +78,7 @@ export const EXPLORE_VIBES: ExploreVibe[] = [
     title: 'Study Buddy',
     subtitle: 'Library sessions, lab partners, and exam accountability',
     tag: 'ACADEMIC',
+    icon: 'study',
     gradient: 'linear-gradient(150deg, #0284C7 0%, #0F2942 100%)',
     accent: '#38BDF8',
   },
@@ -82,6 +87,7 @@ export const EXPLORE_VIBES: ExploreVibe[] = [
     title: 'Food Date',
     subtitle: 'Grab dinner, night-market bites, or try a new spot together',
     tag: 'CRAVINGS',
+    icon: 'food',
     gradient: 'linear-gradient(150deg, #EA580C 0%, #431407 100%)',
     accent: '#FB923C',
   },
@@ -90,6 +96,7 @@ export const EXPLORE_VIBES: ExploreVibe[] = [
     title: 'Long Term',
     subtitle: 'Intentional dating with students ready for something real',
     tag: 'COMMITTED',
+    icon: 'heart',
     gradient: 'linear-gradient(150deg, #E11D48 0%, #4C0519 100%)',
     accent: '#FB7185',
   },
@@ -98,6 +105,7 @@ export const EXPLORE_VIBES: ExploreVibe[] = [
     title: 'Night Stand',
     subtitle: 'Mutual late-night chemistry, upfront and no pressure',
     tag: 'AFTER HOURS',
+    icon: 'moon',
     gradient: 'linear-gradient(150deg, #7C3AED 0%, #1E1035 100%)',
     accent: '#C084FC',
   },
@@ -106,21 +114,56 @@ export const EXPLORE_VIBES: ExploreVibe[] = [
     title: 'Walk Around',
     subtitle: 'Unwind with an evening campus stroll and easy conversation',
     tag: 'CHILL WALK',
+    icon: 'walk',
     gradient: 'linear-gradient(150deg, #0D9488 0%, #082F2C 100%)',
     accent: '#2DD4BF',
   },
   {
     id: 'escort_tonight',
     title: 'Escort Tonight',
-    subtitle: 'Find a sharp plus-one for tonight’s event, party, or outing',
+    subtitle: "Find a sharp plus-one for tonight's event, party, or outing",
     tag: 'PLUS ONE',
+    icon: 'ticket',
     gradient: 'linear-gradient(150deg, #D97706 0%, #3B1D06 100%)',
     accent: '#FBBF24',
   },
 ]
 
-export const EXPLORE_MAP: Record<string, ExploreVibe> = Object.fromEntries(
+/**
+ * Rooms are administered from the dashboard, so the live catalogue is
+ * registered here at runtime. Static seeds above remain the offline fallback.
+ */
+let ROOM_REGISTRY: Record<string, ExploreVibe> = Object.fromEntries(
   EXPLORE_VIBES.map(v => [v.id, v])
+)
+
+export function registerExploreRooms(rooms: ExploreVibe[]) {
+  if (!rooms || rooms.length === 0) return
+  ROOM_REGISTRY = Object.fromEntries(rooms.map(v => [v.id, v]))
+}
+
+export function roomMeta(slug: string): ExploreVibe {
+  const found = ROOM_REGISTRY[slug]
+  if (found) return found
+  const pretty = (slug || 'Room')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+  return {
+    id: slug,
+    title: pretty,
+    subtitle: '',
+    tag: 'ROOM',
+    icon: 'star',
+    gradient: 'linear-gradient(150deg, #334155 0%, #0F172A 100%)',
+    accent: '#94A3B8',
+  }
+}
+
+export const EXPLORE_MAP: Record<string, ExploreVibe> = new Proxy(
+  {},
+  {
+    get: (_target, prop: string) => (prop ? roomMeta(prop) : undefined),
+  }
 )
 
 export const TERMS_SUMMARY = `Campmatch is an independent student matching platform exclusively for verified Ghana university students aged 18 and older with official .edu.gh email addresses.

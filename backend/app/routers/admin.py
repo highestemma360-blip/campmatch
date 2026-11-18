@@ -1,13 +1,18 @@
 import json
+import os
+import re
 import time
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
+import httpx
 
-from ..database import get_db
+from ..database import get_db, UPLOAD_DIR, BACKUP_DIR, DATA_DIR, BACKEND_ROOT, backup_sqlite, list_backups, sqlite_file_path, directory_size, count_files, IS_SQLITE
 from ..models import (
     User,
     Swipe,
@@ -17,6 +22,9 @@ from ..models import (
     Report,
     ImageModerationLog,
     AdminAuditLog,
+    ExploreRoom,
+    Notification,
+    NotificationRead,
 )
 from ..security import (
     get_bool_setting,
@@ -27,6 +35,7 @@ from ..security import (
     get_allowed_domains,
 )
 from ..realtime import hub
+from ..explore_rooms import all_rooms, active_slugs, serialize_room, ICON_CHOICES
 from .profiles import get_current_user, parse_list, parse_prompts
 
 router = APIRouter()
@@ -755,3 +764,526 @@ def list_audit_logs(admin: User = Depends(require_admin), db: Session = Depends(
             "created_at": r.created_at.isoformat() if r.created_at else "",
         })
     return out
+
+
+# ---------------------------------------------------------------------------
+# EXPLORE ROOM MANAGEMENT
+# ---------------------------------------------------------------------------
+
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", (value or "").strip().lower()).strip("_")
+    return slug[:48]
+
+
+class ExploreRoomIn(BaseModel):
+    title: str
+    subtitle: str = ""
+    tag: str = ""
+    icon: str = "star"
+    accent: str = "#FB7185"
+    gradient: str = ""
+    sort_order: int = 100
+    is_active: bool = True
+    slug: Optional[str] = None
+
+
+@router.get("/explore-rooms")
+def list_explore_rooms(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    counts = {slug: 0 for slug in active_slugs(db)}
+    for u in db.query(User).filter(User.is_deleted == False, User.profile_complete == True).limit(5000).all():
+        for slug in parse_list(u.explore_vibes):
+            counts[slug] = counts.get(slug, 0) + 1
+    opted = set()
+    rooms = []
+    for room in all_rooms(db):
+        data = serialize_room(room, counts, opted)
+        data["total_members"] = counts.get(room.slug, 0)
+        rooms.append(data)
+    return {"rooms": rooms, "icons": ICON_CHOICES}
+
+
+def _clean_room_payload(data: ExploreRoomIn) -> dict:
+    title = data.title.strip()
+    if len(title) < 2:
+        raise HTTPException(400, "Room name must be at least 2 characters.")
+    accent = data.accent.strip() or "#FB7185"
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", accent):
+        accent = "#FB7185"
+    icon = data.icon if data.icon in ICON_CHOICES else "star"
+    gradient = data.gradient.strip()[:220]
+    if not gradient:
+        gradient = f"linear-gradient(150deg, {accent} 0%, #0F1219 100%)"
+    return {
+        "title": title[:80],
+        "subtitle": data.subtitle.strip()[:220],
+        "tag": data.tag.strip()[:40],
+        "icon": icon,
+        "accent": accent,
+        "gradient": gradient,
+        "sort_order": max(0, min(9999, int(data.sort_order))),
+        "is_active": bool(data.is_active),
+    }
+
+
+@router.post("/explore-rooms")
+def create_explore_room(data: ExploreRoomIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    payload = _clean_room_payload(data)
+    slug = _slugify(data.slug or payload["title"])
+    if not slug:
+        raise HTTPException(400, "Room link name could not be generated.")
+    if db.query(ExploreRoom).filter(ExploreRoom.slug == slug).first():
+        slug = f"{slug[:40]}_{uuid.uuid4().hex[:4]}"
+
+    room = ExploreRoom(slug=slug, **payload)
+    db.add(room)
+    log_audit(db, admin.id, "create_explore_room", details=f"{slug} · {payload['title']}")
+    db.commit()
+    db.refresh(room)
+    return {"ok": True, "room": serialize_room(room)}
+
+
+@router.put("/explore-rooms/{room_id}")
+def update_explore_room(
+    room_id: int,
+    data: ExploreRoomIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    room = db.query(ExploreRoom).filter(ExploreRoom.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Explore room not found.")
+    payload = _clean_room_payload(data)
+    for key, value in payload.items():
+        setattr(room, key, value)
+    log_audit(db, admin.id, "update_explore_room", details=f"{room.slug} · {room.title}")
+    db.commit()
+    db.refresh(room)
+    return {"ok": True, "room": serialize_room(room)}
+
+
+@router.delete("/explore-rooms/{room_id}")
+def delete_explore_room(
+    room_id: int,
+    purge: bool = Query(False),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    room = db.query(ExploreRoom).filter(ExploreRoom.id == room_id).first()
+    if not room:
+        raise HTTPException(404, "Explore room not found.")
+
+    members = 0
+    for u in db.query(User).filter(User.is_deleted == False).limit(5000).all():
+        if room.slug in parse_list(u.explore_vibes):
+            members += 1
+            if purge:
+                remaining = [v for v in parse_list(u.explore_vibes) if v != room.slug]
+                u.explore_vibes = ",".join(remaining)
+
+    if members and not purge:
+        room.is_active = False
+        log_audit(db, admin.id, "hide_explore_room", details=f"{room.slug} · {members} members")
+        db.commit()
+        return {
+            "ok": True,
+            "archived": True,
+            "message": f"Room hidden because {members} student(s) are still opted in. Their opt-ins are preserved.",
+        }
+
+    slug = room.slug
+    db.delete(room)
+    log_audit(db, admin.id, "delete_explore_room", details=slug)
+    db.commit()
+    return {"ok": True, "archived": False, "message": "Explore room deleted."}
+
+
+# ---------------------------------------------------------------------------
+# PUSH NOTIFICATIONS (TEXT + FLYER)
+# ---------------------------------------------------------------------------
+
+class NotificationIn(BaseModel):
+    title: str
+    body: str = ""
+    flyer_url: str = ""
+    audience: str = "all"
+    target_school: str = ""
+    target_user_id: Optional[int] = None
+    expires_in_days: Optional[int] = 14
+    is_active: bool = True
+
+
+def _clean_notification_payload(data: NotificationIn) -> dict:
+    title = data.title.strip()
+    if len(title) < 2:
+        raise HTTPException(400, "Notification title is required.")
+    audience = data.audience if data.audience in ("all", "free", "plus", "new") else "all"
+    flyer = data.flyer_url.strip()
+    if flyer and not (flyer.startswith("/uploads/") or flyer.startswith("https://") or flyer.startswith("http://")):
+        raise HTTPException(400, "Flyer image URL is invalid.")
+    days = data.expires_in_days
+    expires_at = None
+    if days is not None and int(days) > 0:
+        expires_at = datetime.utcnow() + timedelta(days=min(365, int(days)))
+    return {
+        "title": title[:140],
+        "body": data.body.strip()[:4000],
+        "flyer_url": flyer[:255],
+        "audience": audience,
+        "target_school": data.target_school.strip()[:100],
+        "target_user_id": data.target_user_id,
+        "expires_at": expires_at,
+        "is_active": bool(data.is_active),
+    }
+
+
+@router.get("/notifications")
+def list_notifications(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    rows = db.query(Notification).order_by(Notification.created_at.desc()).limit(100).all()
+    out = []
+    for n in rows:
+        reads = db.query(func.count(NotificationRead.id)).filter(NotificationRead.notification_id == n.id).scalar() or 0
+        target = None
+        if n.target_user_id:
+            tu = db.query(User).filter(User.id == n.target_user_id).first()
+            if tu:
+                target = {"id": tu.id, "name": tu.name or "", "email": tu.original_email or tu.email}
+        out.append({
+            "id": n.id,
+            "title": n.title,
+            "body": n.body or "",
+            "flyer_url": n.flyer_url or "",
+            "audience": n.audience or "all",
+            "target_school": n.target_school or "",
+            "target_user": target,
+            "is_active": bool(n.is_active),
+            "read_count": reads,
+            "created_at": n.created_at.isoformat() if n.created_at else "",
+            "expires_at": n.expires_at.isoformat() if n.expires_at else None,
+        })
+    return out
+
+
+@router.post("/notifications/flyer")
+async def upload_notification_flyer(
+    file: UploadFile = File(...),
+    admin: User = Depends(require_admin),
+):
+    from PIL import Image
+    import io
+
+    raw = await file.read()
+    if len(raw) > 10 * 1024 * 1024:
+        raise HTTPException(413, "Flyer image must be smaller than 10 MB.")
+    try:
+        img = Image.open(io.BytesIO(raw))
+        img = img.convert("RGB")
+    except Exception:
+        raise HTTPException(400, "Upload a valid JPG, PNG, or WebP flyer image.")
+
+    img.thumbnail((1500, 1500), Image.LANCZOS)
+    filename = f"flyer_{uuid.uuid4().hex[:12]}.webp"
+    target = os.path.join(UPLOAD_DIR, filename)
+    img.save(target, "WEBP", quality=88, method=6)
+    return {
+        "ok": True,
+        "url": f"/uploads/{filename}",
+        "width": img.width,
+        "height": img.height,
+        "bytes": os.path.getsize(target),
+    }
+
+
+@router.post("/notifications")
+async def create_notification(data: NotificationIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    payload = _clean_notification_payload(data)
+    if payload["target_user_id"]:
+        target = db.query(User).filter(User.id == payload["target_user_id"]).first()
+        if not target:
+            raise HTTPException(404, "Target student account not found.")
+    n = Notification(created_by=admin.id, **payload)
+    db.add(n)
+    log_audit(db, admin.id, "send_notification", target_user_id=payload["target_user_id"], details=payload["title"])
+    db.commit()
+    db.refresh(n)
+    await hub.broadcast({"type": "notification_created", "notification_id": n.id})
+    return {"ok": True, "id": n.id}
+
+
+class NotificationUpdateIn(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    flyer_url: Optional[str] = None
+    audience: Optional[str] = None
+    target_school: Optional[str] = None
+    target_user_id: Optional[int] = None
+    is_active: Optional[bool] = None
+    expires_in_days: Optional[int] = None
+
+
+@router.put("/notifications/{notification_id}")
+async def update_notification(
+    notification_id: int,
+    data: NotificationUpdateIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    n = db.query(Notification).filter(Notification.id == notification_id).first()
+    if not n:
+        raise HTTPException(404, "Notification not found.")
+    if data.title is not None:
+        n.title = data.title.strip()[:140]
+    if data.body is not None:
+        n.body = data.body.strip()[:4000]
+    if data.flyer_url is not None:
+        n.flyer_url = data.flyer_url.strip()[:255]
+    if data.audience is not None and data.audience in ("all", "free", "plus", "new"):
+        n.audience = data.audience
+    if data.target_school is not None:
+        n.target_school = data.target_school.strip()[:100]
+    if data.target_user_id is not None:
+        n.target_user_id = data.target_user_id or None
+    if data.is_active is not None:
+        n.is_active = bool(data.is_active)
+    if data.expires_in_days is not None:
+        n.expires_at = (
+            datetime.utcnow() + timedelta(days=min(365, int(data.expires_in_days)))
+            if int(data.expires_in_days) > 0
+            else None
+        )
+    log_audit(db, admin.id, "update_notification", details=n.title)
+    db.commit()
+    await hub.broadcast({"type": "notification_created", "notification_id": n.id})
+    return {"ok": True}
+
+
+@router.delete("/notifications/{notification_id}")
+def delete_notification(notification_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    n = db.query(Notification).filter(Notification.id == notification_id).first()
+    if not n:
+        raise HTTPException(404, "Notification not found.")
+    db.query(NotificationRead).filter(NotificationRead.notification_id == n.id).delete()
+    db.delete(n)
+    log_audit(db, admin.id, "delete_notification", details=n.title)
+    db.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# PAYMENT GATEWAY (MOOLRE) CONFIGURATION
+# ---------------------------------------------------------------------------
+
+class PaymentGatewayIn(BaseModel):
+    enabled: Optional[bool] = None
+    environment: Optional[str] = None
+    base_url: Optional[str] = None
+    api_user: Optional[str] = None
+    public_key: Optional[str] = None
+    account_number: Optional[str] = None
+    wallet_secret: Optional[str] = None
+    merchant_email: Optional[str] = None
+    callback_url: Optional[str] = None
+
+
+def _mask(value: str) -> str:
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "saved"
+    return f"{value[:4]}...{value[-4:]}"
+
+
+@router.get("/payment-gateway")
+def get_payment_gateway(request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from .payments import moolre_config
+
+    cfg = moolre_config(db)
+    origin = os.environ.get("PUBLIC_BASE_URL", str(request.base_url).rstrip("/"))
+    return {
+        "provider": "moolre",
+        "enabled": cfg["enabled"],
+        "configured": cfg["configured"],
+        "environment": cfg["env"],
+        "base_url": cfg["base_url"],
+        "api_user": cfg["user"],
+        "public_key_masked": _mask(cfg["pubkey"]),
+        "public_key_set": bool(cfg["pubkey"]),
+        "account_number": cfg["account_number"],
+        "wallet_secret_masked": _mask(cfg["wallet_secret"]),
+        "wallet_secret_set": bool(cfg["wallet_secret"]),
+        "merchant_email": cfg["merchant_email"],
+        "callback_url": cfg["callback_url"] or f"{origin}/api/payments/webhook",
+        "webhook_url": f"{origin}/api/payments/webhook",
+        "redirect_url": f"{origin}/api/payments/callback",
+        "channels": ["MTN", "TELECEL", "AT"],
+        "docs_url": "https://docs.moolre.com",
+    }
+
+
+@router.put("/payment-gateway")
+def update_payment_gateway(
+    data: PaymentGatewayIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    changes = []
+    if data.enabled is not None:
+        set_setting(db, "moolre_enabled", "true" if data.enabled else "false")
+        changes.append(f"enabled={data.enabled}")
+    if data.environment is not None:
+        env = data.environment.strip().lower()
+        env = env if env in ("live", "sandbox") else "live"
+        set_setting(db, "moolre_env", env)
+        changes.append(f"env={env}")
+    if data.base_url is not None:
+        set_setting(db, "moolre_base_url", data.base_url.strip()[:220])
+        changes.append("base_url")
+    if data.api_user is not None and data.api_user.strip():
+        set_setting(db, "moolre_user", data.api_user.strip()[:160])
+        changes.append("api_user")
+    if data.public_key is not None and data.public_key.strip():
+        set_setting(db, "moolre_pubkey", data.public_key.strip()[:255])
+        changes.append("public_key")
+    if data.account_number is not None:
+        set_setting(db, "moolre_account_number", data.account_number.strip()[:60])
+        changes.append("account_number")
+    if data.wallet_secret is not None and data.wallet_secret.strip():
+        set_setting(db, "moolre_wallet_secret", data.wallet_secret.strip()[:255])
+        changes.append("wallet_secret")
+    if data.merchant_email is not None:
+        set_setting(db, "moolre_merchant_email", data.merchant_email.strip()[:200])
+        changes.append("merchant_email")
+    if data.callback_url is not None:
+        set_setting(db, "moolre_callback_url", data.callback_url.strip()[:300])
+        changes.append("callback_url")
+
+    log_audit(db, admin.id, "update_payment_gateway", details=", ".join(changes))
+    db.commit()
+    return {"ok": True, "updated": changes}
+
+
+@router.post("/payment-gateway/test")
+async def test_payment_gateway(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from .payments import moolre_config
+
+    cfg = moolre_config(db)
+    if not cfg["configured"]:
+        return {
+            "ok": False,
+            "stage": "credentials",
+            "message": "Add your Moolre API user, public key, and account number first.",
+        }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(cfg["base_url"])
+        return {
+            "ok": True,
+            "stage": "reachable",
+            "status_code": r.status_code,
+            "message": "Moolre endpoint is reachable and credentials are saved. Complete a small live payment to confirm the full flow.",
+        }
+    except Exception as exc:
+        return {"ok": False, "stage": "network", "message": f"Could not reach Moolre: {exc}"}
+
+
+# ---------------------------------------------------------------------------
+# STORAGE, PERSISTENCE & BACKUPS
+# ---------------------------------------------------------------------------
+
+@router.get("/storage")
+def storage_status(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    db_file = sqlite_file_path()
+    db_bytes = os.path.getsize(db_file) if db_file and os.path.isfile(db_file) else 0
+    data_dir_override = bool(os.environ.get("DATA_DIR") or os.environ.get("RENDER_DISK_PATH") or os.path.isdir("/var/data"))
+    return {
+        "engine": "sqlite" if IS_SQLITE else "postgresql",
+        "database_file": db_file or "",
+        "data_dir": DATA_DIR,
+        "persistent_disk": data_dir_override and os.path.abspath(DATA_DIR) != os.path.abspath(BACKEND_ROOT),
+        "database_bytes": db_bytes,
+        "upload_dir": UPLOAD_DIR,
+        "upload_files": count_files(UPLOAD_DIR),
+        "upload_bytes": directory_size(UPLOAD_DIR),
+        "backup_dir": BACKUP_DIR,
+        "backups": list_backups(),
+        "counts": {
+            "users": db.query(User).count(),
+            "swipes": db.query(Swipe).count(),
+            "matches": db.query(Match).count(),
+            "messages": db.query(Message).count(),
+            "payments": db.query(Payment).count(),
+            "reports": db.query(Report).count(),
+        },
+        "render_hint": (
+            "Attach a Render persistent disk mounted at /var/data (or set DATA_DIR) so the SQLite database, uploads, and backups survive redeploys."
+            if not data_dir_override
+            else "Persistent storage is configured. Database, uploads, and backups are written to the durable disk."
+        ),
+    }
+
+
+@router.post("/storage/backup")
+def create_backup(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    result = backup_sqlite("admin")
+    log_audit(db, admin.id, "create_backup", details=result.get("file", result.get("reason", "")))
+    db.commit()
+    return {"ok": bool(result.get("ok")), "result": result, "backups": list_backups()}
+
+
+@router.get("/storage/download/{filename}")
+def download_backup(filename: str, admin: User = Depends(require_admin)):
+    safe = os.path.basename(filename)
+    if not safe.startswith("campmatch-") or not safe.endswith(".db"):
+        raise HTTPException(400, "Invalid backup file.")
+    path = os.path.join(BACKUP_DIR, safe)
+    if not os.path.isfile(path):
+        raise HTTPException(404, "Backup file not found.")
+    return FileResponse(path, filename=safe, media_type="application/octet-stream")
+
+
+@router.get("/export")
+def export_records(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Download a JSON export of every core table for off-platform archiving."""
+    from fastapi.responses import JSONResponse
+
+    def dt(value):
+        return value.isoformat() if value else None
+
+    users = db.query(User).all()
+    payload = {
+        "exported_at": datetime.utcnow().isoformat(),
+        "users": [
+            {
+                "id": u.id,
+                "email": u.original_email or u.email,
+                "name": u.name,
+                "school": u.school,
+                "is_deleted": u.is_deleted,
+                "created_at": dt(u.created_at),
+            }
+            for u in users
+        ],
+        "swipes": [
+            {"id": s.id, "swiper_id": s.swiper_id, "swiped_id": s.swiped_id, "liked": s.liked, "created_at": dt(s.created_at)}
+            for s in db.query(Swipe).limit(20000).all()
+        ],
+        "matches": [
+            {"id": m.id, "user1_id": m.user1_id, "user2_id": m.user2_id, "created_at": dt(m.created_at), "is_active": m.is_active}
+            for m in db.query(Match).limit(20000).all()
+        ],
+        "messages": [
+            {"id": msg.id, "match_id": msg.match_id, "sender_id": msg.sender_id, "content": msg.content, "created_at": dt(msg.created_at)}
+            for msg in db.query(Message).limit(50000).all()
+        ],
+        "payments": [
+            {"id": p.id, "user_id": p.user_id, "amount": p.amount, "status": p.status, "reference": p.reference, "created_at": dt(p.created_at)}
+            for p in db.query(Payment).limit(20000).all()
+        ],
+        "reports": [
+            {"id": r.id, "reporter_id": r.reporter_id, "reported_id": r.reported_id, "reason": r.reason, "resolved": r.resolved}
+            for r in db.query(Report).limit(20000).all()
+        ],
+    }
+    log_audit(db, admin.id, "export_records")
+    db.commit()
+    return JSONResponse(payload, headers={"Content-Disposition": 'attachment; filename="campmatch-export.json"'})
+

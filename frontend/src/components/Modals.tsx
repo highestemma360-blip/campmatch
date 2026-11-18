@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { CurrentUser, ProfileCard, PlusConfig, SwipeQuota } from '../types'
 import { LEVELS } from '../constants'
 import { CloseXIcon, CheckCircleIcon } from './Icons'
@@ -135,11 +135,37 @@ interface PlusModalProps {
   isPremium: boolean
   plusConfig: PlusConfig
   quota?: SwipeQuota
+  token?: string
   onCheckout: () => void
+  onSuccess?: () => void
   onClose: () => void
 }
 
-export function PlusModal({ isPremium, plusConfig, quota, onCheckout, onClose }: PlusModalProps) {
+interface PaymentConfig {
+  provider: string
+  enabled: boolean
+  configured: boolean
+  environment: string
+  channels: string[]
+  price_ghs: number
+  duration_days: number
+}
+
+const CHANNEL_LABELS: Record<string, string> = {
+  MTN: 'MTN MoMo',
+  TELECEL: 'Telecel Cash',
+  AT: 'AT Money',
+}
+
+export function PlusModal({
+  isPremium,
+  plusConfig,
+  quota,
+  token,
+  onCheckout,
+  onSuccess,
+  onClose,
+}: PlusModalProps) {
   const perks = [
     { title: 'Unlimited Daily Swipes', desc: `Remove the ${plusConfig.free_daily_swipe_limit}-swipe daily free cap.` },
     { title: 'See Who Likes You', desc: 'View your full Beeline grid and match immediately.' },
@@ -150,9 +176,117 @@ export function PlusModal({ isPremium, plusConfig, quota, onCheckout, onClose }:
 
   const hitDailyCap = Boolean(quota?.limited && quota.remaining !== null && quota.remaining <= 0)
 
+  const [cfg, setCfg] = useState<PaymentConfig | null>(null)
+  const [channel, setChannel] = useState('MTN')
+  const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [needOtp, setNeedOtp] = useState(false)
+  const [reference, setReference] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'waiting' | 'success' | 'failed'>('idle')
+  const [message, setMessage] = useState('')
+  const [showHosted, setShowHosted] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/payments/config')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d) return
+        setCfg(d)
+        if (Array.isArray(d.channels) && d.channels.length) {
+          setChannel(d.channels.includes('MTN') ? 'MTN' : d.channels[0])
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!token || !reference || status !== 'waiting' || needOtp) return
+    let stop = false
+    const check = async () => {
+      try {
+        const r = await fetch(`/api/payments/verify/${encodeURIComponent(reference)}`, {
+          headers: { Authorization: 'Bearer ' + token },
+        })
+        if (!r.ok) return
+        const d = await r.json()
+        if (stop) return
+        if (d.status === 'success') {
+          setStatus('success')
+          setMessage('Payment confirmed. Campmatch Plus has been activated.')
+          onSuccess?.()
+        } else if (d.status === 'failed') {
+          setStatus('failed')
+          setMessage(d.reason || 'The Mobile Money payment was declined or cancelled.')
+        }
+      } catch {
+        // Keep polling through transient network errors.
+      }
+    }
+    const timer = setInterval(check, 4000)
+    check()
+    return () => {
+      stop = true
+      clearInterval(timer)
+    }
+  }, [reference, status, needOtp, token])
+
+  async function collectMomo(otpCode?: string) {
+    if (!token) {
+      setMessage('Your session expired. Please sign in again.')
+      return
+    }
+    const digits = phone.replace(/\D/g, '')
+    if (!otpCode && digits.length < 9) {
+      setMessage('Enter a valid Ghana Mobile Money number (e.g. 0241234567).')
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    try {
+      const r = await fetch('/api/payments/moolre/collect', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel,
+          payer: phone,
+          otpcode: otpCode || undefined,
+          reference: reference || undefined,
+          description: 'Campmatch Plus',
+        }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setStatus('idle')
+        setMessage(typeof d.detail === 'string' ? d.detail : 'Unable to start the Mobile Money payment.')
+        return
+      }
+      setReference(d.reference || reference)
+      if (d.step === 'otp_required') {
+        setNeedOtp(true)
+        setStatus('waiting')
+        setMessage(d.message || 'Enter the SMS verification code sent to your phone.')
+      } else {
+        setNeedOtp(false)
+        setOtp('')
+        setStatus('waiting')
+        setMessage(d.message || 'Approve the prompt on your phone to complete payment.')
+      }
+    } catch {
+      setMessage('Unable to reach the payment server. Check your connection and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const price = cfg?.price_ghs ?? plusConfig.price_ghs
+  const days = cfg?.duration_days ?? plusConfig.duration_days
+  const momoAvailable = Boolean(cfg?.configured && cfg?.enabled)
+  const channels = cfg?.channels?.length ? cfg.channels : ['MTN', 'TELECEL', 'AT']
+
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ padding: 0, overflow: 'hidden', maxHeight: '92dvh', overflowY: 'auto' }}>
         <div
           style={{
             background: 'linear-gradient(135deg, #1b1608 0%, #3b2a06 55%, #d97706 140%)',
@@ -232,7 +366,7 @@ export function PlusModal({ isPremium, plusConfig, quota, onCheckout, onClose }:
             ))}
           </div>
 
-          {isPremium ? (
+          {isPremium || status === 'success' ? (
             <div
               style={{
                 padding: 14,
@@ -246,11 +380,7 @@ export function PlusModal({ isPremium, plusConfig, quota, onCheckout, onClose }:
             >
               Campmatch Plus is active on your account
             </div>
-          ) : plusConfig.enabled ? (
-            <button className="btn-gold" onClick={onCheckout}>
-              Get {plusConfig.duration_days} Days — GHS {plusConfig.price_ghs.toFixed(2)}
-            </button>
-          ) : (
+          ) : !plusConfig.enabled ? (
             <div
               style={{
                 padding: 14,
@@ -263,6 +393,179 @@ export function PlusModal({ isPremium, plusConfig, quota, onCheckout, onClose }:
               }}
             >
               Subscriptions are currently turned off by campus administrators — enjoy free unlimited swipes.
+            </div>
+          ) : !momoAvailable ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 14,
+                  background: 'var(--bg-elevated)',
+                  color: 'var(--text-secondary)',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  lineHeight: 1.55,
+                  textAlign: 'center',
+                }}
+              >
+                Mobile Money checkout is being activated for Campmatch. Try the hosted payment link, or
+                check back shortly if it is still being configured.
+              </div>
+              <button className="btn-gold" onClick={onCheckout}>
+                Open Secure Checkout — GHS {price.toFixed(2)}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ fontWeight: 900, fontSize: 15 }}>Pay with Mobile Money</div>
+                <div style={{ fontWeight: 900, fontSize: 18, color: '#f59e0b' }}>
+                  GHS {price.toFixed(2)}
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 700 }}>
+                    {' '}
+                    / {days} days
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, marginBottom: 12 }}>
+                {channels.map(ch => (
+                  <button
+                    key={ch}
+                    type="button"
+                    disabled={status === 'waiting' || busy}
+                    onClick={() => setChannel(ch)}
+                    className={`selectable-chip ${channel === ch ? 'selected' : ''}`}
+                    style={{ padding: '9px 6px', fontSize: 11.5, fontWeight: 800 }}
+                  >
+                    {CHANNEL_LABELS[ch] || ch}
+                  </button>
+                ))}
+              </div>
+
+              <label className="field-label" style={{ marginTop: 0 }}>
+                Mobile Money Number
+              </label>
+              <input
+                className="modern-input"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="024 123 4567"
+                value={phone}
+                disabled={status === 'waiting' || busy}
+                onChange={e => setPhone(e.target.value)}
+              />
+
+              {needOtp && (
+                <>
+                  <label className="field-label">SMS Verification Code</label>
+                  <input
+                    className="modern-input"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Enter the code sent to your phone"
+                    value={otp}
+                    onChange={e => setOtp(e.target.value)}
+                  />
+                  <button
+                    className="btn-gold"
+                    style={{ marginTop: 12 }}
+                    disabled={busy || !otp.trim()}
+                    onClick={() => collectMomo(otp.trim())}
+                  >
+                    {busy ? 'Verifying...' : 'Confirm Code & Pay'}
+                  </button>
+                </>
+              )}
+
+              {!needOtp && (
+                <button
+                  className="btn-gold"
+                  style={{ marginTop: 12 }}
+                  disabled={busy || status === 'waiting'}
+                  onClick={() => collectMomo()}
+                >
+                  {busy
+                    ? 'Starting payment...'
+                    : status === 'waiting'
+                      ? 'Approve on your phone...'
+                      : `Pay GHS ${price.toFixed(2)} with ${CHANNEL_LABELS[channel] || channel}`}
+                </button>
+              )}
+
+              {status === 'waiting' && !needOtp && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '11px 13px',
+                    borderRadius: 12,
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.26)',
+                    color: '#7dd3fc',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {message || 'Approve the Mobile Money prompt on your phone.'} This screen updates
+                  automatically once payment is confirmed.
+                </div>
+              )}
+
+              {message && status !== 'waiting' && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '11px 13px',
+                    borderRadius: 12,
+                    background:
+                      status === 'failed' ? 'rgba(255,68,88,0.14)' : 'rgba(245,158,11,0.12)',
+                    border:
+                      status === 'failed'
+                        ? '1px solid rgba(255,68,88,0.35)'
+                        : '1px solid rgba(245,158,11,0.3)',
+                    color: status === 'failed' ? '#ff6b7a' : '#ffd84d',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {message}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowHosted(v => !v)}
+                style={{
+                  marginTop: 12,
+                  width: '100%',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {showHosted ? 'Hide hosted checkout' : 'Prefer card or another network?'}
+              </button>
+
+              {showHosted && (
+                <button className="btn-ghost" style={{ marginTop: 4 }} onClick={onCheckout}>
+                  Open Secure Hosted Checkout
+                </button>
+              )}
+
+              <div style={{ marginTop: 12, textAlign: 'center', fontSize: 11, color: 'var(--text-muted)' }}>
+                Secured by Moolre · {cfg?.environment === 'sandbox' ? 'Sandbox mode' : 'Live payments'}
+              </div>
             </div>
           )}
         </div>

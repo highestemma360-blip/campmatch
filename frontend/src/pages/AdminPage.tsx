@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from 'react'
 import { makeAvatarPlaceholder } from '../constants'
 import { CloseXIcon, TrashIcon } from '../components/Icons'
+import { ExploreRoomsAdmin, NotificationsAdmin, PaymentGatewayAdmin, StorageAdmin } from './AdminAdvanced'
 
 interface AdminPageProps {
   token: string
   onNotify: (msg: string) => void
 }
 
-type AdminSection = 'overview' | 'controls' | 'users' | 'reports' | 'moderation' | 'payments' | 'vault' | 'audit'
+type AdminSection =
+  | 'overview'
+  | 'controls'
+  | 'users'
+  | 'reports'
+  | 'moderation'
+  | 'payments'
+  | 'rooms'
+  | 'notifications'
+  | 'gateway'
+  | 'storage'
+  | 'vault'
+  | 'audit'
 
 export function AdminPage({ token, onNotify }: AdminPageProps) {
   const [section, setSection] = useState<AdminSection>('overview')
@@ -205,6 +218,10 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     { id: 'reports', label: `Reports (${ov.open_reports || 0})` },
     { id: 'moderation', label: 'Image Guard' },
     { id: 'payments', label: 'Revenue' },
+    { id: 'rooms', label: 'Explore Rooms' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'gateway', label: 'Payment Gateway' },
+    { id: 'storage', label: 'Storage & Backups' },
     { id: 'vault', label: `Deleted Vault (${ov.deleted_vault || 0})` },
     { id: 'audit', label: 'Audit Trail' },
   ]
@@ -1091,6 +1108,10 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
           </div>
         </div>
       )}
+      {section === 'rooms' && <ExploreRoomsAdmin token={token} onNotify={onNotify} />}
+      {section === 'notifications' && <NotificationsAdmin token={token} onNotify={onNotify} />}
+      {section === 'gateway' && <PaymentGatewayAdmin token={token} onNotify={onNotify} />}
+      {section === 'storage' && <StorageAdmin token={token} onNotify={onNotify} />}
     </div>
   )
 }

@@ -38,6 +38,17 @@ DEFAULT_SETTINGS = {
     "signups_enabled": "true",
     "maintenance_mode": "false",
     "announcement_banner": "",
+    # Moolre payment gateway. Values entered in the admin console override the
+    # matching Render environment variables, so keys can be rotated live.
+    "moolre_enabled": "true",
+    "moolre_env": "live",
+    "moolre_base_url": "",
+    "moolre_user": "",
+    "moolre_pubkey": "",
+    "moolre_account_number": "",
+    "moolre_wallet_secret": "",
+    "moolre_merchant_email": "",
+    "moolre_callback_url": "",
 }
 
 

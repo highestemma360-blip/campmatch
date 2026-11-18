@@ -9,20 +9,41 @@ services:
     envVars:
       - key: SECRET_KEY
         generateValue: true
-      - key: ADMIN_EMAIL
-        sync: false
-      - key: ADMIN_PASSWORD
-        sync: false
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: VITE_GOOGLE_CLIENT_ID
-        sync: false
-      - key: PAYSTACK_SECRET_KEY
-        sync: false
+      - key: DATA_DIR
+        value: /var/data
       - key: DATABASE_URL
         value: sqlite:////var/data/campmatch.db
       - key: UPLOAD_DIR
         value: /var/data/uploads
+      - key: PUBLIC_BASE_URL
+        sync: false
+      # Administrator portal (/admin). Set these in Render, never in the repo.
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Google sign-in. Only approved school domains are accepted.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      # Moolre payments (can also be entered in the admin console at runtime).
+      - key: MOOLRE_ENV
+        value: live
+      - key: MOOLRE_USER
+        sync: false
+      - key: MOOLRE_PUBKEY
+        sync: false
+      - key: MOOLRE_ACCOUNT_NUMBER
+        sync: false
+      - key: MOOLRE_WALLET_SECRET
+        sync: false
+      - key: MOOLRE_MERCHANT_EMAIL
+        sync: false
+      - key: MOOLRE_CALLBACK_URL
+        sync: false
     disk:
       name: data
       mountPath: /var/data

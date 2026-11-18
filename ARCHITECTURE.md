@@ -17,6 +17,8 @@ Campmatch maintains a per-user WebSocket registry (`backend/app/realtime.py`) au
 | `match_removed` | Server → Partner | Removes conversation upon unmatch, block, or account deletion |
 | `platform_config` | Server → All Clients | Pushes live Admin changes (Plus toggle, swipe cap, announcement) |
 | `plus_activated` | Server → User | Unlocks Plus state immediately after payment or admin grant |
+| `notification_created` | Server → All Clients | Refreshes the notification bell and feed after an admin send |
+| `explore_updated` | Server → All Clients | Refreshes Explore room membership counts and opt-in state |
 | `account_terminated` | Server → User | Forces immediate client sign-out upon suspension or deletion |
 
 ## 2. Three-Stage Profile Photo Verification (`backend/app/image_guard.py`)
@@ -45,3 +47,24 @@ When a user deletes their account (`POST /api/account/delete`) or an admin moves
 - `original_email` preserves the student's `.edu.gh` address while `email` is namespaced (`deleted_<id>_<ts>__<email>`) so database foreign keys remain intact without blocking future re-registration if needed.
 - `token_version` is incremented and `account_terminated` is sent over WebSocket.
 - Active matches are marked `is_active = False` so the user disappears from other students' decks and chat lists immediately, while `User`, `Swipe`, `Match`, `Message`, `Payment`, `Report`, and `ImageModerationLog` rows remain preserved in SQLite/PostgreSQL and inspectable in the Admin **Deleted Vault**.
+
+## 5. Separate Admin Portal (`/admin`)
+
+The frontend entry point checks `window.location.pathname`. Only the exact `/admin` path mounts `AdminPortal`; every other path mounts the student app. The student navigation never renders an admin link, and the old in-app admin tab has been removed.
+
+- `POST /api/admin-auth/login` verifies `ADMIN_USERNAME`/`ADMIN_EMAIL` plus `ADMIN_PASSWORD` from the server environment.
+- The resulting token is stored in `localStorage` under `campmatch_admin_token`, separate from the student token.
+- Admin API routes continue to require `is_admin` on the authenticated user, so a stolen student token cannot reach them.
+
+## 6. Database-Backed Explore Rooms
+
+`explore_rooms.py` seeds the six launch rooms once and then stores all metadata in the `explore_rooms` table. Admin CRUD updates the row and broadcasts `explore_updated`; the SPA registers the new catalogue at runtime (`registerExploreRooms`) so the Explore grid, onboarding chips, and profile opt-in chips all update without a rebuild. Deleting a room that still has opted-in students archives it (`is_active = false`) instead of erasing their history.
+
+## 7. Notifications & Moolre Payments
+
+- **Notifications** live in `notifications` plus per-user `notification_reads`. `notifications.py` resolves visibility by audience (`all`, `free`, `plus`, `new`), school, target user, and expiry. Admin flyers are resized to WebP and written to `UPLOAD_DIR`.
+- **Moolre** is resolved from the `settings` table first and environment variables second, so keys can be rotated from the admin console without a redeploy. The router supports MoMo collection with the OTP handshake, hosted Web POS links, signature-verified idempotent webhooks, and status verification when a student returns. Plus time is extended from the existing `premium_until`, never reset backwards.
+
+## 8. Durable Storage & Backups
+
+`database.py` resolves the data root in this order: `DATA_DIR`, `RENDER_DISK_PATH`, `/var/data`, then `backend/`. SQLite, uploads, and backups all resolve under that root. Every boot writes a rolling `campmatch-*.db` backup (12 kept). The admin Storage panel exposes disk status, manual backup, backup download, and a JSON record export.

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   AppMode,
+  AppNotification,
   NavTab,
   ProfileCard,
   CurrentUser,
@@ -9,7 +10,7 @@ import {
   PlusConfig,
   SwipeQuota,
 } from './types'
-import { ExploreVibe, makeAvatarPlaceholder } from './constants'
+import { EXPLORE_VIBES, ExploreVibe, makeAvatarPlaceholder, registerExploreRooms } from './constants'
 import { RealtimeClient } from './utils/realtime'
 import {
   CampmatchLogo,
@@ -22,10 +23,12 @@ import {
   SunIcon,
   MoonIcon,
   SettingsGearIcon,
+  BellIcon,
 } from './components/Icons'
 import { SwipeDeck } from './components/SwipeDeck'
 import { ProfileSheet } from './components/ProfileSheet'
 import { MatchCelebration } from './components/MatchCelebration'
+import { NotificationsSheet } from './components/NotificationsSheet'
 import { DiscoveryModal, PlusModal, ReportModal, DeleteAccountModal } from './components/Modals'
 import { AuthPage } from './pages/AuthPage'
 import { OnboardingPage } from './pages/OnboardingPage'
@@ -33,9 +36,9 @@ import { ExplorePage } from './pages/ExplorePage'
 import { LikesYouPage } from './pages/LikesYouPage'
 import { MatchesListView, ChatConversationView } from './pages/MatchesChatPage'
 import { ProfilePage } from './pages/ProfilePage'
-import { AdminPage } from './pages/AdminPage'
+import { AdminPortal } from './pages/AdminPortal'
 
-export default function App() {
+function StudentApp() {
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark')
   const [tab, setTab] = useState<NavTab>('swipe')
@@ -58,6 +61,9 @@ export default function App() {
   const [justRewound, setJustRewound] = useState(false)
   const [exploreCounts, setExploreCounts] = useState<Record<string, number>>({})
   const [exploreOptedIn, setExploreOptedIn] = useState<string[]>([])
+  const [exploreRooms, setExploreRooms] = useState<ExploreVibe[]>(EXPLORE_VIBES)
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [showNotifications, setShowNotifications] = useState(false)
 
   const [likesItems, setLikesItems] = useState<ProfileCard[]>([])
   const [likesLocked, setLikesLocked] = useState(false)
@@ -200,6 +206,10 @@ export default function App() {
           loadExploreCounts()
           break
         }
+        case 'notification_created': {
+          loadNotifications(true)
+          break
+        }
         case 'platform_config': {
           setPlusConfig({
             enabled: Boolean(event.plus_enabled),
@@ -228,6 +238,8 @@ export default function App() {
     client.connect(token)
 
     loadMe()
+    loadExploreRooms()
+    loadNotifications()
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => {
@@ -248,6 +260,67 @@ export default function App() {
       client.disconnect()
     }
   }, [token])
+
+  async function loadNotifications(announce = false) {
+    if (!token) return
+    try {
+      const r = await fetch('/api/notifications', { headers: { Authorization: 'Bearer ' + token } })
+      if (!r.ok) return
+      const d = await r.json()
+      const items: AppNotification[] = d.items || []
+      setNotifications(prev => {
+        if (announce) {
+          const fresh = items.find(i => !i.read && !prev.some(p => p.id === i.id))
+          if (fresh) showToast(fresh.title)
+        }
+        return items
+      })
+    } catch {
+      // Notifications are non-critical; keep the app usable if the request fails.
+    }
+  }
+
+  async function markNotificationRead(id: number) {
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)))
+    await fetch(`/api/notifications/${id}/read`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+    }).catch(() => {})
+  }
+
+  async function markAllNotificationsRead() {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    await fetch('/api/notifications/read-all', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+    }).catch(() => {})
+  }
+
+  async function loadExploreRooms() {
+    if (!token) return
+    const r = await fetch('/api/explore/rooms', {
+      headers: { Authorization: 'Bearer ' + token },
+    })
+    if (!r.ok) return
+    const d = await r.json()
+    const rooms: ExploreVibe[] = (d.rooms || []).map((room: any) => ({
+      id: room.slug,
+      title: room.title,
+      subtitle: room.subtitle,
+      tag: room.tag,
+      icon: room.icon,
+      gradient: room.gradient,
+      accent: room.accent,
+      member_count: room.member_count,
+      opted_in: room.opted_in,
+    }))
+    if (rooms.length) {
+      registerExploreRooms(rooms)
+      setExploreRooms(rooms)
+      setExploreCounts(d.counts || {})
+      setExploreOptedIn(d.opted_in || [])
+    }
+  }
 
   async function loadQuota() {
     if (!token) return
@@ -334,7 +407,8 @@ export default function App() {
       setExploreOptedIn(nextOpted)
       if (d.counts) setExploreCounts(d.counts)
       if (me) setMe({ ...me, explore_vibes: nextOpted })
-      showToast(d.joined ? 'Opted into room' : 'Left room')
+      const room = exploreRooms.find(r => r.id === vibeId)
+      showToast(d.joined ? `Opted into ${room?.title || 'Explore room'}` : `Left ${room?.title || 'Explore room'}`)
     }
   }
 
@@ -691,6 +765,7 @@ export default function App() {
         token={token}
         initialName={me?.name || ''}
         existingPhotos={me?.photo_urls || []}
+        rooms={exploreRooms}
         onDone={loadMe}
       />
     )
@@ -699,8 +774,6 @@ export default function App() {
   const totalUnread = matches.reduce((sum, m) => sum + (m.unread_count || 0), 0)
   const newMatchesCount = matches.filter(m => !m.last_message).length
   const bannerText = plusConfig.announcement_banner || me?.announcement_banner || ''
-  const isStrictAdmin = Boolean(me && me.is_admin === true)
-  const isAdminTab = tab === 'admin' && isStrictAdmin
 
   return (
     <div className="workspace-shell">
@@ -791,7 +864,6 @@ export default function App() {
             { id: 'swipe', label: 'Discover' },
             { id: 'explore', label: 'Explore' },
             { id: 'likes', label: `Likes (${likesItems.length})` },
-            ...(isStrictAdmin ? [{ id: 'admin', label: 'Admin' }] : []),
           ].map(item => (
             <button
               key={item.id}
@@ -828,8 +900,8 @@ export default function App() {
       </aside>
 
       {/* Main Stage */}
-      <main className={`main-stage ${isAdminTab ? 'wide-admin' : ''}`}>
-        <div className={`stage-inner ${isAdminTab ? 'wide-admin' : ''}`}>
+      <main className="main-stage">
+        <div className="stage-inner">
           {bannerText && <div className="announcement-strip">{bannerText}</div>}
 
           {tab === 'matches' && activeChat && me ? (
@@ -861,21 +933,44 @@ export default function App() {
                   <CampmatchLogo iconSize={27} fontSize={21} gap={8} />
                 </div>
 
-                {!isAdminTab && (
-                  <div className="mode-pills desktop-only-modes">
-                    {(['date', 'bff', 'study'] as const).map(m => (
-                      <button
-                        key={m}
-                        className={`mode-pill ${mode === m ? `active ${m}` : ''}`}
-                        onClick={() => handleModeSwitch(m)}
-                      >
-                        {m === 'date' ? 'Date' : m === 'bff' ? 'BFF' : 'Study'}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="mode-pills desktop-only-modes">
+                  {(['date', 'bff', 'study'] as const).map(m => (
+                    <button
+                      key={m}
+                      className={`mode-pill ${mode === m ? `active ${m}` : ''}`}
+                      onClick={() => handleModeSwitch(m)}
+                    >
+                      {m === 'date' ? 'Date' : m === 'bff' ? 'BFF' : 'Study'}
+                    </button>
+                  ))}
+                </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    className="icon-circle-btn"
+                    onClick={() => {
+                      setShowNotifications(true)
+                      loadNotifications()
+                    }}
+                    title="Campus notifications"
+                    style={{ position: 'relative' }}
+                  >
+                    <BellIcon size={18} />
+                    {notifications.some(n => !n.read) && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 5,
+                          right: 5,
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: 'var(--tinder-pink)',
+                          boxShadow: '0 0 0 2px var(--bg-app)',
+                        }}
+                      />
+                    )}
+                  </button>
                   <button
                     className="icon-circle-btn mobile-only-btn"
                     onClick={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}
@@ -935,6 +1030,7 @@ export default function App() {
               {tab === 'explore' && (
                 <ExplorePage
                   token={token}
+                  rooms={exploreRooms}
                   counts={exploreCounts}
                   optedIn={exploreOptedIn}
                   onToggleOptIn={handleToggleExploreOptIn}
@@ -972,6 +1068,7 @@ export default function App() {
                 <ProfilePage
                   me={me}
                   token={token}
+                  rooms={exploreRooms}
                   theme={theme}
                   plusConfig={plusConfig}
                   onToggleTheme={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}
@@ -994,8 +1091,6 @@ export default function App() {
                   onLogout={handleLogout}
                 />
               )}
-
-              {isAdminTab && <AdminPage token={token} onNotify={showToast} />}
 
               <nav className="bottom-nav mobile-only-nav">
                 <button
@@ -1050,16 +1145,6 @@ export default function App() {
                   <UserIcon size={21} />
                   <span>Profile</span>
                 </button>
-
-                {isStrictAdmin && (
-                  <button
-                    className={`nav-tab-btn ${tab === 'admin' ? 'active' : ''}`}
-                    onClick={() => setTab('admin')}
-                  >
-                    <SettingsGearIcon size={20} />
-                    <span>Admin</span>
-                  </button>
-                )}
               </nav>
             </>
           )}
@@ -1111,7 +1196,15 @@ export default function App() {
           isPremium={Boolean(me.is_premium)}
           plusConfig={plusConfig}
           quota={quota}
+          token={token}
           onCheckout={handlePlusCheckout}
+          onSuccess={() => {
+            setShowPlusModal(false)
+            showToast('Campmatch Plus is now active.')
+            loadMe()
+            loadQuota()
+            loadLikesYou()
+          }}
           onClose={() => setShowPlusModal(false)}
         />
       )}
@@ -1130,6 +1223,23 @@ export default function App() {
           onClose={() => setReportTarget(null)}
         />
       )}
+
+      {showNotifications && (
+        <NotificationsSheet
+          items={notifications}
+          onRead={markNotificationRead}
+          onReadAll={markAllNotificationsRead}
+          onClose={() => setShowNotifications(false)}
+        />
+      )}
     </div>
   )
+}
+
+export default function App() {
+  const path = window.location.pathname.replace(/\/+$/, '').toLowerCase()
+  if (path === '/admin') {
+    return <AdminPortal />
+  }
+  return <StudentApp />
 }

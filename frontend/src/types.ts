@@ -104,3 +104,14 @@ export interface PlusConfig {
   free_daily_swipe_limit: number
   announcement_banner?: string
 }
+
+export interface AppNotification {
+  id: number
+  title: string
+  body: string
+  flyer_url: string
+  audience: string
+  created_at: string
+  expires_at?: string | null
+  read: boolean
+}

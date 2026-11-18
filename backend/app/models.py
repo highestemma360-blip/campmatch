@@ -170,3 +170,50 @@ class AdminAuditLog(Base):
     target_user_id = Column(Integer, nullable=True)
     details = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WebhookEvent(Base):
+    __tablename__ = "webhook_events"
+    id = Column(Integer, primary_key=True)
+    event_id = Column(String(120), unique=True, index=True, nullable=False)
+    event_type = Column(String(60), default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ExploreRoom(Base):
+    __tablename__ = "explore_rooms"
+    id = Column(Integer, primary_key=True)
+    slug = Column(String(60), unique=True, index=True, nullable=False)
+    title = Column(String(80), nullable=False)
+    subtitle = Column(String(220), default="")
+    tag = Column(String(40), default="")
+    icon = Column(String(40), default="star")
+    gradient = Column(String(220), default="")
+    accent = Column(String(20), default="#FB7185")
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(140), nullable=False)
+    body = Column(Text, default="")
+    flyer_url = Column(String(255), default="")
+    audience = Column(String(20), default="all")  # all | free | plus | new
+    target_school = Column(String(100), default="")
+    target_user_id = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True, index=True)
+    created_by = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
+
+
+class NotificationRead(Base):
+    __tablename__ = "notification_reads"
+    id = Column(Integer, primary_key=True)
+    notification_id = Column(Integer, ForeignKey("notifications.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    read_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint("notification_id", "user_id"),)

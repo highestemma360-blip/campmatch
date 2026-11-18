@@ -13,13 +13,23 @@ from .database import SessionLocal, UPLOAD_DIR
 from .models import User, Match
 from .security import bootstrap_defaults, decode_token
 from .realtime import hub
-from .routers import auth, profiles, swipes, chat, admin, payments
+from .routers import auth, profiles, swipes, chat, admin, payments, notifications
+from .explore_rooms import seed_default_rooms
 
 models.Base.metadata.create_all(bind=database.engine)
 database.run_migrations()
 
 with SessionLocal() as _startup_db:
     bootstrap_defaults(_startup_db)
+    seed_default_rooms(_startup_db)
+
+# Keep a rolling copy of the database on the durable disk so a bad deploy can
+# never wipe the only copy of student records.
+_STARTUP_BACKUP = database.backup_sqlite("startup")
+print(
+    f"[campmatch] data_dir={database.DATA_DIR} sqlite={database.sqlite_file_path()} "
+    f"uploads={UPLOAD_DIR} startup_backup={_STARTUP_BACKUP.get('file') or _STARTUP_BACKUP.get('reason')}"
+)
 
 app = FastAPI(title="Campmatch", docs_url=None, redoc_url=None)
 
@@ -58,7 +68,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         ip = _extract_client_ip(request)
 
-        if path in ("/api/login", "/api/signup", "/api/google") and request.method == "POST":
+        if path in ("/api/login", "/api/signup", "/api/google", "/api/admin-auth/login") and request.method == "POST":
             auth_rate_store[ip] = [t for t in auth_rate_store[ip] if now - t < 60]
             if len(auth_rate_store[ip]) >= RATE_LIMIT_AUTH:
                 return JSONResponse(
@@ -120,6 +130,7 @@ app.include_router(swipes.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(admin.router, prefix="/api/admin")
 app.include_router(payments.router, prefix="/api/payments")
+app.include_router(notifications.router, prefix="/api")
 
 
 @app.get("/api/health")

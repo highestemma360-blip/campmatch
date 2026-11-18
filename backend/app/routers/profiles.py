@@ -23,18 +23,12 @@ from ..security import (
 )
 from ..image_guard import validate_and_optimize_profile_photo
 from ..realtime import hub
+from ..explore_rooms import active_slugs, DEFAULT_EXPLORE_ROOMS
 
 router = APIRouter()
 
-
-VALID_EXPLORE_VIBES = {
-    "study_buddy",
-    "food_date",
-    "long_term",
-    "night_stand",
-    "walk_around",
-    "escort_tonight",
-}
+# Kept for backwards compatibility with older imports.
+VALID_EXPLORE_VIBES = {r["slug"] for r in DEFAULT_EXPLORE_ROOMS}
 
 
 class PromptItem(BaseModel):
@@ -139,7 +133,7 @@ def compute_swipe_quota(user: User, db: Session) -> dict:
 def serialize_user(user: User, full: bool = False, db: Optional[Session] = None):
     photos = parse_list(user.photo_urls)
     interests = parse_list(user.interests)
-    explore_vibes = [v for v in parse_list(user.explore_vibes) if v in VALID_EXPLORE_VIBES]
+    explore_vibes = parse_list(user.explore_vibes)
     prompts = parse_prompts(user.prompts)
 
     checks = [
@@ -275,7 +269,8 @@ def update_profile(data: ProfileIn, user: User = Depends(get_current_user), db: 
     user.looking_for = data.looking_for[:60]
     user.interests = ",".join([i.strip()[:40] for i in data.interests[:8] if i.strip()])
     if data.explore_vibes is not None:
-        clean_vibes = list(dict.fromkeys(v.strip() for v in data.explore_vibes if v.strip() in VALID_EXPLORE_VIBES))
+        allowed = active_slugs(db) or VALID_EXPLORE_VIBES
+        clean_vibes = list(dict.fromkeys(v.strip() for v in data.explore_vibes if v.strip() in allowed))
         user.explore_vibes = ",".join(clean_vibes)
     user.prompts = json.dumps(
         [{"question": p.question.strip()[:120], "answer": p.answer.strip()[:280]} for p in data.prompts[:3] if p.answer.strip()]

@@ -14,6 +14,7 @@ import {
 
 interface ExplorePageProps {
   token: string
+  rooms?: ExploreVibe[]
   counts: Record<string, number>
   optedIn: string[]
   onToggleOptIn: (vibeId: string) => Promise<void>
@@ -25,6 +26,7 @@ interface ExplorePageProps {
 
 export function ExplorePage({
   token,
+  rooms,
   counts,
   optedIn,
   onToggleOptIn,
@@ -33,6 +35,7 @@ export function ExplorePage({
   onInspect,
   onBoostClick,
 }: ExplorePageProps) {
+  const catalogue = rooms && rooms.length > 0 ? rooms : EXPLORE_VIBES
   const [selectedRoom, setSelectedRoom] = useState<ExploreVibe | null>(null)
   const [members, setMembers] = useState<ProfileCard[]>([])
   const [loadingRoom, setLoadingRoom] = useState(false)
@@ -145,7 +148,7 @@ export function ExplorePage({
                 justifyContent: 'center',
               }}
             >
-              <ExploreRoomIcon id={selectedRoom.id} size={22} />
+              <ExploreRoomIcon id={selectedRoom.id} icon={selectedRoom.icon} size={22} />
             </div>
             <div>
               <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.15 }}>{selectedRoom.title}</div>
@@ -383,7 +386,7 @@ export function ExplorePage({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {EXPLORE_VIBES.map(vibe => {
+        {catalogue.map(vibe => {
           const count = counts[vibe.id] || 0
           const isJoined = optedIn.includes(vibe.id)
           return (
@@ -417,7 +420,7 @@ export function ExplorePage({
                     justifyContent: 'center',
                   }}
                 >
-                  <ExploreRoomIcon id={vibe.id} size={19} />
+                  <ExploreRoomIcon id={vibe.id} icon={vibe.icon} size={19} />
                 </div>
 
                 <button

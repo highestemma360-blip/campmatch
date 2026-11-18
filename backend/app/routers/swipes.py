@@ -16,6 +16,7 @@ from .profiles import (
     compute_swipe_quota,
     VALID_EXPLORE_VIBES,
 )
+from ..explore_rooms import active_rooms, active_slugs, serialize_room
 
 router = APIRouter()
 
@@ -81,16 +82,19 @@ def _compute_room_counts(user: User, db: Session) -> dict:
         .all()
     )
 
+    rooms = active_rooms(db)
     out = {}
-    for v in VALID_EXPLORE_VIBES:
+    for room in rooms:
+        slug = room.slug
         cnt = 0
         for c in pool:
-            if v not in parse_list(c.explore_vibes):
+            if slug not in parse_list(c.explore_vibes):
                 continue
-            if v != "study_buddy" and user.interested_in in ("male", "female") and c.gender != user.interested_in:
+            academic = "study" in (slug + " " + (room.title or "")).lower()
+            if not academic and user.interested_in in ("male", "female") and c.gender != user.interested_in:
                 continue
             cnt += 1
-        out[v] = cnt
+        out[slug] = cnt
     return out
 
 
@@ -169,10 +173,19 @@ def get_deck(
     return result
 
 
+@router.get("/explore/rooms")
+def explore_rooms_public(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    counts = _compute_room_counts(user, db)
+    opted_in = set(parse_list(user.explore_vibes))
+    rooms = [serialize_room(r, counts, opted_in) for r in active_rooms(db)]
+    return {"rooms": rooms, "counts": counts, "opted_in": sorted(opted_in)}
+
+
 @router.get("/explore-counts")
 def explore_counts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     counts = _compute_room_counts(user, db)
-    opted_in = [v for v in parse_list(user.explore_vibes) if v in VALID_EXPLORE_VIBES]
+    allowed = active_slugs(db) or VALID_EXPLORE_VIBES
+    opted_in = [v for v in parse_list(user.explore_vibes) if v in allowed]
     return {"counts": counts, "opted_in": opted_in}
 
 
@@ -183,10 +196,11 @@ async def toggle_explore_opt_in(
     db: Session = Depends(get_db),
 ):
     clean = vibe.strip()
-    if clean not in VALID_EXPLORE_VIBES:
-        raise HTTPException(400, "Invalid Explore room.")
+    allowed = active_slugs(db) or VALID_EXPLORE_VIBES
+    if clean not in allowed:
+        raise HTTPException(400, "This Explore room is not available right now.")
 
-    current = [v for v in parse_list(user.explore_vibes) if v in VALID_EXPLORE_VIBES]
+    current = [v for v in parse_list(user.explore_vibes)]
     if clean in current:
         current = [v for v in current if v != clean]
         joined = False
@@ -208,7 +222,8 @@ def get_explore_room_members(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if vibe not in VALID_EXPLORE_VIBES:
+    room = next((r for r in active_rooms(db) if r.slug == vibe), None)
+    if not room:
         raise HTTPException(404, "Explore room not found.")
 
     blocked_ids = get_blocked_user_ids(user.id, db)
@@ -222,7 +237,8 @@ def get_explore_room_members(
         User.snoozed == False,
         ~User.id.in_(blocked_ids),
     )
-    if vibe != "study_buddy" and user.interested_in in ("male", "female"):
+    academic = "study" in (vibe + " " + (room.title or "")).lower()
+    if not academic and user.interested_in in ("male", "female"):
         q = q.filter(User.gender == user.interested_in)
 
     candidates = q.limit(150).all()
@@ -242,6 +258,7 @@ def get_explore_room_members(
     members.sort(key=lambda m: (m["already_swiped"], not m.get("online", False), -(m.get("compatibility") or 0)))
     return {
         "vibe": vibe,
+        "room": serialize_room(room),
         "opted_in": vibe in parse_list(user.explore_vibes),
         "members": members,
     }
@@ -439,7 +456,7 @@ def get_likes_you(user: User = Depends(get_current_user), db: Session = Depends(
             items.append({
                 "id": admirer.id,
                 "blurred": True,
-                "name": f"{(admirer.name or 'S')[0]}•••",
+                "name": f"{(admirer.name or 'S')[0]}***",
                 "age": admirer.age,
                 "level": admirer.level,
                 "school": admirer.school,

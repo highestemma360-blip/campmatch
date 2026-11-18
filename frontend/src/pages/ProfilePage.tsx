@@ -8,6 +8,7 @@ import {
   OPENING_MOVES,
   ZODIAC_SIGNS,
   EXPLORE_VIBES,
+  ExploreVibe,
   TERMS_SUMMARY,
   PRIVACY_SUMMARY,
   makeAvatarPlaceholder,
@@ -31,6 +32,7 @@ import {
 interface ProfilePageProps {
   me: CurrentUser
   token: string
+  rooms?: ExploreVibe[]
   theme: string
   plusConfig: PlusConfig
   onToggleTheme: () => void
@@ -50,6 +52,7 @@ interface ProfilePageProps {
 export function ProfilePage({
   me,
   token,
+  rooms,
   theme,
   plusConfig,
   onToggleTheme,
@@ -65,6 +68,7 @@ export function ProfilePage({
   onTokenUpdated,
   onLogout,
 }: ProfilePageProps) {
+  const roomCatalogue = rooms && rooms.length > 0 ? rooms : EXPLORE_VIBES
   const [screen, setScreen] = useState<'hub' | 'edit' | 'settings'>('hub')
   const [editorTab, setEditorTab] = useState<'edit' | 'preview'>('edit')
   const [previewPhotoIdx, setPreviewPhotoIdx] = useState(0)
@@ -547,7 +551,7 @@ export function ProfilePage({
                 Choose which rooms your profile appears in when students browse Explore.
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {EXPLORE_VIBES.map(room => {
+                {roomCatalogue.map(room => {
                   const active = exploreVibes.includes(room.id)
                   return (
                     <button
@@ -1080,7 +1084,7 @@ export function ProfilePage({
             <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Tap to opt in / out</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {EXPLORE_VIBES.map(room => {
+            {roomCatalogue.map(room => {
               const active = (me.explore_vibes || []).includes(room.id)
               return (
                 <button
