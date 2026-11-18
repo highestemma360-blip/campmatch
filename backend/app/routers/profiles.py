@@ -27,6 +27,16 @@ from ..realtime import hub
 router = APIRouter()
 
 
+VALID_EXPLORE_VIBES = {
+    "study_buddy",
+    "food_date",
+    "long_term",
+    "night_stand",
+    "walk_around",
+    "escort_tonight",
+}
+
+
 class PromptItem(BaseModel):
     question: str
     answer: str
@@ -50,6 +60,7 @@ class ProfileIn(BaseModel):
     mode: str = "date"
     looking_for: str = "Long-term partner"
     interests: List[str] = []
+    explore_vibes: Optional[List[str]] = None
     prompts: List[PromptItem] = []
     opening_move: str = ""
     hall: str = ""
@@ -128,6 +139,7 @@ def compute_swipe_quota(user: User, db: Session) -> dict:
 def serialize_user(user: User, full: bool = False, db: Optional[Session] = None):
     photos = parse_list(user.photo_urls)
     interests = parse_list(user.interests)
+    explore_vibes = [v for v in parse_list(user.explore_vibes) if v in VALID_EXPLORE_VIBES]
     prompts = parse_prompts(user.prompts)
 
     checks = [
@@ -140,7 +152,7 @@ def serialize_user(user: User, full: bool = False, db: Optional[Session] = None)
         len(interests) >= 3,
         len(prompts) >= 1,
         bool(user.opening_move),
-        bool(user.hall or user.looking_for),
+        len(explore_vibes) >= 1 or bool(user.hall),
     ]
     completion = int(round((sum(1 for c in checks if c) / len(checks)) * 100))
 
@@ -165,6 +177,7 @@ def serialize_user(user: User, full: bool = False, db: Optional[Session] = None)
         "mode": user.mode or "date",
         "looking_for": user.looking_for or "Long-term partner",
         "interests": interests,
+        "explore_vibes": explore_vibes,
         "prompts": prompts,
         "opening_move": user.opening_move or "",
         "zodiac": user.zodiac or "",
@@ -261,6 +274,9 @@ def update_profile(data: ProfileIn, user: User = Depends(get_current_user), db: 
     user.mode = data.mode if data.mode in ("date", "bff", "study") else "date"
     user.looking_for = data.looking_for[:60]
     user.interests = ",".join([i.strip()[:40] for i in data.interests[:8] if i.strip()])
+    if data.explore_vibes is not None:
+        clean_vibes = list(dict.fromkeys(v.strip() for v in data.explore_vibes if v.strip() in VALID_EXPLORE_VIBES))
+        user.explore_vibes = ",".join(clean_vibes)
     user.prompts = json.dumps(
         [{"question": p.question.strip()[:120], "answer": p.answer.strip()[:280]} for p in data.prompts[:3] if p.answer.strip()]
     )

@@ -6,6 +6,7 @@ import {
   BUMBLE_PROMPTS,
   OPENING_MOVES,
   ZODIAC_SIGNS,
+  EXPLORE_VIBES,
 } from '../constants'
 import { precheckProfileImage } from '../utils/imageCheck'
 import { CampmatchLogo, CheckCircleIcon, CloseXIcon } from '../components/Icons'
@@ -43,6 +44,7 @@ export function OnboardingPage({
   // Step 3
   const [lookingFor, setLookingFor] = useState('Long-term partner')
   const [interests, setInterests] = useState<string[]>([])
+  const [exploreVibes, setExploreVibes] = useState<string[]>(['food_date'])
 
   // Step 4
   const [bio, setBio] = useState('')
@@ -149,6 +151,7 @@ export function OnboardingPage({
           bio,
           looking_for: lookingFor,
           interests,
+          explore_vibes: exploreVibes,
           prompts: promptA.trim() ? [{ question: promptQ, answer: promptA.trim() }] : [],
           opening_move: openingMove,
           zodiac,
@@ -437,6 +440,27 @@ export function OnboardingPage({
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>{opt.desc}</div>
                 </button>
               ))}
+            </div>
+
+            <label className="field-label">Opt Into Explore Rooms (Optional)</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {EXPLORE_VIBES.map(room => {
+                const active = exploreVibes.includes(room.id)
+                return (
+                  <button
+                    key={room.id}
+                    type="button"
+                    className={`selectable-chip ${active ? 'selected' : ''}`}
+                    onClick={() =>
+                      setExploreVibes(prev =>
+                        prev.includes(room.id) ? prev.filter(v => v !== room.id) : [...prev, room.id]
+                      )
+                    }
+                  >
+                    {room.title}
+                  </button>
+                )
+              })}
             </div>
 
             <label className="field-label">Interests ({interests.length}/7)</label>

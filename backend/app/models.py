@@ -65,6 +65,7 @@ class User(Base):
     zodiac = Column(String(30), default="")
     height = Column(String(20), default="")
     spotify_anthem = Column(String(160), default="")
+    explore_vibes = Column(Text, default="")
 
 
 class Swipe(Base):

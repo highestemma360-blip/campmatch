@@ -34,6 +34,7 @@ export interface ProfileCard {
   mode?: AppMode
   looking_for?: string
   interests?: string[]
+  explore_vibes?: string[]
   prompts?: PromptItem[]
   opening_move?: string
   zodiac?: string
@@ -51,6 +52,8 @@ export interface ProfileCard {
   liked_me_hint?: boolean
   blurred?: boolean
   super_liked?: boolean
+  already_swiped?: boolean
+  already_liked?: boolean
 }
 
 export interface CurrentUser extends ProfileCard {

@@ -51,72 +51,77 @@ export const ICEBREAKER_QUESTIONS = [
   'Your profile stood out right away. How is your week going so far?',
 ]
 
+export type ExploreRoomId =
+  | 'study_buddy'
+  | 'food_date'
+  | 'long_term'
+  | 'night_stand'
+  | 'walk_around'
+  | 'escort_tonight'
+
 export interface ExploreVibe {
-  id: string
+  id: ExploreRoomId
   title: string
   subtitle: string
   tag: string
   gradient: string
+  accent: string
 }
 
 export const EXPLORE_VIBES: ExploreVibe[] = [
   {
-    id: 'serious',
-    title: 'Long-Term',
-    subtitle: 'Students looking for a committed relationship',
-    tag: 'INTENTIONAL',
-    gradient: 'linear-gradient(145deg, #E11D48 0%, #881337 100%)',
-  },
-  {
-    id: 'tonight',
-    title: 'Free This Evening',
-    subtitle: 'Spontaneous dinner, walks, or campus hangouts',
-    tag: 'TONIGHT',
-    gradient: 'linear-gradient(145deg, #4F46E5 0%, #1E1B4B 100%)',
-  },
-  {
-    id: 'study',
-    title: 'Study Partners',
-    subtitle: 'Focused sessions for coursework, labs, and exams',
+    id: 'study_buddy',
+    title: 'Study Buddy',
+    subtitle: 'Library sessions, lab partners, and exam accountability',
     tag: 'ACADEMIC',
-    gradient: 'linear-gradient(145deg, #0284C7 0%, #0C4A6E 100%)',
+    gradient: 'linear-gradient(150deg, #0284C7 0%, #0F2942 100%)',
+    accent: '#38BDF8',
   },
   {
-    id: 'bff',
-    title: 'BFF & Social',
-    subtitle: 'Meet new people and build your campus circle',
-    tag: 'FRIENDS',
-    gradient: 'linear-gradient(145deg, #D97706 0%, #78350F 100%)',
+    id: 'food_date',
+    title: 'Food Date',
+    subtitle: 'Grab dinner, night-market bites, or try a new spot together',
+    tag: 'CRAVINGS',
+    gradient: 'linear-gradient(150deg, #EA580C 0%, #431407 100%)',
+    accent: '#FB923C',
   },
   {
-    id: 'fitness',
-    title: 'Athletics & Gym',
-    subtitle: 'Training partners, football, track, and court games',
-    tag: 'ACTIVE',
-    gradient: 'linear-gradient(145deg, #059669 0%, #064E3B 100%)',
+    id: 'long_term',
+    title: 'Long Term',
+    subtitle: 'Intentional dating with students ready for something real',
+    tag: 'COMMITTED',
+    gradient: 'linear-gradient(150deg, #E11D48 0%, #4C0519 100%)',
+    accent: '#FB7185',
   },
   {
-    id: 'creative',
-    title: 'Music & Arts',
-    subtitle: 'Producers, photographers, designers, and creatives',
-    tag: 'CULTURE',
-    gradient: 'linear-gradient(145deg, #9333EA 0%, #4C1D95 100%)',
+    id: 'night_stand',
+    title: 'Night Stand',
+    subtitle: 'Mutual late-night chemistry, upfront and no pressure',
+    tag: 'AFTER HOURS',
+    gradient: 'linear-gradient(150deg, #7C3AED 0%, #1E1035 100%)',
+    accent: '#C084FC',
   },
   {
-    id: 'same_level',
-    title: 'Same Year Group',
-    subtitle: 'Connect with peers in your academic level',
-    tag: 'YEAR GROUP',
-    gradient: 'linear-gradient(145deg, #EA580C 0%, #7C2D12 100%)',
+    id: 'walk_around',
+    title: 'Walk Around',
+    subtitle: 'Unwind with an evening campus stroll and easy conversation',
+    tag: 'CHILL WALK',
+    gradient: 'linear-gradient(150deg, #0D9488 0%, #082F2C 100%)',
+    accent: '#2DD4BF',
   },
   {
-    id: 'same_hall',
-    title: 'Hall Neighbours',
-    subtitle: 'Students in your residence hall or nearby hostel',
-    tag: 'NEARBY',
-    gradient: 'linear-gradient(145deg, #0D9488 0%, #134E4A 100%)',
+    id: 'escort_tonight',
+    title: 'Escort Tonight',
+    subtitle: 'Find a sharp plus-one for tonight’s event, party, or outing',
+    tag: 'PLUS ONE',
+    gradient: 'linear-gradient(150deg, #D97706 0%, #3B1D06 100%)',
+    accent: '#FBBF24',
   },
 ]
+
+export const EXPLORE_MAP: Record<string, ExploreVibe> = Object.fromEntries(
+  EXPLORE_VIBES.map(v => [v.id, v])
+)
 
 export const TERMS_SUMMARY = `Campmatch is an independent student matching platform exclusively for verified Ghana university students aged 18 and older with official .edu.gh email addresses.
 
@@ -135,13 +140,13 @@ You may delete your account at any time from Account Settings. Deleting your acc
 export const PRIVACY_SUMMARY = `Campmatch is built with strict campus privacy controls.
 
 1. Data Collected
-We store your student email, profile attributes, verified profile photos, approximate distance (never exact GPS coordinates), swipe preferences, and match messages.
+We store your student email, profile attributes, verified profile photos, approximate distance (never exact GPS coordinates), Explore room opt-ins, swipe preferences, and match messages.
 
 2. Automated Photo Screening
 Uploaded profile photos are analyzed on our server to reject blank placeholders, non-human images, and explicit content before storage.
 
 3. Visibility & Control
-You can pause your profile at any time using Snooze Mode, block or report any student, change your password, or delete your account directly from Settings.`
+You can opt in or out of Explore rooms anytime, pause your profile using Snooze Mode, block or report any student, change your password, or delete your account directly from Settings.`
 
 export function makeAvatarPlaceholder(name?: string): string {
   const initial = ((name || 'U').trim()[0] || 'U').toUpperCase()

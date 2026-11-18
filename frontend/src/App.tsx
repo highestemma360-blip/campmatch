@@ -57,6 +57,7 @@ export default function App() {
   const [rewindAvailable, setRewindAvailable] = useState(false)
   const [justRewound, setJustRewound] = useState(false)
   const [exploreCounts, setExploreCounts] = useState<Record<string, number>>({})
+  const [exploreOptedIn, setExploreOptedIn] = useState<string[]>([])
 
   const [likesItems, setLikesItems] = useState<ProfileCard[]>([])
   const [likesLocked, setLikesLocked] = useState(false)
@@ -195,6 +196,10 @@ export default function App() {
           }
           break
         }
+        case 'explore_updated': {
+          loadExploreCounts()
+          break
+        }
         case 'platform_config': {
           setPlusConfig({
             enabled: Boolean(event.plus_enabled),
@@ -259,8 +264,12 @@ export default function App() {
       }
       const u: CurrentUser = await r.json()
       setMe(u)
+      setExploreOptedIn(u.explore_vibes || [])
       if (u.swipe_quota) setQuota(u.swipe_quota)
       setMode((u.mode as AppMode) || 'date')
+      if (!u.is_admin && tab === 'admin') {
+        setTab('swipe')
+      }
 
       if (!u.profile_complete) {
         setNeedsSetup(true)
@@ -304,7 +313,28 @@ export default function App() {
       headers: { Authorization: 'Bearer ' + token },
     })
     if (r.ok) {
-      setExploreCounts(await r.json())
+      const d = await r.json()
+      if (d && d.counts) {
+        setExploreCounts(d.counts)
+        if (Array.isArray(d.opted_in)) setExploreOptedIn(d.opted_in)
+      } else {
+        setExploreCounts(d || {})
+      }
+    }
+  }
+
+  async function handleToggleExploreOptIn(vibeId: string) {
+    const r = await fetch(`/api/explore/opt-in?vibe=${encodeURIComponent(vibeId)}`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+    })
+    if (r.ok) {
+      const d = await r.json()
+      const nextOpted = d.opted_in || []
+      setExploreOptedIn(nextOpted)
+      if (d.counts) setExploreCounts(d.counts)
+      if (me) setMe({ ...me, explore_vibes: nextOpted })
+      showToast(d.joined ? 'Opted into room' : 'Left room')
     }
   }
 
@@ -542,9 +572,13 @@ export default function App() {
     })
     if (r.ok) {
       const d = await r.json()
-      if (d.user) setMe(d.user)
+      if (d.user) {
+        setMe(d.user)
+        setExploreOptedIn(d.user.explore_vibes || [])
+      }
       showToast('Profile saved.')
       loadDeck(activeVibe?.id, merged.mode)
+      loadExploreCounts()
     }
   }
 
@@ -665,7 +699,8 @@ export default function App() {
   const totalUnread = matches.reduce((sum, m) => sum + (m.unread_count || 0), 0)
   const newMatchesCount = matches.filter(m => !m.last_message).length
   const bannerText = plusConfig.announcement_banner || me?.announcement_banner || ''
-  const isAdminTab = tab === 'admin' && Boolean(me?.is_admin)
+  const isStrictAdmin = Boolean(me && me.is_admin === true)
+  const isAdminTab = tab === 'admin' && isStrictAdmin
 
   return (
     <div className="workspace-shell">
@@ -756,7 +791,7 @@ export default function App() {
             { id: 'swipe', label: 'Discover' },
             { id: 'explore', label: 'Explore' },
             { id: 'likes', label: `Likes (${likesItems.length})` },
-            ...(me?.is_admin ? [{ id: 'admin', label: 'Admin' }] : []),
+            ...(isStrictAdmin ? [{ id: 'admin', label: 'Admin' }] : []),
           ].map(item => (
             <button
               key={item.id}
@@ -899,12 +934,17 @@ export default function App() {
 
               {tab === 'explore' && (
                 <ExplorePage
+                  token={token}
                   counts={exploreCounts}
-                  onSelectVibe={vibe => {
+                  optedIn={exploreOptedIn}
+                  onToggleOptIn={handleToggleExploreOptIn}
+                  onLaunchSwipeRoom={vibe => {
                     setActiveVibe(vibe)
                     setTab('swipe')
                     loadDeck(vibe.id, mode)
                   }}
+                  onSwipeMember={handleSwipeAdmirer}
+                  onInspect={card => setInspectedProfile(card)}
                   onBoostClick={handleBoost}
                 />
               )}
@@ -936,6 +976,7 @@ export default function App() {
                   plusConfig={plusConfig}
                   onToggleTheme={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}
                   onSaveProfile={handleSaveProfile}
+                  onToggleOptIn={handleToggleExploreOptIn}
                   onUploadPhotos={handleUploadPhotos}
                   onRemovePhoto={handleRemovePhoto}
                   onPreviewMyCard={() => {
@@ -943,6 +984,7 @@ export default function App() {
                     setInspectedProfile(me)
                   }}
                   onOpenPlus={() => setShowPlusModal(true)}
+                  onBoost={handleBoost}
                   onOpenFilters={() => setShowFilters(true)}
                   onOpenDeleteAccount={() => setShowDeleteModal(true)}
                   onTokenUpdated={newTok => {
@@ -1009,7 +1051,7 @@ export default function App() {
                   <span>Profile</span>
                 </button>
 
-                {me?.is_admin && (
+                {isStrictAdmin && (
                   <button
                     className={`nav-tab-btn ${tab === 'admin' ? 'active' : ''}`}
                     onClick={() => setTab('admin')}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ProfileCard, CurrentUser, SwipeQuota } from '../types'
-import { makeAvatarPlaceholder } from '../constants'
+import { makeAvatarPlaceholder, EXPLORE_MAP } from '../constants'
 import {
   RewindIcon,
   CloseXIcon,
@@ -464,8 +464,20 @@ export function SwipeDeck({
                 )}
 
                 <div className="card-chip-row">
+                  {(topCard.explore_vibes || []).slice(0, 2).map(vid => {
+                    const rm = EXPLORE_MAP[vid]
+                    return rm ? (
+                      <span
+                        key={vid}
+                        className="card-chip"
+                        style={{ borderColor: 'rgba(255,170,0,0.4)', color: '#ffd84d' }}
+                      >
+                        {rm.title}
+                      </span>
+                    ) : null
+                  })}
                   {topCard.looking_for && <span className="card-chip">{topCard.looking_for}</span>}
-                  {(topCard.interests || []).slice(0, 3).map(tag => (
+                  {(topCard.interests || []).slice(0, 2).map(tag => (
                     <span key={tag} className="card-chip">
                       {tag}
                     </span>

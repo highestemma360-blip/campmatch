@@ -1,6 +1,6 @@
 import React from 'react'
 import { ProfileCard } from '../types'
-import { makeAvatarPlaceholder } from '../constants'
+import { makeAvatarPlaceholder, EXPLORE_MAP } from '../constants'
 import {
   VerifiedBadge,
   ChevronDownIcon,
@@ -93,6 +93,33 @@ export function ProfileSheet({
         </div>
 
         <div style={{ padding: '20px 20px 105px' }}>
+          {profile.explore_vibes && profile.explore_vibes.length > 0 && (
+            <div style={{ marginBottom: 18 }}>
+              <div className="field-label" style={{ marginTop: 0 }}>Opted Into Explore Rooms</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {profile.explore_vibes.map(vid => {
+                  const room = EXPLORE_MAP[vid]
+                  if (!room) return null
+                  return (
+                    <span
+                      key={vid}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 999,
+                        background: room.gradient,
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {room.title}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {profile.looking_for && (
             <div
               style={{

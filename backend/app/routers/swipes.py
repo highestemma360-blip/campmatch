@@ -9,7 +9,13 @@ from ..database import get_db
 from ..models import User, Swipe, Match, Block
 from ..security import get_bool_setting, get_int_setting
 from ..realtime import hub
-from .profiles import get_current_user, serialize_user, parse_list, compute_swipe_quota
+from .profiles import (
+    get_current_user,
+    serialize_user,
+    parse_list,
+    compute_swipe_quota,
+    VALID_EXPLORE_VIBES,
+)
 
 router = APIRouter()
 
@@ -54,25 +60,38 @@ def get_blocked_user_ids(user_id: int, db: Session) -> set[int]:
 def matches_vibe(candidate: User, me: User, vibe: Optional[str]) -> bool:
     if not vibe or vibe == "all":
         return True
-    interests_lower = " ".join(parse_list(candidate.interests)).lower() + " " + (candidate.bio or "").lower()
-    lf = (candidate.looking_for or "").lower()
-    if vibe == "serious":
-        return "relationship" in lf or "long-term" in lf
-    if vibe == "tonight":
-        return "casual" in lf or "short" in lf or "coffee" in interests_lower or "kelewele" in interests_lower
-    if vibe == "study":
-        return (candidate.mode == "study") or "study" in lf or "study" in interests_lower or "coding" in interests_lower
-    if vibe == "bff":
-        return (candidate.mode == "bff") or "friend" in lf
-    if vibe == "same_level":
-        return candidate.level == me.level
-    if vibe == "same_hall":
-        return bool(me.hall and candidate.hall and me.hall.strip().lower() == candidate.hall.strip().lower())
-    if vibe == "fitness":
-        return any(k in interests_lower for k in ("gym", "sport", "football", "basketball", "fitness"))
-    if vibe == "creative":
-        return any(k in interests_lower for k in ("music", "afrobeats", "photo", "art", "design", "fashion", "dance"))
-    return True
+    opted = set(parse_list(candidate.explore_vibes))
+    return vibe in opted
+
+
+def _compute_room_counts(user: User, db: Session) -> dict:
+    blocked_ids = get_blocked_user_ids(user.id, db)
+    blocked_ids.add(user.id)
+
+    pool = (
+        db.query(User)
+        .filter(
+            User.profile_complete == True,
+            User.is_active == True,
+            User.is_deleted == False,
+            User.snoozed == False,
+            ~User.id.in_(blocked_ids),
+        )
+        .limit(300)
+        .all()
+    )
+
+    out = {}
+    for v in VALID_EXPLORE_VIBES:
+        cnt = 0
+        for c in pool:
+            if v not in parse_list(c.explore_vibes):
+                continue
+            if v != "study_buddy" and user.interested_in in ("male", "female") and c.gender != user.interested_in:
+                continue
+            cnt += 1
+        out[v] = cnt
+    return out
 
 
 @router.get("/swipe-quota")
@@ -106,7 +125,7 @@ def get_deck(
         User.age <= (user.max_age or 35),
     )
 
-    if active_mode == "date":
+    if active_mode == "date" and vibe != "study_buddy":
         if user.interested_in in ("male", "female"):
             q = q.filter(User.gender == user.interested_in)
         q = q.filter(User.interested_in.in_([user.gender, "everyone"]))
@@ -152,24 +171,80 @@ def get_deck(
 
 @router.get("/explore-counts")
 def explore_counts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    excluded_ids = {s.swiped_id for s in db.query(Swipe).filter(Swipe.swiper_id == user.id).all()}
-    excluded_ids |= get_blocked_user_ids(user.id, db)
-    excluded_ids.add(user.id)
+    counts = _compute_room_counts(user, db)
+    opted_in = [v for v in parse_list(user.explore_vibes) if v in VALID_EXPLORE_VIBES]
+    return {"counts": counts, "opted_in": opted_in}
 
-    pool = (
-        db.query(User)
-        .filter(
-            User.profile_complete == True,
-            User.is_active == True,
-            User.is_deleted == False,
-            User.snoozed == False,
-            ~User.id.in_(excluded_ids),
-        )
-        .limit(120)
-        .all()
+
+@router.post("/explore/opt-in")
+async def toggle_explore_opt_in(
+    vibe: str = Query(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    clean = vibe.strip()
+    if clean not in VALID_EXPLORE_VIBES:
+        raise HTTPException(400, "Invalid Explore room.")
+
+    current = [v for v in parse_list(user.explore_vibes) if v in VALID_EXPLORE_VIBES]
+    if clean in current:
+        current = [v for v in current if v != clean]
+        joined = False
+    else:
+        current.append(clean)
+        joined = True
+
+    user.explore_vibes = ",".join(current)
+    db.commit()
+
+    counts = _compute_room_counts(user, db)
+    await hub.broadcast({"type": "explore_updated", "vibe": clean})
+    return {"ok": True, "joined": joined, "opted_in": current, "counts": counts}
+
+
+@router.get("/explore/{vibe}/members")
+def get_explore_room_members(
+    vibe: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if vibe not in VALID_EXPLORE_VIBES:
+        raise HTTPException(404, "Explore room not found.")
+
+    blocked_ids = get_blocked_user_ids(user.id, db)
+    blocked_ids.add(user.id)
+    swiped_map = {s.swiped_id: s for s in db.query(Swipe).filter(Swipe.swiper_id == user.id).all()}
+
+    q = db.query(User).filter(
+        User.profile_complete == True,
+        User.is_active == True,
+        User.is_deleted == False,
+        User.snoozed == False,
+        ~User.id.in_(blocked_ids),
     )
-    vibes = ["serious", "tonight", "study", "bff", "same_level", "same_hall", "fitness", "creative"]
-    return {v: sum(1 for c in pool if matches_vibe(c, user, v)) for v in vibes}
+    if vibe != "study_buddy" and user.interested_in in ("male", "female"):
+        q = q.filter(User.gender == user.interested_in)
+
+    candidates = q.limit(150).all()
+    members = []
+    for u in candidates:
+        if vibe not in parse_list(u.explore_vibes):
+            continue
+        dist = haversine(user.lat, user.lng, u.lat, u.lng) if user.lat is not None else 9999
+        card = serialize_user(u, full=False)
+        card["distance_km"] = max(1, round(dist)) if dist < 9000 else None
+        card["compatibility"] = compatibility_score(user, u)
+        card["already_swiped"] = u.id in swiped_map
+        card["already_liked"] = bool(swiped_map[u.id].liked) if u.id in swiped_map else False
+        members.append(card)
+
+    # Show unswiped & online members first
+    members.sort(key=lambda m: (m["already_swiped"], not m.get("online", False), -(m.get("compatibility") or 0)))
+    return {
+        "vibe": vibe,
+        "opted_in": vibe in parse_list(user.explore_vibes),
+        "members": members,
+    }
 
 
 @router.post("/swipe")

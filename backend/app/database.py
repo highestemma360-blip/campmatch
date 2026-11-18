@@ -50,6 +50,7 @@ def run_migrations():
             ("zodiac", "VARCHAR(30) DEFAULT ''"),
             ("height", "VARCHAR(20) DEFAULT ''"),
             ("spotify_anthem", "VARCHAR(160) DEFAULT ''"),
+            ("explore_vibes", "TEXT DEFAULT ''"),
             ("mode", "VARCHAR(20) DEFAULT 'date'"),
             ("max_distance_km", "INTEGER DEFAULT 50"),
             ("verified_only", "BOOLEAN DEFAULT 0"),
