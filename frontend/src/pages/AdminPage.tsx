@@ -321,18 +321,33 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
         </button>
       </div>
 
-      {/* Section Tabs */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 12, marginBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
-        {navItems.map(item => (
-          <button
-            key={item.id}
-            className={`selectable-chip ${section === item.id ? 'selected' : ''}`}
-            style={{ whiteSpace: 'nowrap', fontSize: 12.5, padding: '7px 13px' }}
-            onClick={() => setSection(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
+      {/* Section Tabs (desktop) + dropdown (mobile) */}
+      <div style={{ marginBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
+        <select
+          className="admin-nav-select"
+          value={section}
+          onChange={e => setSection(e.target.value as AdminSection)}
+          aria-label="Admin section"
+        >
+          {navItems.map(item => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="admin-nav-tabs" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 12 }}>
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              className={`selectable-chip ${section === item.id ? 'selected' : ''}`}
+              style={{ whiteSpace: 'nowrap', fontSize: 12.5, padding: '7px 13px' }}
+              onClick={() => setSection(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 1. OVERVIEW */}

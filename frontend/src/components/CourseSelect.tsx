@@ -49,6 +49,7 @@ export function CourseSelect({ value, onChange, school, placeholder, className }
           setOpen(true)
           setQuery('')
         }}
+        onBlur={() => setOpen(false)}
         onChange={e => {
           onChange(e.target.value)
           setQuery(e.target.value)

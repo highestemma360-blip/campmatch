@@ -173,17 +173,19 @@ export function SwipeDeck({
   const rotSign = drag.pivotTop ? 1 : -1
   const rotation = drag.x * 0.058 * rotSign
   let cardTransform = `translate3d(${drag.x}px, ${drag.y}px, 0) rotate(${rotation}deg)`
-  let cardTransition = drag.active ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.85, 0.25, 1)'
+  let cardTransition = drag.active
+    ? 'none'
+    : 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)'
 
   if (flyOut === 'right') {
-    cardTransform = `translate3d(560px, ${drag.y + 30}px, 0) rotate(${24 * rotSign}deg)`
-    cardTransition = 'transform 0.24s cubic-bezier(0.32, 0, 0.67, 0)'
+    cardTransform = `translate3d(600px, ${drag.y - 18}px, 0) rotate(${26 * rotSign}deg) scale(1.04)`
+    cardTransition = 'transform 0.26s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.26s ease'
   } else if (flyOut === 'left') {
-    cardTransform = `translate3d(-560px, ${drag.y + 30}px, 0) rotate(${-24 * rotSign}deg)`
-    cardTransition = 'transform 0.24s cubic-bezier(0.32, 0, 0.67, 0)'
+    cardTransform = `translate3d(-600px, ${drag.y - 18}px, 0) rotate(${-26 * rotSign}deg) scale(1.04)`
+    cardTransition = 'transform 0.26s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.26s ease'
   } else if (flyOut === 'up') {
-    cardTransform = 'translate3d(0px, -680px, 0) scale(0.92)'
-    cardTransition = 'transform 0.24s cubic-bezier(0.32, 0, 0.67, 0)'
+    cardTransform = 'translate3d(0px, -720px, 0) scale(0.9)'
+    cardTransition = 'transform 0.26s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.26s ease'
   }
 
   let tintBackground = 'transparent'
@@ -309,6 +311,7 @@ export function SwipeDeck({
             )}
 
             <div
+              key={topCard.id}
               className={`swipe-card top-card ${justRewound ? 'rewind-enter' : ''}`}
               style={{
                 transform: cardTransform,
