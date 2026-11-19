@@ -175,6 +175,33 @@ def get_deck(
     if len(final_scored) < 35:
         final_scored.extend(scored_outside[: 35 - len(final_scored)])
 
+    # Last resort: if every user has already been swiped, show all active users
+    # (excluding self) so the discovery page is never idle.
+    if not final_scored:
+        all_users = (
+            db.query(User)
+            .filter(
+                User.id != user.id,
+                User.profile_complete == True,
+                User.is_active == True,
+                User.is_deleted == False,
+                User.snoozed == False,
+                User.age >= (user.min_age or 18),
+                User.age <= (user.max_age or 35),
+            )
+            .all()
+        )
+        if active_mode == "date":
+            if user.interested_in in ("male", "female"):
+                all_users = [u for u in all_users if u.gender == user.interested_in]
+            all_users = [u for u in all_users if u.interested_in in (user.gender, "everyone")]
+        for u in all_users[:35]:
+            dist = haversine(user.lat, user.lng, u.lat, u.lng) if user.lat is not None else 9999
+            comp = compatibility_score(user, u)
+            entry = ((0, 0, dist, -comp), dist, comp, None, u)
+            final_scored.append(entry)
+        final_scored.sort(key=lambda x: x[0])
+
     result = []
     for _, d, comp, inc, u in final_scored:
         card = serialize_user(u, full=False)

@@ -1594,6 +1594,82 @@ button:disabled {
   }
 }
 
+/* --- Campus Spotlight Boost --- */
+.spotlight-popup {
+  animation: spotlightPopIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes spotlightPopIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.spotlight-countdown {
+  animation: spotlightPulse 1.5s ease-in-out infinite;
+}
+@keyframes spotlightPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+.spotlight-beam {
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 198, 41, 0.15) 40%,
+    rgba(255, 198, 41, 0.05) 60%,
+    transparent 100%
+  );
+  transform: rotate(-45deg) translateX(-50%);
+  animation: spotlightBeam 3s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+@keyframes spotlightBeam {
+  0% { transform: rotate(-45deg) translateX(-100%); }
+  100% { transform: rotate(-45deg) translateX(100%); }
+}
+
+.boost-btn-countdown {
+  position: relative;
+  overflow: hidden;
+}
+.boost-btn-countdown::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: conic-gradient(
+    #f8c14a 0deg,
+    #f8c14a var(--progress),
+    rgba(255, 255, 255, 0.2) var(--progress),
+    rgba(255, 255, 255, 0.2) 360deg
+  );
+  mask: radial-gradient(circle, transparent 60%, black 65%);
+  -webkit-mask: radial-gradient(circle, transparent 60%, black 65%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.boost-countdown-text {
+  position: relative;
+  z-index: 2;
+  font-size: 10.5px;
+  font-weight: 900;
+  display: block;
+  margin-top: 2px;
+}
+
 /* ============================================================================
    END PROFESSIONAL ANIMATION SYSTEM
    ============================================================================ */

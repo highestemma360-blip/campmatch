@@ -58,11 +58,46 @@ export function SwipeDeck({
   const secondCard = deck[1]
   const thirdCard = deck[2]
 
+  const boostedUntil = me?.boosted_until ? new Date(me.boosted_until).getTime() : 0
+  const isBoostedActive = isBoosted && boostedUntil > Date.now()
+
+  const [spotlightPopupOpen, setSpotlightPopupOpen] = useState(false)
+  const [boostSecondsLeft, setBoostSecondsLeft] = useState(0)
+
   useEffect(() => {
     setPhotoIdx(0)
     setDrag({ x: 0, y: 0, pivotTop: true, active: false })
     setFlyOut(null)
   }, [topCard?.id])
+
+  // Countdown timer for active spotlight boost
+  useEffect(() => {
+    if (!isBoostedActive) {
+      setBoostSecondsLeft(0)
+      return
+    }
+    const tick = () => {
+      const left = Math.max(0, Math.floor((boostedUntil - Date.now()) / 1000))
+      setBoostSecondsLeft(left)
+      if (left <= 0) setSpotlightPopupOpen(false)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [isBoostedActive, boostedUntil])
+
+  // Open spotlight popup when boost activates
+  useEffect(() => {
+    if (isBoostedActive && !spotlightPopupOpen) {
+      setSpotlightPopupOpen(true)
+    }
+  }, [isBoostedActive, spotlightPopupOpen])
+
+  function formatBoostTime(seconds: number) {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -530,14 +565,104 @@ export function SwipeDeck({
             </button>
 
             <button
-              className="dock-btn sm boost"
+              className={`dock-btn sm boost boost-btn-countdown`}
               onClick={onBoost}
-              title="30-minute Campus Spotlight"
-              style={isBoosted ? { background: 'var(--boost-grad)', color: '#fff', borderColor: 'transparent' } : undefined}
+              title={isBoostedActive ? `Spotlight active: ${formatBoostTime(boostSecondsLeft)} remaining` : '30-minute Campus Spotlight'}
+              style={{
+                background: isBoostedActive ? 'var(--boost-grad)' : undefined,
+                color: isBoostedActive ? '#fff' : undefined,
+                borderColor: isBoostedActive ? 'transparent' : undefined,
+              }}
             >
               <BoltIcon size={20} />
+              {isBoostedActive && (
+                <span className="boost-countdown-text">{formatBoostTime(boostSecondsLeft)}</span>
+              )}
             </button>
           </div>
+
+          {spotlightPopupOpen && isBoostedActive && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 50,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(6, 8, 12, 0.7)',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              <div
+                className="spotlight-popup"
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  maxWidth: 360,
+                  padding: '28px 24px',
+                  borderRadius: 24,
+                  textAlign: 'center',
+                  background:
+                    'radial-gradient(120% 90% at 50% 0%, #3b2a06 0%, #1b1709 52%, #0c0b06 100%)',
+                  border: '1px solid rgba(248, 193, 74, 0.34)',
+                  boxShadow: '0 30px 70px rgba(0,0,0,0.6)',
+                  color: '#fff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 16,
+                }}
+              >
+                <div className="spotlight-beam" />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: '50%',
+                      background: 'var(--boost-grad)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 12,
+                      boxShadow: '0 0 30px rgba(248, 193, 74, 0.4)',
+                    }}
+                  >
+                    <BoltIcon size={32} />
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.4px' }}>
+                    Campus Spotlight Active
+                  </div>
+                  <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.72)', maxWidth: 260 }}>
+                    Your profile is now boosted and shown to more students nearby for{' '}
+                    <span className="spotlight-countdown">
+                      {formatBoostTime(boostSecondsLeft)}
+                    </span>
+                    .
+                  </div>
+                  <button
+                    onClick={() => setSpotlightPopupOpen(false)}
+                    style={{
+                      width: '100%',
+                      marginTop: 4,
+                      padding: '12px 16px',
+                      border: 'none',
+                      borderRadius: 12,
+                      background: 'rgba(255,255,255,0.08)',
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 800,
+                      fontFamily: 'inherit',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="desktop-shortcuts">
             <span><kbd className="kbd-pill">←</kbd>Pass</span>
