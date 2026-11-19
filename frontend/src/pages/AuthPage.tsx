@@ -214,14 +214,14 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       )}
 
-      <div className="auth-grid stagger-child" style={{ margin: 'auto 0', position: 'relative', zIndex: 1 }}>
+      <div className="auth-grid stagger-child" style={{ width: '100%', maxWidth: 460, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         <div className="hero-glow" />
         <div className="auth-hero-copy text-reveal" style={{ color: '#fff', padding: '8px 4px', position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: 22 }}>
             <CampmatchLogo iconSize={46} fontSize={36} gap={13} />
           </div>
 
-          <span style={{ display: 'inline-block', animationDelay: '0.05s' }}>
+          <span style={{ display: 'block', animationDelay: '0.05s', fontSize: 20, fontWeight: 800 }}>
             Meet students from
           </span>
           <br />
@@ -230,8 +230,10 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              display: 'inline-block',
+              display: 'block',
               animationDelay: '0.12s',
+              fontSize: 20,
+              fontWeight: 800,
             }}
           >
             your campus.
@@ -240,11 +242,13 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           <p
             style={{
               color: '#9ba6bc',
-              fontSize: 16,
-              lineHeight: 1.6,
+              fontSize: 17,
+              lineHeight: 1.7,
               margin: '0 0 22px',
-              maxWidth: 440,
-              display: 'inline-block',
+              maxWidth: '100%',
+              width: '100%',
+              overflowWrap: 'break-word',
+              wordWrap: 'break-word',
               animationDelay: '0.19s',
             }}
           >
@@ -258,7 +262,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               'Dates, BFFs and study partners',
               'Private, safe and on your campus',
             ].map((line, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: '#e8ecf4', animationDelay: `${0.26 + i * 0.08}s` }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 16, color: '#e8ecf4', width: '100%', overflowWrap: 'break-word', animationDelay: `${0.26 + i * 0.08}s` }}>
                 <span
                   style={{
                     width: 22,
@@ -284,10 +288,12 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              fontSize: 13,
+              fontSize: 15,
               fontWeight: 700,
               color: 'rgba(255,255,255,0.62)',
               animationDelay: '0.52s',
+              overflowWrap: 'break-word',
+              whiteSpace: 'normal',
             }}
           >
             <VerifiedBadge size={16} />
@@ -326,10 +332,10 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           )}
 
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 21, fontWeight: 900, letterSpacing: '-0.4px' }}>
+            <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.4px', width: '100%', overflowWrap: 'break-word' }}>
               Continue with Google
             </div>
-            <div style={{ fontSize: 12.5, color: '#8e98ad', marginTop: 5, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: '#8e98ad', marginTop: 5, lineHeight: 1.55, width: '100%', overflowWrap: 'break-word' }}>
               Use your school-issued Google account. Only {domainHint} accounts are accepted.
             </div>
           </div>
@@ -404,7 +410,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               border: 'none',
               background: 'transparent',
               color: '#8e98ad',
-              fontSize: 12.5,
+              fontSize: 15,
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
