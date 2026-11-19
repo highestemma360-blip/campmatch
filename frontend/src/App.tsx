@@ -29,6 +29,8 @@ import { SwipeDeck } from './components/SwipeDeck'
 import { ProfileSheet } from './components/ProfileSheet'
 import { MatchCelebration } from './components/MatchCelebration'
 import { NotificationsSheet } from './components/NotificationsSheet'
+import { NotificationPopup } from './components/NotificationPopup'
+import { PlusSuccessModal } from './components/PlusSuccessModal'
 import { DiscoveryModal, PlusModal, ReportModal, DeleteAccountModal } from './components/Modals'
 import { FloatingWhatsAppBtn } from './components/FloatingWhatsAppBtn'
 import { AiHelpDesk } from './components/AiHelpDesk'
@@ -66,6 +68,9 @@ function StudentApp() {
   const [exploreRooms, setExploreRooms] = useState<ExploreVibe[]>(EXPLORE_VIBES)
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
+  const [popupNotification, setPopupNotification] = useState<AppNotification | null>(null)
+  const [showPlusSuccess, setShowPlusSuccess] = useState(false)
+  const [plusUntil, setPlusUntil] = useState<string | null>(null)
 
   const [likesItems, setLikesItems] = useState<ProfileCard[]>([])
   const [likesLocked, setLikesLocked] = useState(false)
@@ -87,6 +92,8 @@ function StudentApp() {
   const rtRef = useRef<RealtimeClient | null>(null)
   const activeChatRef = useRef<MatchSummary | null>(null)
   activeChatRef.current = activeChat
+  const notificationsRef = useRef<AppNotification[]>([])
+  notificationsRef.current = notifications
 
   function showToast(msg: string) {
     setToast(msg)
@@ -125,8 +132,11 @@ function StudentApp() {
         .then(r => (r.ok ? r.json() : null))
         .then(d => {
           if (d?.is_premium) {
-            showToast('Campmatch Plus activated.')
+            setPlusUntil(d.premium_until || null)
+            setShowPlusSuccess(true)
             loadMe()
+            loadQuota()
+            loadLikesYou()
           }
         })
         .finally(() => {
@@ -226,8 +236,24 @@ function StudentApp() {
           break
         }
         case 'plus_activated': {
+          setMe(prev =>
+            prev
+              ? {
+                  ...prev,
+                  is_premium: Boolean(event.is_premium),
+                  premium_until: event.premium_until ?? prev.premium_until,
+                }
+              : prev
+          )
+          if (event.is_premium) {
+            setPlusUntil(event.premium_until || null)
+            setShowPlusSuccess(true)
+            setShowPlusModal(false)
+          }
           loadMe()
           loadLikesYou()
+          loadQuota()
+          loadMatches()
           break
         }
         case 'account_terminated': {
@@ -279,6 +305,50 @@ function StudentApp() {
     }
   }, [token])
 
+  function seenNotificationIds(): Set<number> {
+    try {
+      const raw = localStorage.getItem('campmatch_notif_seen')
+      const parsed = raw ? JSON.parse(raw) : []
+      return new Set(Array.isArray(parsed) ? parsed.map(Number) : [])
+    } catch {
+      return new Set()
+    }
+  }
+
+  function rememberNotificationSeen(id: number) {
+    try {
+      const ids = Array.from(seenNotificationIds())
+      if (!ids.includes(id)) ids.push(id)
+      localStorage.setItem('campmatch_notif_seen', JSON.stringify(ids.slice(-300)))
+    } catch {
+      // Local storage is best-effort only.
+    }
+  }
+
+  function maybeShowNotificationPopup(items: AppNotification[]) {
+    const seen = seenNotificationIds()
+    const next = [...items]
+      .filter(i => !i.read && !seen.has(i.id))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+    if (next) setPopupNotification(prev => prev ?? next)
+  }
+
+  function dismissNotificationPopup() {
+    const current = popupNotification
+    if (current) {
+      rememberNotificationSeen(current.id)
+      markNotificationRead(current.id)
+    }
+    setPopupNotification(null)
+    window.setTimeout(() => {
+      const seen = seenNotificationIds()
+      const next = notificationsRef.current
+        .filter(i => !i.read && !seen.has(i.id))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+      if (next) setPopupNotification(next)
+    }, 260)
+  }
+
   async function loadNotifications(announce = false) {
     if (!token) return
     try {
@@ -286,13 +356,8 @@ function StudentApp() {
       if (!r.ok) return
       const d = await r.json()
       const items: AppNotification[] = d.items || []
-      setNotifications(prev => {
-        if (announce) {
-          const fresh = items.find(i => !i.read && !prev.some(p => p.id === i.id))
-          if (fresh) showToast(fresh.title)
-        }
-        return items
-      })
+      setNotifications(items)
+      maybeShowNotificationPopup(items)
     } catch {
       // Notifications are non-critical; keep the app usable if the request fails.
     }
@@ -1220,10 +1285,11 @@ function StudentApp() {
           onCheckout={handlePlusCheckout}
           onSuccess={() => {
             setShowPlusModal(false)
-            showToast('Campmatch Plus is now active.')
+            setShowPlusSuccess(true)
             loadMe()
             loadQuota()
             loadLikesYou()
+            loadMatches()
           }}
           onClose={() => setShowPlusModal(false)}
         />
@@ -1252,6 +1318,19 @@ function StudentApp() {
           onClose={() => setShowNotifications(false)}
         />
       )}
+      {popupNotification && !showPlusSuccess && (
+        <NotificationPopup
+          notification={popupNotification}
+          onDismiss={dismissNotificationPopup}
+        />
+      )}
+      {showPlusSuccess && (
+        <PlusSuccessModal
+          userName={me?.name}
+          premiumUntil={plusUntil || me?.premium_until || null}
+          onClose={() => setShowPlusSuccess(false)}
+        />
+      )}
       <FloatingWhatsAppBtn
         phone="9999999999"
         message="Hello, I'd like to know more about Campmatch"
@@ -1261,6 +1340,8 @@ function StudentApp() {
       />
       <AiHelpDesk
         phone="9999999999"
+        token={token}
+        userName={me?.name}
         show={aiDeskOpen}
         onToggle={() => setAiDeskOpen(false)}
         onWhatsAppClick={() => {

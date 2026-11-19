@@ -1389,6 +1389,98 @@ async def test_payment_gateway(admin: User = Depends(require_admin), db: Session
 
 
 # ---------------------------------------------------------------------------
+# AI ASSISTANT CONFIGURATION
+# ---------------------------------------------------------------------------
+
+class AiSettingsIn(BaseModel):
+    enabled: Optional[bool] = None
+    api_key: Optional[str] = None
+    clear_api_key: Optional[bool] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+
+
+@router.get("/ai-settings")
+def get_ai_settings(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from .ai import resolve_ai_config
+
+    cfg = resolve_ai_config(db)
+    return {
+        "enabled": cfg["enabled"],
+        "configured": bool(cfg["api_key"]),
+        "mode": cfg["mode"],
+        "model": cfg["model"],
+        "base_url": cfg["base_url"],
+        "api_key_masked": _mask(cfg["api_key"]),
+        "api_key_set": bool(cfg["api_key"]),
+    }
+
+
+@router.put("/ai-settings")
+def update_ai_settings(
+    data: AiSettingsIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    changes = []
+    if data.enabled is not None:
+        set_setting(db, "ai_enabled", "true" if data.enabled else "false")
+        changes.append(f"enabled={data.enabled}")
+    if data.clear_api_key:
+        set_setting(db, "ai_api_key", "")
+        changes.append("api_key=cleared")
+    elif data.api_key is not None and data.api_key.strip():
+        set_setting(db, "ai_api_key", data.api_key.strip()[:300])
+        changes.append("api_key=updated")
+    if data.model is not None:
+        set_setting(db, "ai_model", data.model.strip()[:120] or "gpt-4o-mini")
+        changes.append("model")
+    if data.base_url is not None:
+        set_setting(db, "ai_base_url", data.base_url.strip()[:300] or "https://api.openai.com/v1")
+        changes.append("base_url")
+    log_audit(db, admin.id, "update_ai_settings", details=", ".join(changes) or "no changes")
+    db.commit()
+    return {"ok": True, "updated": changes}
+
+
+@router.post("/ai-settings/test")
+async def test_ai_settings(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from .ai import resolve_ai_config, SYSTEM_PROMPT
+
+    cfg = resolve_ai_config(db)
+    if not cfg["enabled"]:
+        return {"ok": False, "message": "The assistant is disabled. Enable it first."}
+    if cfg["mode"] != "live":
+        return {
+            "ok": True,
+            "mode": "local",
+            "message": "No provider key saved, so the curated Campmatch knowledge base is answering. Add a key for full AI replies.",
+        }
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            r = await client.post(
+                f"{cfg['base_url']}/chat/completions",
+                headers={"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"},
+                json={
+                    "model": cfg["model"],
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": "Reply with exactly: Campmatch assistant online."},
+                    ],
+                    "max_tokens": 20,
+                    "temperature": 0,
+                },
+            )
+        if r.status_code >= 400:
+            return {"ok": False, "mode": "live", "message": f"Provider rejected the request ({r.status_code}). Check the key, model and base URL."}
+        body = r.json()
+        reply = ((body.get("choices") or [{}])[0].get("message") or {}).get("content", "")
+        return {"ok": True, "mode": "live", "model": cfg["model"], "message": f"Provider replied: {reply.strip()[:120]}"}
+    except Exception as exc:
+        return {"ok": False, "mode": "live", "message": f"Could not reach the provider: {exc}"}
+
+
+# ---------------------------------------------------------------------------
 # STORAGE, PERSISTENCE & BACKUPS
 # ---------------------------------------------------------------------------
 

@@ -136,7 +136,7 @@ export function NotificationsSheet({ items, onClose, onRead, onReadAll }: Notifi
                 <img
                   src={item.flyer_url}
                   alt={item.title}
-                  style={{ width: '100%', maxHeight: 360, objectFit: 'contain', display: 'block', background: '#05070c' }}
+                  style={{ width: '100%', height: 'auto', display: 'block', background: '#05070c' }}
                 />
               )}
               <div style={{ padding: '13px 15px 15px' }}>

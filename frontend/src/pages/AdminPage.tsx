@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { makeAvatarPlaceholder } from '../constants'
 import { CloseXIcon, TrashIcon } from '../components/Icons'
-import { ExploreRoomsAdmin, NotificationsAdmin, PaymentGatewayAdmin, StorageAdmin } from './AdminAdvanced'
+import { ExploreRoomsAdmin, NotificationsAdmin, PaymentGatewayAdmin, StorageAdmin, AiAdmin } from './AdminAdvanced'
 
 interface AdminPageProps {
   token: string
@@ -18,6 +18,7 @@ type AdminSection =
   | 'rooms'
   | 'notifications'
   | 'gateway'
+  | 'ai'
   | 'storage'
   | 'vault'
   | 'audit'
@@ -302,6 +303,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     { id: 'rooms', label: 'Explore Rooms' },
     { id: 'notifications', label: 'Notifications' },
     { id: 'gateway', label: 'Payment Gateway' },
+    { id: 'ai', label: 'AI Assistant' },
     { id: 'storage', label: 'Storage & Backups' },
     { id: 'vault', label: `Deleted Vault (${ov.deleted_vault || 0})` },
     { id: 'audit', label: 'Audit Trail' },
@@ -1397,6 +1399,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
       {section === 'rooms' && <ExploreRoomsAdmin token={token} onNotify={onNotify} />}
       {section === 'notifications' && <NotificationsAdmin token={token} onNotify={onNotify} />}
       {section === 'gateway' && <PaymentGatewayAdmin token={token} onNotify={onNotify} />}
+      {section === 'ai' && <AiAdmin token={token} onNotify={onNotify} />}
       {section === 'storage' && <StorageAdmin token={token} onNotify={onNotify} />}
     </div>
   )

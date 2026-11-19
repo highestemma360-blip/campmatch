@@ -31,6 +31,12 @@ Campmatch is a full-stack university student matching platform for verified `.ed
   - Persistent WebSocket channel (`/ws?token=...`) delivering instant messages, live typing indicators, read receipts (`Seen`), message heart reactions, online presence dots, real-time mutual match alerts, and live platform configuration updates.
   - 24-hour first-message countdown ring on new matches with `+24h Extend` support, Opening Move prompts, and an icebreaker generator.
 
+- **In-App Assistant & Support**
+  - Real-time streaming AI assistant with conversation memory and deep Campmatch knowledge (swipes, Plus, payments, safety, profile, Explore, notifications). Connect any OpenAI-compatible provider in **Admin → AI Assistant**; without a key it streams answers from the built-in knowledge base.
+  - Official WhatsApp floating button for human support, plus closable assistant panel on mobile and desktop.
+  - Admin notifications appear as clean, centred pop-up cards with full-size flyers, and remain available in the notification sheet.
+  - Successful Plus payments trigger an animated activation card and update the account automatically within seconds.
+
 - **Account Lifecycle & Record Preservation**
   - **Snooze Mode**: Temporarily hides a user's card from discovery decks without affecting existing matches.
   - **Soft Account Deletion**: Users can delete their account from Settings. Their profile, photos, and active matches are immediately removed from all public views and active sessions are terminated, while 100% of historical database records (`users`, `swipes`, `matches`, `messages`, `payments`, `reports`, and `image_moderation_logs`) remain intact and inspectable in the Admin Deleted Vault.
@@ -42,6 +48,7 @@ Campmatch is a full-stack university student matching platform for verified `.ed
   - **Explore Rooms manager**: add, rename, recolor, hide/show, reorder, and delete rooms without a redeploy. Rooms are stored in the database and broadcast live.
   - **Notifications composer**: send a text update, an uploaded flyer image, or both, targeted to everyone, free/Plus/new students, a school, or a single student.
   - **Payment Gateway**: save or rotate Moolre credentials, toggle live/sandbox, copy webhook and redirect URLs, and test connectivity.
+  - **AI Assistant**: connect an OpenAI-compatible provider, rotate keys, choose the model, and test the assistant live; the built-in knowledge base keeps it working without a key.
   - **Storage & Backups**: inspect the durable data directory, create/download rolling SQLite backups, and export a JSON archive of core records.
   - User Dossier inspector (photo moderation, Plus/Spotlight grants, admin role management, session revocation, suspension, soft-deletion, and deleted-account restoration).
   - Safety Reports queue with preserved match chat transcript inspection, Image Guard logs, Moolre revenue ledger, and Admin Audit Trail.
@@ -131,6 +138,7 @@ Optional environment variables:
 - `GOOGLE_CLIENT_ID` — Google OAuth client ID used to verify school Google accounts
 - `PUBLIC_BASE_URL` — Public origin used to build Moolre callback and redirect URLs
 - `MOOLRE_USER`, `MOOLRE_PUBKEY`, `MOOLRE_ACCOUNT_NUMBER`, `MOOLRE_WALLET_SECRET`, `MOOLRE_ENV`, `MOOLRE_MERCHANT_EMAIL`, `MOOLRE_CALLBACK_URL` — Moolre payment credentials (can also be saved live in the admin console)
+- `AI_API_KEY` / `AI_MODEL` / `AI_BASE_URL` — Optional OpenAI-compatible provider for the in-app assistant (OpenAI, Groq, OpenRouter, DeepSeek). Can also be saved in **Admin → AI Assistant**. Without a key the assistant still replies in real time from the built-in Campmatch knowledge base.
 
 ### 2. Frontend
 ```bash

@@ -44,6 +44,14 @@ services:
         sync: false
       - key: MOOLRE_CALLBACK_URL
         sync: false
+      # AI assistant (optional). Any OpenAI-compatible provider works; the key
+      # can also be saved in Admin -> AI Assistant and rotated at runtime.
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: AI_BASE_URL
+        sync: false
       # Web push (VAPID). Optional — keys are auto-generated and persisted on the
       # disk if these are left empty. Set VAPID_SUBJECT to a mailto: or https: URL.
       - key: VAPID_PUBLIC_KEY

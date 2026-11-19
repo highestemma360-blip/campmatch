@@ -1,39 +1,199 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export interface AiHelpDeskProps {
   phone: string
+  token: string
+  userName?: string
   show: boolean
   onToggle: () => void
   onWhatsAppClick?: () => void
 }
 
-/**
- * Professional AI Help Desk — comprehensive knowledge base about Campmatch.
- * All responses are pre-approved and human-curated. No external AI API needed.
- * Provides instant answers about every feature, policy, and workflow.
- */
-export function AiHelpDesk({ phone, show, onToggle, onWhatsAppClick }: AiHelpDeskProps) {
-  const [input, setInput] = useState("")
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>(
-    [
-      {
-        role: "assistant",
-        text: "Welcome to the Campmatch Help Desk. I can answer questions about swiping, matching, messaging, Plus, safety, and more. Type your question or pick a topic below.",
-      },
-    ],
-  )
+interface Msg {
+  role: "user" | "assistant"
+  text: string
+}
 
-  const addMessage = (role: "user" | "assistant", text: string) => {
-    setMessages((prev) => [...prev, { role, text }])
+const QUICK_TOPICS: Array<{ label: string; prompt: string }> = [
+  { label: "Swipes & limits", prompt: "How many swipes do I get each day?" },
+  { label: "Campmatch Plus", prompt: "What do I get with Campmatch Plus and how much does it cost?" },
+  { label: "Payments", prompt: "How does Mobile Money payment work and what if it fails?" },
+  { label: "Read receipts", prompt: "How do read receipts work?" },
+  { label: "Matches & chat", prompt: "How do matches and chat work?" },
+  { label: "Safety", prompt: "How do I report or block someone safely?" },
+  { label: "Profile & photos", prompt: "How do I update my profile and photos?" },
+  { label: "Location", prompt: "How is my location used?" },
+]
+
+function RobotMark({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#17181a"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9.6 8.1V5.6h2.1" />
+      <rect x="6.1" y="8.1" width="11.8" height="8.9" rx="2.2" />
+      <path d="M6.1 12.1H4.6" />
+      <path d="M17.9 12.1h1.5" />
+      <path d="M9.7 11.3v1.9" />
+      <path d="M14.3 11.3v1.9" />
+      <path d="M9.9 14.6h4.2" />
+    </svg>
+  )
+}
+
+/**
+ * Campmatch assistant. Streams replies from the backend in real time, keeping
+ * the conversation context so follow-up questions work naturally.
+ */
+export function AiHelpDesk({
+  phone,
+  token,
+  userName,
+  show,
+  onToggle,
+  onWhatsAppClick,
+}: AiHelpDeskProps) {
+  const [input, setInput] = useState("")
+  const [messages, setMessages] = useState<Msg[]>([
+    {
+      role: "assistant",
+      text: "Welcome to the Campmatch assistant. Ask me anything about swiping, matches, Campmatch Plus, payments, safety or your profile.",
+    },
+  ])
+  const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<"live" | "local" | "">("")
+  const endRef = useRef<HTMLDivElement | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    if (!show) return
+    fetch("/api/ai/status")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d?.mode) setMode(d.mode)
+      })
+      .catch(() => {})
+  }, [show])
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+  }, [messages, busy])
+
+  useEffect(() => {
+    return () => abortRef.current?.abort()
+  }, [])
+
+  async function send(raw?: string) {
+    const content = (raw ?? input).trim()
+    if (!content || busy) return
+    if (raw === undefined) setInput("")
+
+    const history: Msg[] = [...messages, { role: "user", text: content }]
+    const assistantIndex = history.length
+    setMessages([...history, { role: "assistant", text: "" }])
+    setBusy(true)
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: history.map(m => ({ role: m.role, content: m.text })),
+        }),
+        signal: controller.signal,
+      })
+      if (!response.ok || !response.body) {
+        let detail = ""
+        try {
+          const d = await response.json()
+          detail = typeof d.detail === "string" ? d.detail : ""
+        } catch {
+          // Response was not JSON.
+        }
+        throw new Error(detail || "The assistant is unavailable right now.")
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      let answer = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        let split = buffer.indexOf("\n\n")
+        while (split !== -1) {
+          const frame = buffer.slice(0, split)
+          buffer = buffer.slice(split + 2)
+          for (const line of frame.split("\n")) {
+            if (!line.startsWith("data:")) continue
+            const payload = line.slice(5).trim()
+            if (!payload) continue
+            try {
+              const event = JSON.parse(payload)
+              if (event.delta) {
+                answer += event.delta
+                setMessages(prev =>
+                  prev.map((m, i) => (i === assistantIndex ? { ...m, text: answer } : m))
+                )
+              }
+            } catch {
+              // Ignore malformed frames and keep streaming.
+            }
+          }
+          split = buffer.indexOf("\n\n")
+        }
+      }
+
+      if (!answer.trim()) {
+        setMessages(prev =>
+          prev.map((m, i) =>
+            i === assistantIndex
+              ? { ...m, text: "I could not finish that answer. Please try again or contact WhatsApp support." }
+              : m
+          )
+        )
+      }
+    } catch (error) {
+      const aborted = error instanceof DOMException && error.name === "AbortError"
+      if (!aborted) {
+        const detail = error instanceof Error ? error.message : "The assistant is unavailable right now."
+        setMessages(prev =>
+          prev.map((m, i) => (i === assistantIndex ? { ...m, text: detail } : m))
+        )
+      }
+    } finally {
+      setBusy(false)
+      abortRef.current = null
+    }
   }
 
-  const send = () => {
-    const trimmed = input.trim()
-    if (!trimmed) return
+  function resetChat() {
+    abortRef.current?.abort()
+    setBusy(false)
     setInput("")
-    addMessage("user", trimmed)
-    const response = handleUserInput(trimmed, phone)
-    addMessage("assistant", response)
+    setMessages([
+      {
+        role: "assistant",
+        text: "Fresh start. What would you like to know about Campmatch?",
+      },
+    ])
   }
 
   if (!show) return null
@@ -45,45 +205,112 @@ export function AiHelpDesk({ phone, show, onToggle, onWhatsAppClick }: AiHelpDes
         bottom: 0,
         right: 0,
         width: "100%",
-        maxWidth: "420px",
-        height: "60vh",
+        maxWidth: 420,
+        height: "min(72vh, 640px)",
         background: "var(--bg-elevated)",
         border: "1px solid var(--border-subtle)",
-        borderRadius: "16px 16px 0 0",
-        boxShadow: "0 -4px 24px rgba(0,0,0,0.15)",
-        zIndex: 9999,
+        borderRadius: "18px 18px 0 0",
+        boxShadow: "0 -8px 32px rgba(0,0,0,0.24)",
+        zIndex: 10000,
         fontFamily: "system-ui, -apple-system, sans-serif",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
       }}
+      role="dialog"
+      aria-label="Campmatch assistant"
     >
       {/* Header */}
       <div
         style={{
           background: "var(--bg-subtle)",
-          padding: "16px 20px",
+          padding: "12px 16px",
           borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 10,
           flexShrink: 0,
         }}
       >
-        <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Campmatch Help Desk</h3>
-        <button
-          onClick={onToggle}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--text-muted)",
-            fontSize: 14,
-            cursor: "pointer",
-            padding: 4,
-          }}
-        >
-          Close
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 11,
+              background: "linear-gradient(180deg, #f8c14a 0%, #f2ac2b 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <RobotMark size={20} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 800, lineHeight: 1.2 }}>
+              Campmatch Assistant
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--text-muted)",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#22c55e",
+                  display: "inline-block",
+                }}
+              />
+              {mode === "live" ? "AI online · replies in real time" : "Online · instant answers"}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button
+            onClick={resetChat}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-muted)",
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              padding: "4px 6px",
+            }}
+          >
+            New chat
+          </button>
+          <button
+            onClick={onToggle}
+            aria-label="Close assistant"
+            style={{
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border-subtle)",
+              color: "var(--text-secondary)",
+              width: 30,
+              height: 30,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -91,219 +318,173 @@ export function AiHelpDesk({ phone, show, onToggle, onWhatsAppClick }: AiHelpDes
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "16px 20px",
+          padding: "16px 16px 10px",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
+          gap: 10,
         }}
       >
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            style={{
-              alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-              maxWidth: "85%",
-              padding: "10px 14px",
-              borderRadius: 12,
-              background: m.role === "user" ? "var(--primary)" : "var(--bg-subtle)",
-              color: m.role === "user" ? "#fff" : "var(--text-primary)",
-              fontSize: 13,
-              lineHeight: 1.5,
-            }}
-          >
-            {m.text}
-          </div>
-        ))}
+        {messages.map((m, i) => {
+          const isUser = m.role === "user"
+          const empty = !m.text
+          if (empty && i === messages.length - 1) {
+            return (
+              <div
+                key={i}
+                style={{
+                  alignSelf: "flex-start",
+                  background: "var(--bg-subtle)",
+                  borderRadius: 14,
+                  padding: "11px 14px",
+                }}
+              >
+                <div className="typing-dots" style={{ marginTop: 0 }}>
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+            )
+          }
+          return (
+            <div
+              key={i}
+              style={{
+                alignSelf: isUser ? "flex-end" : "flex-start",
+                maxWidth: "86%",
+                padding: "10px 13px",
+                borderRadius: isUser ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                background: isUser ? "var(--tinder-pink)" : "var(--bg-subtle)",
+                color: isUser ? "#fff" : "var(--text-primary)",
+                fontSize: 13,
+                lineHeight: 1.55,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {m.text}
+            </div>
+          )
+        })}
+        <div ref={endRef} />
       </div>
+
+      {/* Quick topics */}
+      {messages.length <= 1 && (
+        <div
+          style={{
+            padding: "0 16px 8px",
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            flexShrink: 0,
+          }}
+        >
+          {QUICK_TOPICS.map(topic => (
+            <button
+              key={topic.label}
+              onClick={() => send(topic.prompt)}
+              disabled={busy}
+              style={{
+                padding: "5px 10px",
+                background: "var(--bg-subtle)",
+                color: "var(--text-secondary)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: 12,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {topic.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Input */}
       <div
         style={{
-          padding: "12px 16px",
+          padding: "10px 12px calc(12px + env(safe-area-inset-bottom))",
           borderTop: "1px solid var(--border-subtle)",
           display: "flex",
-          gap: "8px",
+          gap: 8,
+          alignItems: "flex-end",
           flexShrink: 0,
+          background: "var(--bg-elevated)",
         }}
       >
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") send()
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault()
+              send()
+            }
           }}
+          placeholder={busy ? "Assistant is replying..." : "Ask a question..."}
+          disabled={busy}
+          aria-label="Message the Campmatch assistant"
           style={{
             flex: 1,
-            padding: "8px 10px",
+            padding: "10px 12px",
             border: "1px solid var(--border-subtle)",
-            borderRadius: "6px",
-            fontSize: 12,
+            borderRadius: 12,
+            background: "var(--bg-subtle)",
+            color: "var(--text-primary)",
+            fontSize: 13,
             fontFamily: "inherit",
             outline: "none",
-            background: "var(--bg-elevated)",
-            color: "var(--text-primary)",
           }}
-          placeholder="Type your question..."
         />
         <button
-          onClick={send}
+          onClick={() => send()}
+          disabled={busy || !input.trim()}
+          aria-label="Send message"
           style={{
-            padding: "8px 14px",
-            background: "var(--primary)",
-            color: "#fff",
+            width: 40,
+            height: 40,
+            borderRadius: 12,
             border: "none",
-            borderRadius: "6px",
-            fontSize: 12,
-            cursor: "pointer",
-            fontFamily: "inherit",
+            background: busy || !input.trim() ? "var(--bg-subtle)" : "var(--tinder-pink)",
+            color: busy || !input.trim() ? "var(--text-muted)" : "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: busy || !input.trim() ? "default" : "pointer",
+            flexShrink: 0,
           }}
         >
-          Send
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 2L11 13" />
+            <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+          </svg>
         </button>
       </div>
 
-      {/* Quick Topics */}
-      <div
+      {/* Support fallback */}
+      <button
+        onClick={() => {
+          if (onWhatsAppClick) onWhatsAppClick()
+          else window.open("https://wa.me/" + phone, "_blank", "noopener,noreferrer")
+        }}
         style={{
-          padding: "8px 16px 12px",
-          display: "flex",
-          gap: "6px",
-          flexWrap: "wrap",
-          flexShrink: 0,
+          width: "100%",
+          padding: "8px 12px",
+          border: "none",
           borderTop: "1px solid var(--border-subtle)",
+          background: "var(--bg-subtle)",
+          color: "var(--text-muted)",
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: "pointer",
+          flexShrink: 0,
         }}
       >
-        {[
-          { label: "Swipes", topic: "swipes" },
-          { label: "Plus", topic: "plus" },
-          { label: "Report", topic: "report" },
-          { label: "Safety", topic: "safety" },
-          { label: "Profile", topic: "profile" },
-          { label: "Matches", topic: "matches" },
-          { label: "Receipts", topic: "read receipts" },
-          { label: "Location", topic: "location" },
-          { label: "WhatsApp", topic: "whatsapp" },
-        ].map(({ label, topic }) => (
-          <button
-            key={topic}
-            onClick={() => {
-              const response = handleUserInput(topic, phone)
-              addMessage("assistant", response)
-            }}
-            style={{
-              padding: "4px 10px",
-              background: "var(--bg-subtle)",
-              color: "var(--text-secondary)",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "12px",
-              fontSize: 11,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        Need a person? Chat with the Campmatch team on WhatsApp
+      </button>
     </div>
   )
-}
-
-/* --- Comprehensive knowledge base --- */
-
-function hasKeyword(text: string, ...keywords: string[]): boolean {
-  const lower = text.toLowerCase()
-  return keywords.some((k) => lower.includes(k))
-}
-
-function handleUserInput(text: string, phone: string): string {
-  const lower = text.toLowerCase()
-
-  // Swipes
-  if (hasKeyword(lower, "swipe", "limit", "daily", "cap", "quota")) {
-    return "Free users get 10 swipes per 24-hour window. Campmatch Plus removes this cap entirely. Super Likes are limited to 3/day for free users and 10/day for Plus. Rewind lets you undo your last swipe. Boost puts your profile at the top for 30 minutes. All of these features are available on the Discover page."
-  }
-
-  // Plus
-  if (hasKeyword(lower, "plus", "premium", "upgrade", "subscription", "plan")) {
-    return "Campmatch Plus unlocks: unlimited swipes, 10 daily Super Likes, Rewind, See Who Likes You, Spotlight/Boost, and priority placement. Plans: GHS 25 for 1 month, GHS 60 for 3 months, GHS 200 for 12 months. Admins can also activate discounts. Pay via Mobile Money (MTN, Telecel, AT). After payment, Plus activates instantly."
-  }
-
-  // Report
-  if (hasKeyword(lower, "report", "flag", "problem", "safety", "harassment", "spam")) {
-    return "To report a profile: open their profile page and select 'Report'. Choose a reason (spam, fake account, harassment, etc.) and submit. Reports are reviewed by the moderation team within 24 hours. You can also block users from the report dialog. For immediate safety concerns, contact us on WhatsApp."
-  }
-
-  // Password / login
-  if (hasKeyword(lower, "password", "login", "sign in", "reset", "forgot", "account")) {
-    return "To sign in, use Google with your university email (e.g., @st.umat.edu.gh) or email/password. If you forgot your password, use the 'Forgot Password' link on the login page. You'll receive a reset link via email. If locked out, contact us on WhatsApp for manual support."
-  }
-
-  // Profile
-  if (hasKeyword(lower, "profile", "photo", "picture", "avatar", "edit", "name")) {
-    return "To update your profile: go to Profile page and tap 'Edit'. You can change your name, programme, and add/update photos. Photos are moderated and appear within 24 hours. Supported formats: JPEG, PNG (max 5MB). You can also set your discovery preferences (age range, distance, gender)."
-  }
-
-  // Read receipts
-  if (hasKeyword(lower, "receipt", "read receipt", "seen", "delivered", "opened")) {
-    return "Read Receipts are a Campmatch Plus feature. Plus members can see when a message is opened: it shows 'Delivered' while it is unread and switches to 'Seen' the moment the other person opens the chat. Free members can still chat normally, but the Seen/Delivered label stays hidden. While Plus is switched off during launch, read receipts are free for everyone."
-  }
-
-  // Matches
-  if (hasKeyword(lower, "match", "beeline", "like", "connect", "chat", "message")) {
-    return "When two users like each other, it's a match! Both can then chat in Messages. The 'Beeline' grid (Plus feature) shows all users who liked you. Matches expire after 24 hours unless you message or extend them. You can extend a match by 24 hours once. Unmatch or block users anytime from the chat screen."
-  }
-
-  // Location
-  if (hasKeyword(lower, "location", "distance", "nearby", "km", "gps")) {
-    return "Campmatch uses your device's GPS location to show nearby students. Your location is updated automatically when you open the app. You can set your maximum discovery distance in Profile > Discovery Preferences. Location data is only used for matching and is never shared with other users."
-  }
-
-  // WhatsApp
-  if (hasKeyword(lower, "whatsapp", "contact", "support", "help desk")) {
-    return "You can reach our support team on WhatsApp at any time. Click the WhatsApp button on the floating menu or visit: https://wa.me/" + phone + ". Our team typically responds within a few hours during campus hours."
-  }
-
-  // Safety
-  if (hasKeyword(lower, "safety", "safe", "danger", "emergency", "block", "unmatch")) {
-    return "Your safety matters. You can block or unmatch any user at any time. Reports are reviewed within 24 hours. For emergencies, contact campus security or use the WhatsApp support button. Never share personal information (address, financial details) with matches."
-  }
-
-  // Explore
-  if (hasKeyword(lower, "explore", "room", "community", "group", "vibe")) {
-    return "Explore rooms are themed communities (e.g., Study, Sports, Arts). You can opt in/out of rooms from the Explore page. Each room shows nearby members. Admins can add, edit, hide, or reorder rooms. Your room memberships appear on your profile."
-  }
-
-  // Notifications
-  if (hasKeyword(lower, "notification", "alert", "push", "message")) {
-    return "Campmatch sends push notifications for new matches, messages, and likes. You can manage notification preferences in your profile settings. In-app notifications appear in the bell icon at the top of the screen."
-  }
-
-  // Admin
-  if (hasKeyword(lower, "admin", "administrator", "manage", "moderate")) {
-    return "The admin portal is accessible only by visiting /admin directly. Admin credentials are set via Render environment variables (ADMIN_USERNAME, ADMIN_PASSWORD). Admins can manage users, rooms, settings, payments, and send notifications with flyers."
-  }
-
-  // Payments
-  if (hasKeyword(lower, "payment", "pay", "moolre", "mobile money", "momo", "ghs")) {
-    return "Campmatch Plus payments are processed via Moolre Mobile Money. Supported channels: MTN MoMo, Telecel Cash, AT Money. Payment links are generated instantly. After successful payment, Plus activates automatically on your account."
-  }
-
-  // Modes
-  if (hasKeyword(lower, "mode", "date", "bff", "study", "friend")) {
-    return "Campmatch has 3 discovery modes: Date (romantic matching), BFF (friendship), and Study (academic partners). Switch modes using the pills at the top of the Discover page. Each mode has its own swipe deck and matches."
-  }
-
-  // Verification
-  if (hasKeyword(lower, "verify", "verification", "photo", "identity")) {
-    return "Photos are automatically verified for quality and content. Profile verification badges are shown for verified users. If your photo is rejected, you'll see the reason and can upload a new one. Verification typically takes a few minutes."
-  }
-
-  // Greeting
-  if (hasKeyword(lower, "hi", "hello", "hey", "good morning", "good evening")) {
-    return "Hello! Welcome to the Campmatch Help Desk. I can help you with swiping, matching, messaging, Plus, safety, and more. What would you like to know?"
-  }
-
-  // Default
-  return "That's a great question! For detailed assistance, please message us on WhatsApp: https://wa.me/" + phone + ". Our team typically responds within a few hours during campus hours."
 }

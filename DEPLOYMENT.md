@@ -139,6 +139,28 @@ The webhook is signature-verified with the wallet secret and de-duplicated by ev
 
 ---
 
+## 4b. AI assistant (optional)
+
+The floating Campmatch Assistant streams answers in real time. It works out of the box
+using a curated Campmatch knowledge base (swipes, matches, Plus, payments, safety, profile).
+For full conversational AI, connect any OpenAI-compatible provider.
+
+```env
+AI_API_KEY=sk-...
+AI_MODEL=gpt-4o-mini
+AI_BASE_URL=https://api.openai.com/v1
+```
+
+Supported providers include OpenAI, Groq, OpenRouter and DeepSeek — set `AI_BASE_URL` to the
+provider's `/v1` endpoint and `AI_MODEL` to one of its chat models.
+
+You can also save or rotate these in **Admin → AI Assistant** without redeploying. Use
+**Test Assistant** to confirm the key and model respond. The key stays server-side and is
+never sent to students. If the key is missing or the provider fails, the assistant falls
+back to the built-in knowledge base automatically, so the help button never breaks.
+
+---
+
 ## 5. Build and start commands
 
 `render.yaml` uses:

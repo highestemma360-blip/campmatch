@@ -497,4 +497,5 @@ async def verify_payment(reference: str, user: User = Depends(get_current_user),
         "status": p.status,
         "reason": failure_reason,
         "is_premium": bool(user.is_premium),
+        "premium_until": user.premium_until.isoformat() if user.premium_until else None,
     }

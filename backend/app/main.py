@@ -15,7 +15,7 @@ from .database import SessionLocal, UPLOAD_DIR
 from .models import User, Match
 from .security import bootstrap_defaults, decode_token
 from .realtime import hub
-from .routers import auth, profiles, swipes, chat, admin, payments, notifications
+from .routers import auth, profiles, swipes, chat, admin, payments, notifications, ai
 from .routers import push as push_router
 from .explore_rooms import seed_default_rooms
 from .security import bootstrap_defaults, decode_token, get_int_setting
@@ -177,6 +177,7 @@ app.include_router(chat.router, prefix="/api")
 app.include_router(admin.router, prefix="/api/admin")
 app.include_router(payments.router, prefix="/api/payments")
 app.include_router(notifications.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
 app.include_router(push_router.router, prefix="/api")
 
 

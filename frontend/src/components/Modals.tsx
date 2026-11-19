@@ -227,7 +227,7 @@ export function PlusModal({
         // Keep polling through transient network errors.
       }
     }
-    const timer = setInterval(check, 4000)
+    const timer = setInterval(check, 3000)
     check()
     return () => {
       stop = true

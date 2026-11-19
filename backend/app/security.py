@@ -54,6 +54,12 @@ DEFAULT_SETTINGS = {
     "moolre_wallet_secret": "",
     "moolre_merchant_email": "",
     "moolre_callback_url": "",
+    # Campmatch AI assistant. Any OpenAI-compatible provider works; leaving the
+    # key empty keeps the curated in-app knowledge base active.
+    "ai_enabled": "true",
+    "ai_api_key": "",
+    "ai_model": "gpt-4o-mini",
+    "ai_base_url": "https://api.openai.com/v1",
 }
 
 

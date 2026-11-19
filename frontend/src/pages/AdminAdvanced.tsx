@@ -506,7 +506,7 @@ export function NotificationsAdmin({ token, onNotify }: AdminPanelProps) {
           <img
             src={form.flyer_url}
             alt="Flyer preview"
-            style={{ marginTop: 10, width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border-subtle)' }}
+            style={{ marginTop: 10, width: '100%', height: 'auto', objectFit: 'contain', borderRadius: 12, border: '1px solid var(--border-subtle)' }}
           />
         )}
 
@@ -569,7 +569,7 @@ export function NotificationsAdmin({ token, onNotify }: AdminPanelProps) {
           {items.map(item => (
             <div key={item.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 14, overflow: 'hidden', opacity: item.is_active ? 1 : 0.6 }}>
               {item.flyer_url && (
-                <img src={item.flyer_url} alt="" style={{ width: '100%', maxHeight: 130, objectFit: 'cover', display: 'block' }} />
+                <img src={item.flyer_url} alt="" style={{ width: '100%', maxHeight: 220, objectFit: 'contain', display: 'block', background: '#05070c' }} />
               )}
               <div style={{ padding: 12 }}>
                 <div style={{ fontWeight: 800, fontSize: 13 }}>{item.title}</div>
@@ -796,6 +796,186 @@ export function PaymentGatewayAdmin({ token, onNotify }: AdminPanelProps) {
           <button className="btn-ghost" style={{ padding: '10px 16px', fontSize: 12.5 }} disabled={testing} onClick={test}>
             {testing ? 'Testing...' : 'Test Connection'}
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* AI ASSISTANT                                                        */
+/* ------------------------------------------------------------------ */
+
+function RobotIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.6 8.1V5.6h2.1" />
+      <rect x="6.1" y="8.1" width="11.8" height="8.9" rx="2.2" />
+      <path d="M6.1 12.1H4.6" />
+      <path d="M17.9 12.1h1.5" />
+      <path d="M9.7 11.3v1.9" />
+      <path d="M14.3 11.3v1.9" />
+      <path d="M9.9 14.6h4.2" />
+    </svg>
+  )
+}
+
+export function AiAdmin({ token, onNotify }: AdminPanelProps) {
+  const [cfg, setCfg] = useState<any>(null)
+  const [form, setForm] = useState<any>({
+    enabled: true,
+    api_key: '',
+    model: 'gpt-4o-mini',
+    base_url: 'https://api.openai.com/v1',
+  })
+  const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  async function load() {
+    const r = await fetch('/api/admin/ai-settings', { headers: authHeaders(token) })
+    if (!r.ok) return
+    const d = await r.json()
+    setCfg(d)
+    setForm({
+      enabled: Boolean(d.enabled),
+      api_key: '',
+      model: d.model || 'gpt-4o-mini',
+      base_url: d.base_url || 'https://api.openai.com/v1',
+    })
+  }
+
+  async function save() {
+    setBusy(true)
+    try {
+      const payload: any = {
+        enabled: form.enabled,
+        model: form.model,
+        base_url: form.base_url,
+      }
+      if (form.api_key.trim()) payload.api_key = form.api_key.trim()
+      const r = await fetch('/api/admin/ai-settings', {
+        method: 'PUT',
+        headers: jsonHeaders(token),
+        body: JSON.stringify(payload),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        onNotify(typeof d.detail === 'string' ? d.detail : 'Could not save the assistant settings.')
+        return
+      }
+      onNotify('Assistant settings saved.')
+      setForm((f: any) => ({ ...f, api_key: '' }))
+      load()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function clearKey() {
+    if (!window.confirm('Remove the saved AI provider key? The assistant will fall back to the built-in knowledge base.')) return
+    const r = await fetch('/api/admin/ai-settings', {
+      method: 'PUT',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ clear_api_key: true }),
+    })
+    if (r.ok) {
+      onNotify('Provider key removed. The assistant will use the built-in knowledge base.')
+      load()
+    }
+  }
+
+  async function test() {
+    setTesting(true)
+    try {
+      const r = await fetch('/api/admin/ai-settings/test', { method: 'POST', headers: authHeaders(token) })
+      const d = await r.json().catch(() => ({}))
+      onNotify(d.message || (d.ok ? 'Assistant is ready.' : 'Assistant test failed.'))
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const live = cfg?.mode === 'live'
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+      <div style={cardStyle}>
+        <PanelHeader
+          icon={<RobotIcon size={20} />}
+          title="AI Assistant"
+          desc="Connect any OpenAI-compatible provider for real conversational answers. Without a key, the assistant keeps working from the built-in Campmatch knowledge base."
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            padding: '11px 14px',
+            borderRadius: 12,
+            background: live ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)',
+            border: live ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(245,158,11,0.3)',
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: live ? '#22c55e' : '#f59e0b' }}>
+            {live
+              ? `Live AI connected · ${cfg?.model}`
+              : cfg?.enabled
+                ? 'Knowledge-base mode · add a provider key for full AI replies'
+                : 'Assistant disabled'}
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700 }}>
+            <input type="checkbox" checked={form.enabled} onChange={e => setForm({ ...form, enabled: e.target.checked })} />
+            Enabled
+          </label>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Provider API Key</label>
+            <input
+              type="password"
+              style={inputStyle}
+              value={form.api_key}
+              onChange={e => setForm({ ...form, api_key: e.target.value })}
+              placeholder={cfg?.api_key_set ? `Saved: ${cfg.api_key_masked} (enter to replace)` : 'sk-...'}
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Model</label>
+            <input style={inputStyle} value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} placeholder="gpt-4o-mini" />
+          </div>
+          <div>
+            <label style={labelStyle}>Base URL</label>
+            <input style={inputStyle} value={form.base_url} onChange={e => setForm({ ...form, base_url: e.target.value })} placeholder="https://api.openai.com/v1" />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: 'var(--bg-subtle)', fontSize: 11.5, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+          Works with OpenAI, Groq, OpenRouter, DeepSeek and other OpenAI-compatible APIs. The assistant
+          streams replies in real time, remembers the current conversation, and knows Campmatch features,
+          Plus, payments, safety and support. The key is stored server-side and never shown to students.
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+          <button className="btn-brand" style={{ width: 'auto', padding: '10px 20px', fontSize: 12.5 }} disabled={busy} onClick={save}>
+            {busy ? 'Saving...' : 'Save Assistant Settings'}
+          </button>
+          <button className="btn-ghost" style={{ padding: '10px 16px', fontSize: 12.5 }} disabled={testing} onClick={test}>
+            {testing ? 'Testing...' : 'Test Assistant'}
+          </button>
+          {cfg?.api_key_set && (
+            <button className="btn-ghost" style={{ padding: '10px 16px', fontSize: 12.5 }} onClick={clearKey}>
+              Remove Key
+            </button>
+          )}
         </div>
       </div>
     </div>

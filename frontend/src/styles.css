@@ -1183,3 +1183,70 @@ button:disabled {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Notification popup + Plus activation celebration */
+.notification-pop {
+  animation: notifPopIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes notifPopIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.plus-success-card {
+  animation: plusCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes plusCardIn {
+  0% { opacity: 0; transform: translateY(22px) scale(0.9); }
+  70% { transform: translateY(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.plus-check-ring {
+  animation: plusRingDraw 0.7s ease-out 0.05s forwards;
+}
+
+@keyframes plusRingDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+.plus-check-mark {
+  animation: plusCheckDraw 0.4s ease-out 0.55s forwards;
+}
+
+@keyframes plusCheckDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+.plus-confetti {
+  position: absolute;
+  top: -14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: plusConfetti 1.6s ease-in 0.15s 1;
+}
+
+@keyframes plusConfetti {
+  0% { opacity: 0; transform: translateY(-10px) rotate(0deg); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(300px) rotate(260deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-pop,
+  .plus-success-card,
+  .plus-check-ring,
+  .plus-check-mark,
+  .plus-confetti {
+    animation: none;
+  }
+  .plus-check-ring,
+  .plus-check-mark {
+    stroke-dashoffset: 0;
+  }
+  .plus-confetti {
+    display: none;
+  }
+}
