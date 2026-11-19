@@ -52,11 +52,29 @@ import { MatchesListView, ChatConversationView } from './pages/MatchesChatPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { AdminPortal } from './pages/AdminPortal'
 
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    /* Storage unavailable (private mode / quota) — degrade gracefully. */
+  }
+}
+
 function StudentApp() {
-  const [token, setToken] = useState(localStorage.getItem('token') || '')
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark')
+  const [token, setToken] = useState(() => safeGetItem('token') || '')
+  const [theme, setTheme] = useState(() => safeGetItem('theme') || 'dark')
   const [tab, setTab] = useState<NavTab>('swipe')
   const [needsSetup, setNeedsSetup] = useState(false)
+
+  const whatsappPhone = (import.meta.env.VITE_WHATSAPP_PHONE as string | undefined) || ''
 
   const [me, setMe] = useState<CurrentUser | null>(null)
   const [pushState, setPushState] = useState<PushState>({
@@ -159,7 +177,7 @@ function StudentApp() {
   const DAILY_KEY = 'campmatch_daily_reminder_date'
   useEffect(() => {
     const today = new Date().toDateString()
-    const last = localStorage.getItem(DAILY_KEY)
+    const last = safeGetItem(DAILY_KEY)
     if (last === today) return
     const hasUnread = notifications.some(n => !n.read) || Boolean(matchedUser)
     const mayNotify =
@@ -189,7 +207,7 @@ function StudentApp() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
+    safeSetItem('theme', theme)
     const metaTheme = document.querySelector('meta[name="theme-color"]')
     if (metaTheme) {
       metaTheme.setAttribute('content', theme === 'dark' ? '#08090D' : '#FFFFFF')
@@ -1368,10 +1386,10 @@ function StudentApp() {
           plusConfig={plusConfig}
           quota={quota}
           token={token}
+          userName={me?.name}
           onCheckout={handlePlusCheckout}
           onSuccess={() => {
             setShowPlusModal(false)
-            setShowPlusSuccess(true)
             loadMe()
             loadQuota()
             loadLikesYou()
@@ -1425,21 +1443,24 @@ function StudentApp() {
           onClose={install.close}
         />
       )}
-      <FloatingWhatsAppBtn
-        phone="9999999999"
-        message="Hello, I'd like to know more about Campmatch"
-        showAiAssistant
-        onAiOpen={() => setAiDeskOpen(true)}
-        onClose={() => setAiDeskOpen(false)}
-      />
+      {whatsappPhone && (
+        <FloatingWhatsAppBtn
+          phone={whatsappPhone}
+          message="Hello, I'd like to know more about Campmatch"
+          showAiAssistant
+          onAiOpen={() => setAiDeskOpen(true)}
+          onClose={() => setAiDeskOpen(false)}
+        />
+      )}
       <AiHelpDesk
-        phone="9999999999"
+        phone={whatsappPhone}
         token={token}
         userName={me?.name}
         show={aiDeskOpen}
         onToggle={() => setAiDeskOpen(false)}
         onWhatsAppClick={() => {
-          const url = "https://wa.me/9999999999"
+          if (!whatsappPhone) return
+          const url = `https://wa.me/${whatsappPhone}`
           window.open(url, "_blank", "noopener,noreferrer")
         }}
       />

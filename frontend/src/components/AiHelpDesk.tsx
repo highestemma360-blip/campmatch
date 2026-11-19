@@ -465,26 +465,28 @@ export function AiHelpDesk({
       </div>
 
       {/* Support fallback */}
-      <button
-        onClick={() => {
-          if (onWhatsAppClick) onWhatsAppClick()
-          else window.open("https://wa.me/" + phone, "_blank", "noopener,noreferrer")
-        }}
-        style={{
-          width: "100%",
-          padding: "8px 12px",
-          border: "none",
-          borderTop: "1px solid var(--border-subtle)",
-          background: "var(--bg-subtle)",
-          color: "var(--text-muted)",
-          fontSize: 11,
-          fontWeight: 700,
-          cursor: "pointer",
-          flexShrink: 0,
-        }}
-      >
-        Need a person? Chat with the Campmatch team on WhatsApp
-      </button>
+      {phone && (
+        <button
+          onClick={() => {
+            if (onWhatsAppClick) onWhatsAppClick()
+            else window.open("https://wa.me/" + phone, "_blank", "noopener,noreferrer")
+          }}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            border: "none",
+            borderTop: "1px solid var(--border-subtle)",
+            background: "var(--bg-subtle)",
+            color: "var(--text-muted)",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          Need a person? Chat with the Campmatch team on WhatsApp
+        </button>
+      )}
     </div>
   )
 }

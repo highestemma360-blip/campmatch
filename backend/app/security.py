@@ -5,7 +5,13 @@ from jose import jwt
 from sqlalchemy.orm import Session
 from .models import User, Setting
 
-SECRET = os.environ.get("SECRET_KEY", "campmatch-secret-change-me")
+SECRET = os.environ.get("SECRET_KEY")
+if not SECRET:
+    _is_prod = bool(os.environ.get("RENDER")) or os.environ.get("ENV", "").lower() == "production"
+    if _is_prod:
+        raise RuntimeError("SECRET_KEY must be set in Render environment variables.")
+    # Local development only: a clearly non-production fallback.
+    SECRET = "campmatch-dev-secret-change-me"
 ALGORITHM = "HS256"
 
 DEFAULT_SCHOOL_DOMAINS = {

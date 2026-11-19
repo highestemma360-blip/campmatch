@@ -136,6 +136,7 @@ interface PlusModalProps {
   plusConfig: PlusConfig
   quota?: SwipeQuota
   token?: string
+  userName?: string
   onCheckout: () => void
   onSuccess?: () => void
   onClose: () => void
@@ -159,11 +160,24 @@ const CHANNEL_LABELS: Record<string, string> = {
   AT: 'AT Money',
 }
 
+const CONFETTI_PIECES = [
+  { left: '8%', delay: '0s', color: '#f8c14a', size: 9 },
+  { left: '18%', delay: '0.15s', color: '#ff4f7a', size: 7 },
+  { left: '29%', delay: '0.05s', color: '#3ddc97', size: 8 },
+  { left: '41%', delay: '0.28s', color: '#5aa9ff', size: 6 },
+  { left: '52%', delay: '0.1s', color: '#f8c14a', size: 10 },
+  { left: '63%', delay: '0.33s', color: '#ff7a59', size: 7 },
+  { left: '74%', delay: '0.02s', color: '#b388ff', size: 8 },
+  { left: '84%', delay: '0.22s', color: '#3ddc97', size: 6 },
+  { left: '93%', delay: '0.12s', color: '#ff4f7a', size: 9 },
+]
+
 export function PlusModal({
   isPremium,
   plusConfig,
   quota,
   token,
+  userName,
   onCheckout,
   onSuccess,
   onClose,
@@ -178,6 +192,7 @@ export function PlusModal({
   ]
 
   const hitDailyCap = Boolean(quota?.limited && quota.remaining !== null && quota.remaining <= 0)
+  const firstName = userName ? userName.split(' ')[0] : ''
 
   const [cfg, setCfg] = useState<PaymentConfig | null>(null)
   const [channel, setChannel] = useState('MTN')
@@ -374,7 +389,124 @@ export function PlusModal({
             ))}
           </div>
 
-          {isPremium || status === 'success' ? (
+          {status === 'success' ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '22px 10px 14px',
+                position: 'relative',
+              }}
+            >
+              {/* Confetti burst behind the checkmark. */}
+              {CONFETTI_PIECES.map((piece, i) => {
+                return (
+                  <span
+                    key={i}
+                    className="plus-confetti-pop"
+                    style={{
+                      left: piece.left,
+                      width: piece.size,
+                      height: piece.size * 1.6,
+                      background: piece.color,
+                      animationDelay: piece.delay,
+                      animationDuration: '0.6s',
+                    }}
+                  />
+                )
+              })}
+              <div
+                style={{
+                  position: 'relative',
+                  width: 92,
+                  height: 92,
+                  margin: '0 auto 16px',
+                  borderRadius: '50%',
+                  background:
+                    'radial-gradient(circle at 50% 35%, rgba(248,193,74,0.24), rgba(248,193,74,0.05))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <svg width="76" height="76" viewBox="0 0 76 76" fill="none" aria-hidden="true">
+                  <circle
+                    cx="38"
+                    cy="38"
+                    r="32"
+                    stroke="#f8c14a"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray="202"
+                    strokeDashoffset="202"
+                    className="plus-check-ring"
+                    transform="rotate(-90 38 38)"
+                  />
+                  <path
+                    d="M24 39.5L33.5 49L53 28.5"
+                    stroke="#f8c14a"
+                    strokeWidth="4.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray="46"
+                    strokeDashoffset="46"
+                    className="plus-check-mark"
+                  />
+                </svg>
+              </div>
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                  background: 'linear-gradient(135deg, #f8c14a, #f2ac2b)',
+                  color: '#1b1408',
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: 0.9,
+                  marginBottom: 10,
+                }}
+              >
+                CAMPMATCH PLUS
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
+                {firstName ? `You're in, ${firstName}` : "You're in"}
+              </div>
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                  color: 'rgba(255,255,255,0.72)',
+                  maxWidth: 260,
+                  margin: '8px auto 0',
+                }}
+              >
+                Your subscription is active — unlimited swipes and all Plus features are unlocked now.
+              </div>
+              <button
+                onClick={() => onSuccess?.()}
+                style={{
+                  marginTop: 18,
+                  width: '100%',
+                  padding: '13px 16px',
+                  border: 'none',
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #f8c14a, #f2ac2b)',
+                  color: '#1b1408',
+                  fontSize: 14,
+                  fontWeight: 900,
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                }}
+              >
+                Continue swiping
+              </button>
+            </div>
+          ) : isPremium ? (
             <div
               style={{
                 padding: 14,

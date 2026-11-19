@@ -143,21 +143,26 @@ The webhook is signature-verified with the wallet secret and de-duplicated by ev
 
 The floating Campmatch Assistant streams answers in real time. It works out of the box
 using a curated Campmatch knowledge base (swipes, matches, Plus, payments, safety, profile).
-For full conversational AI, connect any OpenAI-compatible provider.
+For full conversational AI, connect any OpenAI-compatible provider — the default is NVIDIA NIM.
 
 ```env
-AI_API_KEY=sk-...
-AI_MODEL=gpt-4o-mini
-AI_BASE_URL=https://api.openai.com/v1
+# NVIDIA NIM (default) — get a key at build.nvidia.com
+AI_API_KEY=nvapi-...
+AI_MODEL=nvidia/llama-3.1-nemotron-70b-instruct
+AI_BASE_URL=https://integrate.api.nvidia.com/v1
 ```
 
-Supported providers include OpenAI, Groq, OpenRouter and DeepSeek — set `AI_BASE_URL` to the
-provider's `/v1` endpoint and `AI_MODEL` to one of its chat models.
+Supported providers include NVIDIA NIM, OpenAI, Groq, OpenRouter and DeepSeek — set
+`AI_BASE_URL` to the provider's `/v1` endpoint and `AI_MODEL` to one of its chat models.
 
 You can also save or rotate these in **Admin → AI Assistant** without redeploying. Use
 **Test Assistant** to confirm the key and model respond. The key stays server-side and is
 never sent to students. If the key is missing or the provider fails, the assistant falls
 back to the built-in knowledge base automatically, so the help button never breaks.
+
+> The service boots with NVIDIA NIM defaults (`AI_MODEL` and `AI_BASE_URL`), so once you
+> set `AI_API_KEY` the assistant is live immediately. Override `AI_MODEL`/`AI_BASE_URL` if
+> you prefer another OpenAI-compatible endpoint.
 
 ---
 
@@ -267,6 +272,11 @@ Campmatch is installable from the browser — no Play Store or App Store listing
   Campmatch and check new matches or messages. Push requires HTTPS (Render provides this automatically)
   and VAPID keys are auto-generated and persisted on the disk; optionally set `VAPID_PUBLIC_KEY`,
   `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` in Render to pin them.
+
+- **WhatsApp support**: the floating WhatsApp button and the assistant's "chat with a person"
+  option open `https://wa.me/<phone>`. Set `VITE_WHATSAPP_PHONE` in Render to your support
+  number in international format (e.g. `233241234567`). If it is not set, the WhatsApp buttons
+  are hidden so students are never routed to a placeholder number.
 
 Requirements on Render: serve the site over HTTPS (Render provides this automatically) and keep the
 persistent disk configured. `manifest.webmanifest` is served as `application/manifest+json`, and

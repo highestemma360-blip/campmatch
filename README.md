@@ -150,7 +150,13 @@ Optional environment variables:
 - `GOOGLE_CLIENT_ID` — Google OAuth client ID used to verify school Google accounts
 - `PUBLIC_BASE_URL` — Public origin used to build Moolre callback and redirect URLs
 - `MOOLRE_USER`, `MOOLRE_PUBKEY`, `MOOLRE_ACCOUNT_NUMBER`, `MOOLRE_WALLET_SECRET`, `MOOLRE_ENV`, `MOOLRE_MERCHANT_EMAIL`, `MOOLRE_CALLBACK_URL` — Moolre payment credentials (can also be saved live in the admin console)
-- `AI_API_KEY` / `AI_MODEL` / `AI_BASE_URL` — Optional OpenAI-compatible provider for the in-app assistant (OpenAI, Groq, OpenRouter, DeepSeek). Can also be saved in **Admin → AI Assistant**. Without a key the assistant still replies in real time from the built-in Campmatch knowledge base.
+- `AI_API_KEY` / `AI_MODEL` / `AI_BASE_URL` — Optional provider for the in-app assistant; defaults point at
+  NVIDIA NIM (`AI_MODEL=nvidia/llama-3.1-nemotron-70b-instruct`,
+  `AI_BASE_URL=https://integrate.api.nvidia.com/v1`). Set `AI_API_KEY` to your NVIDIA API key, or use any
+  OpenAI-compatible provider. Can also be saved in **Admin → AI Assistant**. Without a key the assistant
+  still replies in real time from the built-in Campmatch knowledge base.
+- `VITE_WHATSAPP_PHONE` — WhatsApp support number in international format (e.g. `233241234567`). Shows the
+  floating WhatsApp button and support option. If unset, WhatsApp buttons are hidden.
 
 ### 2. Frontend
 ```bash

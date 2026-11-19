@@ -5,6 +5,7 @@ export class RealtimeClient {
   private token = ''
   private listener: RealtimeListener
   private reconnectTimer: number | null = null
+  private reconnectDelay = 1000
   private pingTimer: number | null = null
   private closedManually = false
 
@@ -17,6 +18,7 @@ export class RealtimeClient {
     if (!token) return
     this.token = token
     this.closedManually = false
+    this.reconnectDelay = 1000
     this.openSocket()
   }
 
@@ -31,6 +33,7 @@ export class RealtimeClient {
 
       ws.onopen = () => {
         this.listener({ type: 'ws_status', connected: true })
+        this.reconnectDelay = 1000
         this.pingTimer = window.setInterval(() => {
           this.send({ type: 'ping' })
         }, 25000)
@@ -51,15 +54,21 @@ export class RealtimeClient {
         this.clearTimers()
         this.listener({ type: 'ws_status', connected: false })
         if (!this.closedManually && ev.code !== 4401) {
-          this.reconnectTimer = window.setTimeout(() => this.openSocket(), 3000)
+          const delay = this.reconnectDelay
+          this.reconnectDelay = Math.min(delay * 2, 30000)
+          this.reconnectTimer = window.setTimeout(() => this.openSocket(), delay)
         }
       }
 
       ws.onerror = () => {
+        const delay = this.reconnectDelay
+        this.reconnectDelay = Math.min(delay * 2, 30000)
         ws.close()
       }
     } catch {
-      this.reconnectTimer = window.setTimeout(() => this.openSocket(), 4000)
+      const delay = this.reconnectDelay
+      this.reconnectDelay = Math.min(delay * 2, 30000)
+      this.reconnectTimer = window.setTimeout(() => this.openSocket(), delay)
     }
   }
 

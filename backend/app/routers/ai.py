@@ -28,8 +28,8 @@ router = APIRouter()
 MAX_HISTORY = 20
 MAX_MESSAGE_CHARS = 2000
 
-DEFAULT_MODEL = "gpt-4o-mini"
-DEFAULT_BASE_URL = "https://api.openai.com/v1"
+DEFAULT_MODEL = "nvidia/llama-3.1-nemotron-70b-instruct"
+DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
 
 
 class ChatMessage(BaseModel):

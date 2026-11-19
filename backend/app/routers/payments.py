@@ -228,7 +228,7 @@ async def moolre_collect_momo(
         price_ghs = payment.amount
         duration_days = payment.duration_days or duration_days
     else:
-        ext_ref = f"CM-{user.id}-{uuid.uuid4().hex[:10].upper()}"
+        ext_ref = f"CM-{user.id}-{uuid.uuid4().hex.upper()}"
         payment = Payment(
             user_id=user.id,
             amount=price_ghs,
@@ -421,9 +421,11 @@ async def moolre_webhook(request: Request, db: Session = Depends(get_db)):
     sig_header = request.headers.get("X-Moolre-Signature", "")
     cfg = moolre_config(db)
 
-    if cfg["wallet_secret"]:
-        if not _verify_moolre_signature(raw_body, sig_header, cfg["wallet_secret"]):
-            raise HTTPException(400, "Invalid Moolre webhook signature.")
+    if not cfg["wallet_secret"]:
+        # Fail closed: never accept webhooks that cannot be cryptographically verified.
+        raise HTTPException(401, "Moolre webhook secret not configured.")
+    if not _verify_moolre_signature(raw_body, sig_header, cfg["wallet_secret"]):
+        raise HTTPException(400, "Invalid Moolre webhook signature.")
 
     try:
         event_payload = json.loads(raw_body.decode("utf-8"))
