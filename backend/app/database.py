@@ -181,6 +181,8 @@ def run_migrations():
             ("ban_reason", "VARCHAR(255) DEFAULT ''"),
             ("banned_at", "DATETIME"),
             ("banned_by", "INTEGER"),
+            ("photo_required", "BOOLEAN DEFAULT 1"),
+            ("photo_approved_at", "DATETIME"),
         ],
         "image_moderation_logs": [
             ("stored_path", "VARCHAR(255) DEFAULT ''"),

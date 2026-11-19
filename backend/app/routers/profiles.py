@@ -27,6 +27,7 @@ from ..security import (
     get_plus_plans,
 )
 from ..image_guard import validate_and_optimize_profile_photo
+from ..ai_moderation import moderate_image
 from ..realtime import hub
 from ..explore_rooms import active_slugs, DEFAULT_EXPLORE_ROOMS
 
@@ -226,6 +227,8 @@ def serialize_user(user: User, full: bool = False, db: Optional[Session] = None)
             "show_me": user.show_me or "everyone",
             "max_distance_km": user.max_distance_km or 50,
             "verified_only": bool(user.verified_only),
+            "photo_required": bool(user.photo_required),
+            "photo_approved": bool(user.photo_approved_at),
         })
         if db is not None:
             data["swipe_quota"] = compute_swipe_quota(user, db)
@@ -375,7 +378,10 @@ async def upload_photos(
     for file in files[:slots_left]:
         fname = (file.filename or "photo.jpg")[:200]
         raw_bytes = await file.read()
-        check = validate_and_optimize_profile_photo(raw_bytes)
+
+        # AI-powered moderation: rejects nudes, dark images, no-person photos.
+        # Falls back to OpenCV when no AI key is configured.
+        check = await moderate_image(raw_bytes, fname, db)
 
         stored_path = ""
         review_status = "auto"
@@ -406,14 +412,19 @@ async def upload_photos(
                 "code": check.reject_code,
                 "reason": check.reason,
                 "pending_review": bool(stored_path),
+                "ai_reviewed": check.ai_reviewed,
             })
             continue
 
         out_name = f"{user.id}_{uuid.uuid4().hex[:10]}.webp"
         out_path = os.path.join(UPLOAD_DIR, out_name)
         with open(out_path, "wb") as f:
-            f.write(check.processed_bytes)
+            f.write(check.processed_bytes or raw_bytes)
         accepted_urls.append(f"/uploads/{out_name}")
+
+        # Mark the first approved photo timestamp.
+        if user.photo_approved_at is None:
+            user.photo_approved_at = datetime.utcnow()
 
     if accepted_urls:
         user.photo_urls = ",".join((existing + accepted_urls)[:6])

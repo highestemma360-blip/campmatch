@@ -51,6 +51,7 @@ import { LikesYouPage } from './pages/LikesYouPage'
 import { MatchesListView, ChatConversationView } from './pages/MatchesChatPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { AdminPortal } from './pages/AdminPortal'
+import { PhotoRequirementPage } from './pages/PhotoRequirementPage'
 
 function safeGetItem(key: string): string | null {
   try {
@@ -83,6 +84,7 @@ function StudentApp({
   const [whatsappLink, setWhatsappLink] = useState('')
 
   const [me, setMe] = useState<CurrentUser | null>(null)
+  const [photoRequired, setPhotoRequired] = useState(false)
   const [pushState, setPushState] = useState<PushState>({
     supported: pushSupported(),
     permission: 'default',
@@ -549,6 +551,11 @@ function StudentApp({
         setTab('swipe')
       }
 
+      // Enforce mandatory photo requirement for new students.
+      if (u.photo_required && (!u.photo_urls || u.photo_urls.length === 0)) {
+        setPhotoRequired(true)
+      }
+
       if (!u.profile_complete) {
         setNeedsSetup(true)
       } else {
@@ -981,6 +988,21 @@ function StudentApp({
   const totalUnread = matches.reduce((sum, m) => sum + (m.unread_count || 0), 0)
   const newMatchesCount = matches.filter(m => !m.last_message).length
   const bannerText = plusConfig.announcement_banner || me?.announcement_banner || ''
+
+  // Mandatory photo requirement: block app until a photo is approved.
+  if (photoRequired && me && (!me.photo_urls || me.photo_urls.length === 0)) {
+    return (
+      <PhotoRequirementPage
+        token={token}
+        photoRequired={true}
+        onPhotoUploaded={() => {
+          setPhotoRequired(false)
+          loadMe()
+        }}
+        onClose={() => {}}
+      />
+    )
+  }
 
   return (
     <div className="workspace-shell">

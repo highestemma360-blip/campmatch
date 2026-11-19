@@ -33,6 +33,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
   const [selectedUser, setSelectedUser] = useState<any>(null)
 
   const [reports, setReports] = useState<any[]>([])
+  const [appeals, setAppeals] = useState<any[]>([])
   const [reportMessages, setReportMessages] = useState<Record<number, any[]>>({})
   const [modLogs, setModLogs] = useState<any[]>([])
   const [pendingReviews, setPendingReviews] = useState<any[]>([])
@@ -54,6 +55,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
       if (section === 'users') loadUsers(userFilter, userSearch)
       else if (section === 'vault') loadUsers('deleted', userSearch)
       else if (section === 'reports') loadReports()
+      else if (section === 'appeals') loadAppeals()
       else if (section === 'moderation') {
         loadModLogs(rejectedOnly)
         loadPendingReviews()
@@ -101,6 +103,11 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     if (r.ok) setReports(await r.json())
   }
 
+  async function loadAppeals() {
+    const r = await fetch('/api/admin/appeals', { headers })
+    if (r.ok) setAppeals(await r.json())
+  }
+
   async function loadReportTranscript(reportId: number) {
     const r = await fetch(`/api/admin/reports/${reportId}/messages`, { headers })
     if (r.ok) {
@@ -141,16 +148,16 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     }
   }
 
-  async function banUser(userId: number, mode: 'temporary' | 'permanent', days = 7) {
-    const reason = window.prompt(mode === 'permanent' ? 'Reason for the permanent ban:' : `Reason for the ${days}-day ban:`) || ''
+  async function banUser(userId: number, days = 7) {
+    const reason = window.prompt(`Reason for the ${days}-day temporary ban:`) || ''
     if (reason === null) return
     const r = await fetch(`/api/admin/users/${userId}/ban`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ mode, days, reason }),
+      body: JSON.stringify({ ban_days: days, reason }),
     })
     if (r.ok) {
-      onNotify(mode === 'permanent' ? 'Account permanently banned.' : `Account temporarily banned for ${days} days.`)
+      onNotify(`Account temporarily banned for ${days} days.`)
       if (selectedUser?.id === userId) openUserInspector(userId)
       loadUsers(section === 'vault' ? 'deleted' : userFilter, userSearch)
       loadOverviewAndSettings()
@@ -299,6 +306,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     { id: 'controls', label: 'Controls & Limits' },
     { id: 'users', label: 'Users' },
     { id: 'reports', label: `Reports (${ov.open_reports || 0})` },
+    { id: 'appeals', label: `Appeals (${appeals.filter(a => a.status === 'open').length})` },
     { id: 'moderation', label: 'Image Guard' },
     { id: 'payments', label: 'Revenue' },
     { id: 'rooms', label: 'Explore Rooms' },
@@ -637,6 +645,51 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                 Full WhatsApp link (e.g. https://wa.me/233241234567). Leave blank to hide the WhatsApp support buttons.
               </span>
             </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Require Photo on Signup</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  New students must upload a photo before continuing
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={Boolean(settings.photo_required_for_signup)}
+                onChange={e => setSettings({ ...settings, photo_required_for_signup: e.target.checked })}
+                style={{ width: 18, height: 18, accentColor: '#FD267A' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>AI Image Moderation</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  AI rejects nudes, dark & no-person photos
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={Boolean(settings.ai_image_moderation_enabled)}
+                onChange={e => setSettings({ ...settings, ai_image_moderation_enabled: e.target.checked })}
+                style={{ width: 18, height: 18, accentColor: '#FD267A' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>AI Admin (24/7 Reports)</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  AI reviews reports & appeals, temp-bans only
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={Boolean(settings.ai_admin_enabled)}
+                onChange={e => setSettings({ ...settings, ai_admin_enabled: e.target.checked })}
+                style={{ width: 18, height: 18, accentColor: '#FD267A' }}
+              />
+            </div>
           </div>
 
           <div style={{ gridColumn: '1 / -1' }}>
@@ -969,7 +1022,81 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
         </div>
       )}
 
-      {/* 5. IMAGE MODERATION LOGS */}
+      {/* 5. APPEALS */}
+      {section === 'appeals' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {appeals.map(a => (
+            <div
+              key={a.id}
+              style={{
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 16,
+                padding: 16,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>
+                  Appeal #{a.id}
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: '3px 9px',
+                    borderRadius: 99,
+                    background: a.status === 'approved' ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.16)',
+                    color: a.status === 'approved' ? '#22c55e' : '#f59e0b',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {a.status}
+                </span>
+              </div>
+
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 6 }}>
+                <strong>{a.user_name}</strong> ({a.user_email}) · {a.created_at?.slice(0, 16)}
+              </div>
+
+              <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 10, background: 'var(--bg-app)', fontSize: 13, lineHeight: 1.5 }}>
+                {a.reason}
+              </div>
+
+              {a.admin_note && (
+                <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(34,197,94,0.1)', fontSize: 13, color: '#22c55e' }}>
+                  Admin note: {a.admin_note}
+                </div>
+              )}
+
+              {a.status === 'open' && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                  <button
+                    className="btn-ghost"
+                    style={{ padding: '6px 12px', fontSize: 12 }}
+                    onClick={() => handleAppealAction(a.id, 'approve')}
+                  >
+                    Approve Appeal (Unban)
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    style={{ padding: '6px 12px', fontSize: 12, color: '#ffb15c' }}
+                    onClick={() => handleAppealAction(a.id, 'deny')}
+                  >
+                    Deny Appeal
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          {appeals.length === 0 && (
+            <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+              No appeals submitted.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. IMAGE MODERATION LOGS */}
       {section === 'moderation' && (
         <div>
           {pendingReviews.length > 0 && (
@@ -1356,23 +1483,23 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                       <button
                         className="btn-ghost"
                         style={{ fontSize: 12, padding: '8px 12px', color: '#ffb15c' }}
-                        onClick={() => banUser(selectedUser.id, 'temporary', 7)}
+                        onClick={() => banUser(selectedUser.id, 1)}
                       >
-                        Ban 7 Days
+                        Ban 1 Day
                       </button>
                       <button
                         className="btn-ghost"
                         style={{ fontSize: 12, padding: '8px 12px', color: '#ff8f5c' }}
-                        onClick={() => banUser(selectedUser.id, 'temporary', 30)}
+                        onClick={() => banUser(selectedUser.id, 3)}
                       >
-                        Ban 30 Days
+                        Ban 3 Days
                       </button>
                       <button
                         className="btn-ghost"
                         style={{ fontSize: 12, padding: '8px 12px', color: '#ff5a67' }}
-                        onClick={() => banUser(selectedUser.id, 'permanent')}
+                        onClick={() => banUser(selectedUser.id, 7)}
                       >
-                        Ban Permanently
+                        Ban 7 Days (Max)
                       </button>
                     </>
                   )}

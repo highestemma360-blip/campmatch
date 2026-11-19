@@ -25,6 +25,7 @@ from ..models import (
     ExploreRoom,
     Notification,
     NotificationRead,
+    Appeal,
 )
 from ..security import (
     get_bool_setting,
@@ -37,6 +38,7 @@ from ..security import (
 from ..realtime import hub
 from ..explore_rooms import all_rooms, active_slugs, serialize_room, ICON_CHOICES
 from .. import push
+from ..ai_admin import ai_admin_worker
 from .profiles import get_current_user, parse_list, parse_prompts
 
 router = APIRouter()
@@ -78,6 +80,9 @@ def build_platform_settings_snapshot(db: Session) -> dict:
         "maintenance_mode": get_bool_setting(db, "maintenance_mode", False),
         "announcement_banner": get_setting(db, "announcement_banner", ""),
         "whatsapp_link": get_setting(db, "whatsapp_link", ""),
+        "photo_required_for_signup": get_bool_setting(db, "photo_required_for_signup", True),
+        "ai_image_moderation_enabled": get_bool_setting(db, "ai_image_moderation_enabled", True),
+        "ai_admin_enabled": get_bool_setting(db, "ai_admin_enabled", True),
     }
 
 
@@ -169,6 +174,9 @@ class PlatformSettingsIn(BaseModel):
     maintenance_mode: Optional[bool] = None
     announcement_banner: Optional[str] = None
     whatsapp_link: Optional[str] = None
+    photo_required_for_signup: Optional[bool] = None
+    ai_image_moderation_enabled: Optional[bool] = None
+    ai_admin_enabled: Optional[bool] = None
 
 
 @router.get("/settings")
@@ -240,6 +248,15 @@ async def update_settings(data: PlatformSettingsIn, admin: User = Depends(requir
     if data.whatsapp_link is not None:
         set_setting(db, "whatsapp_link", data.whatsapp_link.strip()[:200])
         changes.append("whatsapp_link updated")
+    if data.photo_required_for_signup is not None:
+        set_setting(db, "photo_required_for_signup", "true" if data.photo_required_for_signup else "false")
+        changes.append(f"photo_required_for_signup={data.photo_required_for_signup}")
+    if data.ai_image_moderation_enabled is not None:
+        set_setting(db, "ai_image_moderation_enabled", "true" if data.ai_image_moderation_enabled else "false")
+        changes.append(f"ai_image_moderation_enabled={data.ai_image_moderation_enabled}")
+    if data.ai_admin_enabled is not None:
+        set_setting(db, "ai_admin_enabled", "true" if data.ai_admin_enabled else "false")
+        changes.append(f"ai_admin_enabled={data.ai_admin_enabled}")
 
     if changes:
         log_audit(db, admin.id, "update_settings", details=", ".join(changes))
@@ -273,6 +290,269 @@ async def toggle_plus(admin: User = Depends(require_admin), db: Session = Depend
         "announcement_banner": snapshot["announcement_banner"],
     })
     return {"plus_enabled": next_val}
+
+
+class BanUserIn(BaseModel):
+    ban_days: int = 3
+    reason: str = "Violation of community guidelines"
+
+
+class UnbanUserIn(BaseModel):
+    reason: str = "Appeal granted / admin review"
+
+
+@router.post("/users/{user_id}/ban")
+async def ban_user(
+    user_id: int,
+    data: BanUserIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Temporarily ban a user. Permanent bans are not allowed."""
+    ban_days = max(1, min(7, int(data.ban_days)))
+    user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    if not user:
+        raise HTTPException(404, "User not found.")
+    if user.is_admin:
+        raise HTTPException(403, "Cannot ban an administrator.")
+
+    user.is_active = False
+    user.ban_type = "temporary"
+    user.banned_until = datetime.utcnow() + timedelta(days=ban_days)
+    user.ban_reason = data.reason.strip()[:255]
+    user.banned_by = admin.id
+    user.banned_at = datetime.utcnow()
+    db.commit()
+
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="temp_ban",
+        target_user_id=user.id,
+        details=f"{ban_days} days: {data.reason}",
+    ))
+    db.commit()
+
+    try:
+        hub.send_to_user(user.id, {
+            "type": "account_banned",
+            "ban_type": "temporary",
+            "ban_days": ban_days,
+            "reason": data.reason,
+            "banned_until": user.banned_until.isoformat() if user.banned_until else None,
+        })
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "user_id": user.id,
+        "ban_type": "temporary",
+        "ban_days": ban_days,
+        "banned_until": user.banned_until.isoformat() if user.banned_until else None,
+    }
+
+
+@router.post("/users/{user_id}/unban")
+async def unban_user(
+    user_id: int,
+    data: UnbanUserIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Lift a temporary ban."""
+    user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    if not user:
+        raise HTTPException(404, "User not found.")
+
+    user.is_active = True
+    user.ban_type = ""
+    user.banned_until = None
+    user.ban_reason = ""
+    user.banned_by = None
+    db.commit()
+
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="unban",
+        target_user_id=user.id,
+        details=data.reason.strip()[:255],
+    ))
+    db.commit()
+
+    try:
+        hub.send_to_user(user.id, {
+            "type": "account_unbanned",
+            "reason": data.reason,
+        })
+    except Exception:
+        pass
+
+    return {"ok": True, "user_id": user.id}
+
+
+class ReportActionIn(BaseModel):
+    action: str  # dismiss | warn | temp_ban
+    ban_days: int = 3
+    reason: str = ""
+
+
+@router.post("/reports/{report_id}/action")
+async def report_action(
+    report_id: int,
+    data: ReportActionIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from ..models import Report
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(404, "Report not found.")
+
+    target = db.query(User).filter(User.id == report.reported_id).first()
+    if not target:
+        raise HTTPException(404, "Reported user not found.")
+
+    action = data.action.lower()
+    if action == "temp_ban":
+        ban_days = max(1, min(7, int(data.ban_days)))
+        target.is_active = False
+        target.ban_type = "temporary"
+        target.banned_until = datetime.utcnow() + timedelta(days=ban_days)
+        target.ban_reason = data.reason or report.reason
+        target.banned_by = admin.id
+        target.banned_at = datetime.utcnow()
+        db.commit()
+        try:
+            hub.send_to_user(target.id, {
+                "type": "account_banned",
+                "ban_type": "temporary",
+                "ban_days": ban_days,
+                "reason": data.reason or report.reason,
+                "banned_until": target.banned_until.isoformat() if target.banned_until else None,
+            })
+        except Exception:
+            pass
+    elif action == "warn":
+        try:
+            hub.send_to_user(target.id, {
+                "type": "account_warning",
+                "reason": data.reason or report.reason,
+            })
+        except Exception:
+            pass
+
+    report.status = "resolved"
+    report.admin_note = data.reason or f"Admin {action}: {report.reason}"
+    report.resolved = True
+    report.resolved_at = datetime.utcnow()
+    db.commit()
+
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action=f"report_{action}",
+        target_user_id=target.id,
+        details=f"Report #{report_id}: {data.reason or report.reason}",
+    ))
+    db.commit()
+
+    return {"ok": True, "action": action, "report_id": report_id}
+
+
+@router.get("/appeals")
+def list_appeals(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from ..models import Appeal
+    appeals = (
+        db.query(Appeal)
+        .order_by(Appeal.created_at.desc())
+        .all()
+    )
+    result = []
+    for a in appeals:
+        u = db.query(User).filter(User.id == a.user_id).first()
+        result.append({
+            "id": a.id,
+            "user_id": a.user_id,
+            "user_name": u.name if u else "Unknown",
+            "user_email": u.email if u else "Unknown",
+            "reason": a.reason,
+            "status": a.status,
+            "admin_note": a.admin_note,
+            "created_at": a.created_at.isoformat() if a.created_at else "",
+            "resolved_at": a.resolved_at.isoformat() if a.resolved_at else None,
+        })
+    return {"appeals": result}
+
+
+@router.post("/appeals/{appeal_id}/action")
+async def appeal_action(
+    appeal_id: int,
+    data: UnbanUserIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from ..models import Appeal
+    appeal = db.query(Appeal).filter(Appeal.id == appeal_id).first()
+    if not appeal:
+        raise HTTPException(404, "Appeal not found.")
+
+    user = db.query(User).filter(User.id == appeal.user_id).first()
+    if not user:
+        raise HTTPException(404, "User not found.")
+
+    # Approve appeal = lift ban (temporary only)
+    user.is_active = True
+    user.ban_type = ""
+    user.banned_until = None
+    user.ban_reason = ""
+    user.banned_by = None
+    db.commit()
+
+    appeal.status = "approved"
+    appeal.admin_note = data.reason
+    appeal.resolved_at = datetime.utcnow()
+    appeal.resolved_by = admin.id
+    db.commit()
+
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="appeal_approved",
+        target_user_id=user.id,
+        details=f"Appeal #{appeal_id}: {data.reason}",
+    ))
+    db.commit()
+
+    try:
+        hub.send_to_user(user.id, {
+            "type": "account_unbanned",
+            "reason": data.reason,
+        })
+    except Exception:
+        pass
+
+    return {"ok": True, "appeal_id": appeal_id, "status": "approved"}
+
+
+@router.get("/ai-admin/status")
+def ai_admin_status(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    return {
+        "ai_admin_enabled": get_bool_setting(db, "ai_admin_enabled", True),
+        "ai_image_moderation_enabled": get_bool_setting(db, "ai_image_moderation_enabled", True),
+        "worker_running": ai_admin_worker._thread is not None and ai_admin_worker._thread.is_alive(),
+    }
+
+
+@router.post("/ai-admin/toggle")
+async def toggle_ai_admin(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    current = get_bool_setting(db, "ai_admin_enabled", True)
+    new_val = not current
+    set_setting(db, "ai_admin_enabled", "true" if new_val else "false")
+    db.commit()
+    if new_val:
+        ai_admin_worker.start()
+    else:
+        ai_admin_worker.stop()
+    log_audit(db, admin.id, "toggle_ai_admin", details=f"ai_admin_enabled={new_val}")
+    return {"ai_admin_enabled": new_val}
 
 
 @router.post("/settings/umat")

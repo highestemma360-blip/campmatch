@@ -60,12 +60,17 @@ DEFAULT_SETTINGS = {
     "moolre_wallet_secret": "",
     "moolre_merchant_email": "",
     "moolre_callback_url": "",
-    # Campmatch AI assistant. Any OpenAI-compatible provider works; leaving the
-    # key empty keeps the curated in-app knowledge base active.
+    # Campmatch AI assistant. Any OpenAI-compatible provider works; defaults point at NVIDIA NIM.
     "ai_enabled": "true",
     "ai_api_key": "",
-    "ai_model": "gpt-4o-mini",
-    "ai_base_url": "https://api.openai.com/v1",
+    "ai_model": "nvidia/llama-3.1-nemotron-70b-instruct",
+    "ai_base_url": "https://integrate.api.nvidia.com/v1",
+    # AI image moderation for profile photos (nudes, dark, no-person detection).
+    "ai_image_moderation_enabled": "true",
+    # AI admin worker: reviews reports & appeals 24/7 (temporary bans only).
+    "ai_admin_enabled": "true",
+    # New students must upload a photo before continuing (admin can loosen).
+    "photo_required_for_signup": "true",
     # WhatsApp support link (blank hides the support buttons), e.g. https://wa.me/233241234567
     "whatsapp_link": "",
 }

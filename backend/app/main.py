@@ -17,6 +17,7 @@ from .security import bootstrap_defaults, decode_token
 from .realtime import hub
 from .routers import auth, profiles, swipes, chat, admin, payments, notifications, ai
 from .routers import push as push_router
+from .routers import ai_features
 from .explore_rooms import seed_default_rooms
 from .security import bootstrap_defaults, decode_token, get_int_setting
 
@@ -26,6 +27,10 @@ database.run_migrations()
 with SessionLocal() as _startup_db:
     bootstrap_defaults(_startup_db)
     seed_default_rooms(_startup_db)
+
+# Start the AI admin worker (24/7 report/appeal reviewer, temporary bans only).
+from .ai_admin import ai_admin_worker
+ai_admin_worker.start()
 
 # Keep a rolling copy of the database on the durable disk so a bad deploy can
 # never wipe the only copy of student records.
@@ -178,6 +183,7 @@ app.include_router(admin.router, prefix="/api/admin")
 app.include_router(payments.router, prefix="/api/payments")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
+app.include_router(ai_features.router, prefix="/api")
 app.include_router(push_router.router, prefix="/api")
 
 

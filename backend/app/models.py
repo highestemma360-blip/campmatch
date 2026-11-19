@@ -51,6 +51,10 @@ class User(Base):
     premium_until = Column(DateTime, nullable=True)
     boosted_until = Column(DateTime, nullable=True)
 
+    # Photo requirement: new students must upload a photo before continuing.
+    photo_required = Column(Boolean, default=True)
+    photo_approved_at = Column(DateTime, nullable=True)
+
     min_age = Column(Integer, default=18)
     max_age = Column(Integer, default=30)
     preferred_levels = Column(String(100), default="")
@@ -254,3 +258,16 @@ class LoginLog(Base):
     location = Column(String(120), default="")
     user_agent = Column(String(255), default="")
     logged_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class Appeal(Base):
+    """Student appeals against a temporary ban. Reviewed by AI admin 24/7."""
+    __tablename__ = "appeals"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    reason = Column(Text, default="")
+    status = Column(String(20), default="open")  # open | approved | denied
+    admin_note = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+    resolved_by = Column(Integer, nullable=True)  # None = AI admin
