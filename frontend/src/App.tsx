@@ -244,7 +244,8 @@ function StudentApp() {
     loadExploreRooms()
     loadNotifications()
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      // Real-time location tracking using watchPosition
+      const watchId = navigator.geolocation.watchPosition(
         pos => {
           fetch('/api/profile/location', {
             method: 'POST',
@@ -252,11 +253,25 @@ function StudentApp() {
               Authorization: 'Bearer ' + token,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            body: JSON.stringify({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+              timestamp: pos.timestamp,
+            }),
           }).catch(() => {})
         },
-        () => {}
+        (error) => {
+          console.warn('Location access denied or unavailable:', error.message)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000,
+        }
       )
+      // Store watchId for cleanup
+      ;(rtRef.current as any)?.setLocationWatchId?.(watchId)
     }
 
     return () => {
