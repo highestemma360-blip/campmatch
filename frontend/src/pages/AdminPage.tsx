@@ -781,6 +781,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
             {users.map(u => (
               <div
                 key={u.id}
+                className="card-hover"
                 style={{
                   background: 'var(--bg-elevated)',
                   border: '1px solid var(--border-subtle)',
@@ -832,7 +833,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
 
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button
-                    className="btn-ghost"
+                    className="btn-ghost btn-tactile"
                     style={{ padding: '6px 12px', fontSize: 12 }}
                     onClick={() => openUserInspector(u.id)}
                   >
@@ -840,6 +841,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                   </button>
                   {u.is_deleted ? (
                     <button
+                      className="btn-tactile"
                       onClick={() => restoreUser(u.id)}
                       style={{
                         padding: '6px 12px',
@@ -856,6 +858,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                   ) : (
                     <>
                       <button
+                        className="btn-tactile"
                         onClick={() => updateUserAction(u.id, { is_premium: !u.is_premium }, 'Plus status updated.')}
                         style={{
                           padding: '6px 11px',
@@ -870,6 +873,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                         {u.is_premium ? 'Revoke Plus' : 'Grant Plus'}
                       </button>
                       <button
+                        className="btn-tactile"
                         onClick={() => updateUserAction(u.id, { is_active: !u.is_active }, 'Account status updated.')}
                         style={{
                           padding: '6px 11px',
@@ -1475,7 +1479,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                     {selectedUser.is_admin ? 'Demote Admin' : 'Make Admin'}
                   </button>
                   <button
-                    className="btn-ghost"
+                    className="btn-ghost btn-tactile"
                     style={{ fontSize: 12, padding: '8px 12px' }}
                     onClick={() => forceLogout(selectedUser.id)}
                   >
@@ -1484,6 +1488,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                   {selectedUser.ban_type ? (
                     <>
                       <button
+                        className="btn-tactile"
                         onClick={() => unbanUser(selectedUser.id)}
                         style={{
                           padding: '8px 13px',
@@ -1501,21 +1506,21 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                   ) : (
                     <>
                       <button
-                        className="btn-ghost"
+                        className="btn-ghost btn-tactile"
                         style={{ fontSize: 12, padding: '8px 12px', color: '#ffb15c' }}
                         onClick={() => banUser(selectedUser.id, 1)}
                       >
                         Ban 1 Day
                       </button>
                       <button
-                        className="btn-ghost"
+                        className="btn-ghost btn-tactile"
                         style={{ fontSize: 12, padding: '8px 12px', color: '#ff8f5c' }}
                         onClick={() => banUser(selectedUser.id, 3)}
                       >
                         Ban 3 Days
                       </button>
                       <button
-                        className="btn-ghost"
+                        className="btn-ghost btn-tactile"
                         style={{ fontSize: 12, padding: '8px 12px', color: '#ff5a67' }}
                         onClick={() => banUser(selectedUser.id, 7)}
                       >
@@ -1524,6 +1529,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                     </>
                   )}
                   <button
+                    className="btn-tactile"
                     onClick={() => updateUserAction(selectedUser.id, { is_active: !selectedUser.is_active })}
                     style={{
                       padding: '8px 13px',
@@ -1538,6 +1544,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                     {selectedUser.is_active ? 'Suspend Account' : 'Unsuspend Account'}
                   </button>
                   <button
+                    className="btn-tactile"
                     onClick={() => softDeleteUser(selectedUser.id)}
                     style={{
                       padding: '8px 13px',

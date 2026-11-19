@@ -38,6 +38,7 @@ export function FloatingWhatsAppBtn({
         alignItems: "flex-end",
         gap: 10,
       }}
+      className="float-anim"
     >
       {/* WhatsApp — official logo mark */}
       <button

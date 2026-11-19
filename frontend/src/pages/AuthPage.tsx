@@ -210,34 +210,28 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       )}
 
-      <div className="auth-grid" style={{ margin: 'auto 0' }}>
-        <div className="auth-hero-copy" style={{ color: '#fff', padding: '8px 4px' }}>
+      <div className="auth-grid stagger-child" style={{ margin: 'auto 0', position: 'relative', zIndex: 1 }}>
+        <div className="hero-glow" />
+        <div className="auth-hero-copy text-reveal" style={{ color: '#fff', padding: '8px 4px', position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: 22 }}>
             <CampmatchLogo iconSize={46} fontSize={36} gap={13} />
           </div>
 
-          <h1
-            className="auth-hero-sub"
+          <span style={{ display: 'inline-block', animationDelay: '0.05s' }}>
+            Meet students from
+          </span>
+          <br />
+          <span
             style={{
-              fontSize: 'clamp(32px, 4.8vw, 50px)',
-              fontWeight: 800,
-              lineHeight: 1.08,
-              letterSpacing: '-1.4px',
-              margin: '0 0 16px',
+              background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              display: 'inline-block',
+              animationDelay: '0.12s',
             }}
           >
-            Meet students from
-            <br />
-            <span
-              style={{
-                background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              your campus.
-            </span>
-          </h1>
+            your campus.
+          </span>
 
           <p
             style={{
@@ -246,6 +240,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               lineHeight: 1.6,
               margin: '0 0 22px',
               maxWidth: 440,
+              display: 'inline-block',
+              animationDelay: '0.19s',
             }}
           >
             Campmatch is where verified university students in Ghana connect — for dates, new
@@ -258,7 +254,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               'Dates, BFFs and study partners',
               'Private, safe and on your campus',
             ].map((line, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: '#e8ecf4' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: '#e8ecf4', animationDelay: `${0.26 + i * 0.08}s` }}>
                 <span
                   style={{
                     width: 22,
@@ -287,6 +283,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               fontSize: 13,
               fontWeight: 700,
               color: 'rgba(255,255,255,0.62)',
+              animationDelay: '0.52s',
             }}
           >
             <VerifiedBadge size={16} />
@@ -302,7 +299,10 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             padding: '28px 26px',
             boxShadow: '0 28px 70px rgba(0,0,0,0.65)',
             color: '#fff',
+            position: 'relative',
+            zIndex: 1,
           }}
+          className="card-hover"
         >
           {maintenance && (
             <div
@@ -459,7 +459,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                   </button>
                 </div>
 
-                <button className="btn-brand" type="submit" disabled={loading} style={{ marginTop: 18 }}>
+                <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 18 }}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </button>
               </form>

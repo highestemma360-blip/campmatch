@@ -1005,8 +1005,8 @@ function StudentApp({
   }
 
   return (
-    <div className="workspace-shell">
-      {toast && <div className="toast-pill">{toast}</div>}
+    <div className="workspace-shell page-enter">
+      {toast && <div className="toast-pill toast-enter">{toast}</div>}
 
       {/* Desktop Left Sidebar */}
       <aside className="desktop-sidebar">
