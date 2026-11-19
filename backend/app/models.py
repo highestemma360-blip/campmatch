@@ -243,3 +243,14 @@ class NotificationRead(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     read_at = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (UniqueConstraint("notification_id", "user_id"),)
+
+
+class LoginLog(Base):
+    __tablename__ = "login_logs"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
+    email = Column(String(255), index=True, default="")
+    ip_address = Column(String(64), index=True, default="")
+    location = Column(String(120), default="")
+    user_agent = Column(String(255), default="")
+    logged_at = Column(DateTime, default=datetime.utcnow, index=True)

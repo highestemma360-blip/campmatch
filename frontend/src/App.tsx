@@ -68,8 +68,14 @@ function safeSetItem(key: string, value: string): void {
   }
 }
 
-function StudentApp() {
-  const [token, setToken] = useState(() => safeGetItem('token') || '')
+function StudentApp({
+  initialToken,
+  onTokenUpdated,
+}: {
+  initialToken?: string
+  onTokenUpdated?: (token: string) => void
+} = {}) {
+  const [token, setToken] = useState(() => (initialToken || safeGetItem('token') || ''))
   const [theme, setTheme] = useState(() => safeGetItem('theme') || 'dark')
   const [tab, setTab] = useState<NavTab>('swipe')
   const [needsSetup, setNeedsSetup] = useState(false)
@@ -932,6 +938,7 @@ function StudentApp() {
     setMe(null)
     setActiveChat(null)
     localStorage.removeItem('token')
+    onTokenUpdated?.('')
   }
 
   if (!token) {
@@ -1469,9 +1476,44 @@ function StudentApp() {
 }
 
 export default function App() {
-  const path = window.location.pathname.replace(/\/+$/, '').toLowerCase()
-  if (path === '/admin') {
+  const [token, setToken] = useState(() => safeGetItem('token') || '')
+  const [adminToken, setAdminToken] = useState(() => safeGetItem('campmatch_admin_token') || '')
+  // Single entry point: admin and student share one login surface.
+  // Admin credentials (from Render env) open the admin panel directly;
+  // there is no separate /admin URL anymore.
+  if (adminToken) {
     return <AdminPortal />
   }
-  return <StudentApp />
+  if (token) {
+    return (
+      <StudentApp
+        initialToken={token}
+        onTokenUpdated={t => {
+          setToken(t)
+          if (t) {
+            safeSetItem('token', t)
+          } else {
+            localStorage.removeItem('token')
+          }
+        }}
+      />
+    )
+  }
+  return (
+    <AuthPage
+      onAuth={(t, isAdmin) => {
+        if (isAdmin) {
+          setAdminToken(t)
+          localStorage.setItem('campmatch_admin_token', t)
+          localStorage.removeItem('token')
+          setToken('')
+        } else {
+          setToken(t)
+          safeSetItem('token', t)
+          localStorage.removeItem('campmatch_admin_token')
+          setAdminToken('')
+        }
+      }}
+    />
+  )
 }

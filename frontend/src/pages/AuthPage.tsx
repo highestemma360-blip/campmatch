@@ -3,7 +3,7 @@ import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon } from '../componen
 import { TERMS_SUMMARY, PRIVACY_SUMMARY } from '../constants'
 
 interface AuthPageProps {
-  onAuth: (token: string) => void
+  onAuth: (token: string, isAdmin?: boolean) => void
 }
 
 function loadGoogleScript(): Promise<void> {
@@ -42,6 +42,10 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   const [googleClientId, setGoogleClientId] = useState('')
   const [googleStatus, setGoogleStatus] = useState<'idle' | 'loading' | 'ready' | 'unavailable'>('idle')
   const [showEmailForm, setShowEmailForm] = useState(false)
+  const [adminMode, setAdminMode] = useState(false)
+  const [adminIdentifier, setAdminIdentifier] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [adminShowPw, setAdminShowPw] = useState(false)
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
   const authRef = useRef(onAuth)
   authRef.current = onAuth
@@ -153,6 +157,35 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       }
     } catch {
       setErr('Unable to reach server. Check your connection and try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function submitAdmin(e: React.FormEvent) {
+    e.preventDefault()
+    setErr('')
+    if (!adminIdentifier.trim() || !adminPassword) {
+      setErr('Enter administrator username/email and password.')
+      return
+    }
+    setLoading(true)
+    try {
+      const r = await fetch('/api/admin-auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: adminIdentifier.trim(), password: adminPassword }),
+      })
+      const d = await r.json()
+      if (!r.ok) {
+        setErr(typeof d.detail === 'string' ? d.detail : 'Administrator sign-in failed.')
+      } else {
+        localStorage.setItem('campmatch_admin_token', d.token)
+        localStorage.setItem('campmatch_admin_name', d.admin?.name || d.admin?.email || 'Administrator')
+        onAuth(d.token, true)
+      }
+    } catch {
+      setErr('Unable to reach the server. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -374,32 +407,80 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setShowEmailForm(v => !v)
-              setErr('')
-            }}
-            style={{
-              marginTop: 18,
-              width: '100%',
-              padding: '9px 12px',
-              borderRadius: 12,
-              border: 'none',
-              background: 'transparent',
-              color: '#8e98ad',
-              fontSize: 12.5,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
-          >
-            {showEmailForm ? 'Hide email sign-in' : 'Use student email & password instead'}
-          </button>
+          {adminMode ? (
+            <button
+              type="button"
+              onClick={() => { setAdminMode(false); setErr('') }}
+              style={{
+                marginTop: 18,
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 12,
+                border: 'none',
+                background: 'transparent',
+                color: '#8e98ad',
+                fontSize: 12.5,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              ← Back to student sign-in
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { setAdminMode(true); setErr('') }}
+              style={{
+                marginTop: 18,
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 12,
+                border: 'none',
+                background: 'transparent',
+                color: '#8e98ad',
+                fontSize: 12.5,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              Campus admin sign-in
+            </button>
+          )}
 
-          {showEmailForm && (
+          {!adminMode && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmailForm(v => !v)
+                setErr('')
+              }}
+              style={{
+                marginTop: 18,
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 12,
+                border: 'none',
+                background: 'transparent',
+                color: '#8e98ad',
+                fontSize: 12.5,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              {showEmailForm ? 'Hide email sign-in' : 'Use student email & password instead'}
+            </button>
+          )}
+
+          {!adminMode && showEmailForm && (
             <>
               <form onSubmit={submit}>
                 <label className="field-label" style={{ color: '#9aa4b8', marginTop: 0 }}>
@@ -449,6 +530,58 @@ export function AuthPage({ onAuth }: AuthPageProps) {
 
                 <button className="btn-brand" type="submit" disabled={loading} style={{ marginTop: 18 }}>
                   {loading ? 'Signing in...' : 'Sign In'}
+                </button>
+              </form>
+            </>
+          )}
+          {adminMode && (
+            <>
+              <form onSubmit={submitAdmin}>
+                <label className="field-label" style={{ color: '#9aa4b8', marginTop: 0 }}>
+                  Administrator Email / Username
+                </label>
+                <input
+                  type="text"
+                  className="modern-input"
+                  style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)' }}
+                  placeholder="admin@campus.edu.gh"
+                  value={adminIdentifier}
+                  onChange={e => setAdminIdentifier(e.target.value)}
+                  autoComplete="username"
+                />
+                <label className="field-label" style={{ color: '#9aa4b8' }}>
+                  Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={adminShowPw ? 'text' : 'password'}
+                    className="modern-input"
+                    style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)', paddingRight: 64 }}
+                    placeholder="••••••••"
+                    value={adminPassword}
+                    onChange={e => setAdminPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAdminShowPw(v => !v)}
+                    style={{
+                      position: 'absolute',
+                      right: 12,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      border: 'none',
+                      background: 'none',
+                      color: '#8e98ad',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {adminShowPw ? 'HIDE' : 'SHOW'}
+                  </button>
+                </div>
+                <button className="btn-brand" type="submit" disabled={loading} style={{ marginTop: 18 }}>
+                  {loading ? 'Signing in...' : 'Admin Sign In'}
                 </button>
               </form>
             </>

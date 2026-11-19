@@ -209,6 +209,15 @@ def run_migrations():
         "payments": [
             ("duration_days", "INTEGER DEFAULT 30"),
         ],
+        "login_logs": [
+            ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+            ("user_id", "INTEGER"),
+            ("email", "VARCHAR(255) DEFAULT ''"),
+            ("ip_address", "VARCHAR(64) DEFAULT ''"),
+            ("location", "VARCHAR(120) DEFAULT ''"),
+            ("user_agent", "VARCHAR(255) DEFAULT ''"),
+            ("logged_at", "DATETIME"),
+        ],
     }
 
     with engine.begin() as conn:

@@ -3,14 +3,14 @@ import hmac
 import secrets
 from datetime import datetime
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
 from ..database import get_db
-from ..models import User
+from ..models import User, LoginLog
 from ..security import (
     hash_password,
     verify_password,
@@ -46,6 +46,48 @@ BLOCKED_CONSUMER_DOMAINS = {
     "@proton.me",
     "@protonmail.com",
 }
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return (request.client.host if request.client else "") or ""
+
+
+def _lookup_location(ip: str) -> str:
+    """Best-effort city/country from IP using a free public API. Never fails hard."""
+    if not ip or ip in ("127.0.0.1", "::1", "localhost", ""):
+        return "Localhost"
+    try:
+        with httpx.Client(timeout=httpx.Timeout(3.0, connect=1.5)) as client:
+            r = client.get(f"http://ip-api.com/json/{ip}?fields=city,country,status")
+            if r.status_code == 200:
+                d = r.json()
+                if d.get("status") == "success":
+                    city = d.get("city") or ""
+                    country = d.get("country") or ""
+                    return ", ".join([x for x in (city, country) if x]) or "Unknown"
+    except Exception:
+        pass
+    return "Unknown"
+
+
+def _record_login_log(db: Session, request: Request, email: str, user_id: int | None = None):
+    try:
+        ip = _client_ip(request)
+        db.add(
+            LoginLog(
+                user_id=user_id,
+                email=(email or "").strip().lower(),
+                ip_address=ip,
+                location=_lookup_location(ip),
+                user_agent=(request.headers.get("user-agent") or "")[:255],
+            )
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
 
 
 class SignupIn(BaseModel):
@@ -160,7 +202,7 @@ def signup(data: SignupIn, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(data: LoginIn, db: Session = Depends(get_db)):
+def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
     email_clean = data.email.lower().strip()
     if not is_school_email(email_clean, db):
         raise HTTPException(400, school_email_error_message(email_clean, db))
@@ -182,6 +224,7 @@ def login(data: LoginIn, db: Session = Depends(get_db)):
         user.school = detect_school(email_clean)
     user.last_active = datetime.utcnow()
     db.commit()
+    _record_login_log(db, request, email_clean, user.id)
     return {
         "token": create_token(user.id, user.token_version or 1),
         "user_id": user.id,
@@ -190,7 +233,7 @@ def login(data: LoginIn, db: Session = Depends(get_db)):
 
 
 @router.post("/google")
-async def google_login(data: GoogleAuthIn, db: Session = Depends(get_db)):
+async def google_login(data: GoogleAuthIn, request: Request, db: Session = Depends(get_db)):
     if get_bool_setting(db, "maintenance_mode", False):
         raise HTTPException(503, "Platform is currently in maintenance mode.")
 
@@ -257,6 +300,7 @@ async def google_login(data: GoogleAuthIn, db: Session = Depends(get_db)):
         user.last_active = datetime.utcnow()
         db.commit()
 
+    _record_login_log(db, request, email, user.id)
     return {
         "token": create_token(user.id, user.token_version or 1),
         "user_id": user.id,
@@ -265,7 +309,7 @@ async def google_login(data: GoogleAuthIn, db: Session = Depends(get_db)):
 
 
 @router.post("/admin-auth/login")
-def admin_portal_login(data: AdminLoginIn, db: Session = Depends(get_db)):
+def admin_portal_login(data: AdminLoginIn, request: Request, db: Session = Depends(get_db)):
     """
     Dedicated /admin portal authentication verified strictly against Render environment
     variables (ADMIN_USERNAME / ADMIN_EMAIL and ADMIN_PASSWORD) or promoted admin accounts.
@@ -309,6 +353,7 @@ def admin_portal_login(data: AdminLoginIn, db: Session = Depends(get_db)):
                 admin_user.last_active = datetime.utcnow()
                 db.commit()
 
+            _record_login_log(db, request, admin_email, admin_user.id)
             return {
                 "token": create_token(admin_user.id, admin_user.token_version or 1),
                 "admin": {
@@ -328,6 +373,7 @@ def admin_portal_login(data: AdminLoginIn, db: Session = Depends(get_db)):
     if db_admin and verify_password(submitted_pw, db_admin.password_hash):
         db_admin.last_active = datetime.utcnow()
         db.commit()
+        _record_login_log(db, request, db_admin.email, db_admin.id)
         return {
             "token": create_token(db_admin.id, db_admin.token_version or 1),
             "admin": {
