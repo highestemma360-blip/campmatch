@@ -25,11 +25,11 @@ from typing import Optional
 import httpx
 from sqlalchemy.orm import Session
 
-from ..database import SessionLocal
-from ..models import User, Report, AdminAuditLog, Appeal, Message, Match, ExploreRoom
-from ..security import get_setting, get_bool_setting
-from .. import push
-from ..realtime import hub
+from .database import SessionLocal
+from .models import User, Report, AdminAuditLog, Appeal, Message, Match, ExploreRoom
+from .security import get_setting, get_bool_setting
+from . import push
+from .realtime import hub
 
 log = logging.getLogger("campmatch.ai_admin")
 
@@ -108,7 +108,7 @@ class AIAdminWorker:
     # Config resolution
     # ------------------------------------------------------------------
     def _resolve_ai_config(self, db: Session) -> dict:
-        from ..security import get_setting, get_bool_setting
+        from .security import get_setting, get_bool_setting
         key = (get_setting(db, "ai_api_key", "") or "").strip() or os.environ.get("AI_API_KEY", "").strip()
         model = (
             (get_setting(db, "ai_model", "") or "").strip()
@@ -180,7 +180,7 @@ class AIAdminWorker:
     # ------------------------------------------------------------------
     def _scan_fake_profiles(self, db: Session) -> None:
         """Flag profiles with no photo, generic names, or suspicious patterns."""
-        from ..security import get_bool_setting
+        from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
         suspicious = (
@@ -221,7 +221,7 @@ class AIAdminWorker:
     # ------------------------------------------------------------------
     def _scan_scam_messages(self, db: Session) -> None:
         """Scan recent messages for scam / harassment patterns."""
-        from ..security import get_bool_setting
+        from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
         since = datetime.utcnow() - timedelta(hours=6)
@@ -275,11 +275,11 @@ class AIAdminWorker:
     # ------------------------------------------------------------------
     def _scan_suspicious_payments(self, db: Session) -> None:
         """Flag rapid payment attempts or chargeback patterns."""
-        from ..security import get_bool_setting
+        from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
         since = datetime.utcnow() - timedelta(hours=24)
-        from ..models import Payment
+        from .models import Payment
         rapid = (
             db.query(Payment)
             .filter(Payment.created_at >= since)
@@ -311,7 +311,7 @@ class AIAdminWorker:
     # ------------------------------------------------------------------
     def _detect_ban_evasion(self, db: Session) -> None:
         """Detect new accounts created right after a ban from similar patterns."""
-        from ..security import get_bool_setting
+        from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
         since = datetime.utcnow() - timedelta(days=7)
@@ -353,7 +353,7 @@ class AIAdminWorker:
     # ------------------------------------------------------------------
     def _moderate_explore_rooms(self, db: Session) -> None:
         """Flag Explore rooms with suspicious names or spam patterns."""
-        from ..security import get_bool_setting
+        from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
         spam_keywords = ["make money fast", "investment", "crypto", "whatsapp", "telegram", "dm me"]

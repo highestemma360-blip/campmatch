@@ -102,7 +102,7 @@ export function PhotoRequirementPage({
     >
       <div style={{ maxWidth: 520, width: '100%', background: '#12151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 26, padding: '32px 26px', boxShadow: '0 28px 70px rgba(0,0,0,0.65)', color: '#fff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <CheckCircleIcon size={28} style={{ color: '#22c55e' }} />
+          <span style={{ color: '#22c55e' }}><CheckCircleIcon size={28} /></span>
           <div style={{ fontSize: 20, fontWeight: 900 }}>Profile Photo Required</div>
         </div>
         <p style={{ fontSize: 14, color: '#9ba6bc', lineHeight: 1.6, marginBottom: 22 }}>

@@ -13,6 +13,7 @@ type AdminSection =
   | 'controls'
   | 'users'
   | 'reports'
+  | 'appeals'
   | 'moderation'
   | 'payments'
   | 'rooms'
@@ -270,11 +271,10 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     if (r.ok) onNotify('Active sessions invalidated.')
   }
 
-  async function handleReportAction(reportId: number, action: 'resolve' | 'dismiss' | 'suspend_user' | 'ban_temporary' | 'ban_permanent', days = 7) {
+  async function handleReportAction(reportId: number, action: 'resolve' | 'dismiss' | 'suspend_user' | 'ban_temporary', days = 7) {
     let reason = ''
-    if (action === 'ban_temporary' || action === 'ban_permanent') {
-      const label = action === 'ban_permanent' ? 'Reason for permanent ban' : `Reason for ${days}-day ban`
-      const input = window.prompt(label)
+    if (action === 'ban_temporary') {
+      const input = window.prompt(`Reason for ${days}-day temporary ban:`)
       if (input === null) return
       reason = input
     }
@@ -286,6 +286,26 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
     if (r.ok) {
       onNotify('Report updated.')
       loadReports()
+      loadOverviewAndSettings()
+    }
+  }
+
+  async function handleAppealAction(appealId: number, action: 'approve' | 'deny') {
+    let reason = ''
+    if (action === 'deny') {
+      reason = window.prompt('Reason for denying appeal:') || ''
+    } else {
+      reason = window.prompt('Reason for approving appeal (unban):') || ''
+    }
+    if (reason === null) return
+    const r = await fetch(`/api/admin/appeals/${appealId}/action`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ reason }),
+    })
+    if (r.ok) {
+      onNotify('Appeal updated.')
+      loadAppeals()
       loadOverviewAndSettings()
     }
   }
@@ -991,23 +1011,23 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                     <button
                       className="btn-ghost"
                       style={{ padding: '6px 12px', fontSize: 12, color: '#ffb15c' }}
-                      onClick={() => handleReportAction(r.id, 'ban_temporary', 7)}
+                      onClick={() => handleReportAction(r.id, 'ban_temporary', 1)}
                     >
-                      Ban 7 Days
+                      Ban 1 Day
                     </button>
                     <button
                       className="btn-ghost"
                       style={{ padding: '6px 12px', fontSize: 12, color: '#ff8f5c' }}
-                      onClick={() => handleReportAction(r.id, 'ban_temporary', 30)}
+                      onClick={() => handleReportAction(r.id, 'ban_temporary', 3)}
                     >
-                      Ban 30 Days
+                      Ban 3 Days
                     </button>
                     <button
                       className="btn-ghost"
                       style={{ padding: '6px 12px', fontSize: 12, color: '#ff5a67' }}
-                      onClick={() => handleReportAction(r.id, 'ban_permanent')}
+                      onClick={() => handleReportAction(r.id, 'ban_temporary', 7)}
                     >
-                      Ban Permanently
+                      Ban 7 Days (Max)
                     </button>
                   </>
                 )}

@@ -22,8 +22,8 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageOps, ImageFilter
 from sqlalchemy.orm import Session
 
-from ..security import get_setting, get_bool_setting
-from ..image_guard import validate_and_optimize_profile_photo
+from .security import get_setting, get_bool_setting
+from .image_guard import validate_and_optimize_profile_photo
 
 log = logging.getLogger("campmatch.ai_moderation")
 

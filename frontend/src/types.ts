@@ -30,6 +30,8 @@ export interface ProfileCard {
   hall?: string
   photo_urls: string[]
   photo_url?: string | null
+  photo_required?: boolean
+  photo_approved?: boolean
   bio?: string
   mode?: AppMode
   looking_for?: string
