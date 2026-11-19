@@ -66,8 +66,8 @@ DEFAULT_SETTINGS = {
     "ai_api_key": "",
     "ai_model": "gpt-4o-mini",
     "ai_base_url": "https://api.openai.com/v1",
-    # WhatsApp support phone (blank hides the support buttons).
-    "whatsapp_phone": "",
+    # WhatsApp support link (blank hides the support buttons), e.g. https://wa.me/233241234567
+    "whatsapp_link": "",
 }
 
 

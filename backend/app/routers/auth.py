@@ -1,6 +1,7 @@
 import os
 import hmac
 import secrets
+import re
 from datetime import datetime
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -151,7 +152,7 @@ def auth_config(db: Session = Depends(get_db)):
         "signups_enabled": get_bool_setting(db, "signups_enabled", True),
         "maintenance_mode": get_bool_setting(db, "maintenance_mode", False),
         "announcement_banner": get_setting(db, "announcement_banner", ""),
-        "whatsapp_phone": get_setting(db, "whatsapp_phone", ""),
+        "whatsapp_link": get_setting(db, "whatsapp_link", ""),
     }
 
 
@@ -278,11 +279,12 @@ async def google_login(data: GoogleAuthIn, request: Request, db: Session = Depen
     if not user:
         if not get_bool_setting(db, "signups_enabled", True):
             raise HTTPException(403, "New registrations are temporarily paused.")
+        clean_name = re.sub(r"<[^>]*>", "", (name or "")).strip()[:100]
         user = User(
             email=email,
             original_email=email,
             password_hash=hash_password(secrets.token_urlsafe(32)),
-            name=name,
+            name=clean_name,
             school=detect_school(email),
             last_active=datetime.utcnow(),
             is_admin=False,

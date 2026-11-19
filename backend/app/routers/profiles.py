@@ -1,6 +1,7 @@
 import os
 import io
 import json
+import re
 import time
 import uuid
 from datetime import datetime, timedelta
@@ -30,6 +31,21 @@ from ..realtime import hub
 from ..explore_rooms import active_slugs, DEFAULT_EXPLORE_ROOMS
 
 router = APIRouter()
+
+
+def _sanitize_text(value: str, max_len: int) -> str:
+    """Strip HTML tags and dangerous characters from user-submitted text to
+    prevent stored XSS when the value is later rendered in the UI."""
+    if not value:
+        return ""
+    # Remove any HTML tags
+    clean = re.sub(r"<[^>]*>", "", value)
+    # Remove JavaScript URLs and event handler patterns
+    clean = re.sub(r"\b(on\w+\s*=\s*['\"])[^'\"]*['\"]", "", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"javascript\s*:", "", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"data\s*:", "", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"vbscript\s*:", "", clean, flags=re.IGNORECASE)
+    return clean.strip()[:max_len]
 
 # Kept for backwards compatibility with older imports.
 VALID_EXPLORE_VIBES = {r["slug"] for r in DEFAULT_EXPLORE_ROOMS}
@@ -270,35 +286,42 @@ def update_profile(data: ProfileIn, user: User = Depends(get_current_user), db: 
     if not data.name.strip() or not data.course.strip():
         raise HTTPException(400, "Name and programme are required.")
 
-    user.name = data.name.strip()[:100]
-    user.level = data.level[:20]
+    user.name = _sanitize_text(data.name, 100)
+    user.level = _sanitize_text(data.level, 20)
     user.age = max(18, min(60, int(data.age)))
-    user.course = data.course.strip()[:100]
+    user.course = _sanitize_text(data.course, 100)
     user.gender = data.gender if data.gender in ("male", "female") else "female"
     user.interested_in = data.interested_in if data.interested_in in ("male", "female", "everyone") else "everyone"
-    user.bio = data.bio.strip()[:600]
+    user.bio = _sanitize_text(data.bio, 600)
     user.min_age = max(18, min(60, int(data.min_age)))
     user.max_age = max(user.min_age, min(65, int(data.max_age)))
-    user.preferred_levels = data.preferred_levels[:100]
+    user.preferred_levels = _sanitize_text(data.preferred_levels, 100)
     user.show_me = data.show_me[:20]
     user.max_distance_km = max(5, min(500, int(data.max_distance_km)))
     user.verified_only = bool(data.verified_only)
     user.snoozed = bool(data.snoozed)
     user.mode = data.mode if data.mode in ("date", "bff", "study") else "date"
-    user.looking_for = data.looking_for[:60]
-    user.interests = ",".join([i.strip()[:40] for i in data.interests[:8] if i.strip()])
+    user.looking_for = _sanitize_text(data.looking_for, 60)
+    user.interests = ",".join([_sanitize_text(i, 40) for i in data.interests[:8] if i.strip()])
     if data.explore_vibes is not None:
         allowed = active_slugs(db) or VALID_EXPLORE_VIBES
         clean_vibes = list(dict.fromkeys(v.strip() for v in data.explore_vibes if v.strip() in allowed))
         user.explore_vibes = ",".join(clean_vibes)
     user.prompts = json.dumps(
-        [{"question": p.question.strip()[:120], "answer": p.answer.strip()[:280]} for p in data.prompts[:3] if p.answer.strip()]
+        [
+            {
+                "question": _sanitize_text(p.question, 120),
+                "answer": _sanitize_text(p.answer, 280),
+            }
+            for p in data.prompts[:3]
+            if p.answer.strip()
+        ]
     )
-    user.opening_move = data.opening_move.strip()[:255]
-    user.hall = data.hall.strip()[:100]
-    user.zodiac = data.zodiac.strip()[:30]
-    user.height = data.height.strip()[:20]
-    user.spotify_anthem = data.spotify_anthem.strip()[:160]
+    user.opening_move = _sanitize_text(data.opening_move, 255)
+    user.hall = _sanitize_text(data.hall, 100)
+    user.zodiac = _sanitize_text(data.zodiac, 30)
+    user.height = _sanitize_text(data.height, 20)
+    user.spotify_anthem = _sanitize_text(data.spotify_anthem, 160)
 
     if not user.school:
         user.school = detect_school(user.original_email or user.email)

@@ -1,7 +1,7 @@
 import React from "react"
 
 export interface FloatingWhatsAppBtnProps {
-  phone: string
+  link: string
   message?: string
   showAiAssistant?: boolean
   onAiOpen?: () => void
@@ -15,14 +15,14 @@ const BUTTON_SIZE = 48
  * assistant mark. Both buttons share the same 48px footprint.
  */
 export function FloatingWhatsAppBtn({
-  phone,
+  link,
   message,
   showAiAssistant = true,
   onAiOpen,
 }: FloatingWhatsAppBtnProps) {
   const handleWhatsAppClick = () => {
     const encodedMsg = message || "Hello, I'd like to know more about Campmatch"
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(encodedMsg)}`
+    const url = link.startsWith("http") ? link : `https://wa.me/${link}?text=${encodeURIComponent(encodedMsg)}`
     window.open(url, "_blank", "noopener,noreferrer")
   }
 

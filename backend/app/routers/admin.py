@@ -77,7 +77,7 @@ def build_platform_settings_snapshot(db: Session) -> dict:
         "signups_enabled": get_bool_setting(db, "signups_enabled", True),
         "maintenance_mode": get_bool_setting(db, "maintenance_mode", False),
         "announcement_banner": get_setting(db, "announcement_banner", ""),
-        "whatsapp_phone": get_setting(db, "whatsapp_phone", ""),
+        "whatsapp_link": get_setting(db, "whatsapp_link", ""),
     }
 
 
@@ -168,7 +168,7 @@ class PlatformSettingsIn(BaseModel):
     signups_enabled: Optional[bool] = None
     maintenance_mode: Optional[bool] = None
     announcement_banner: Optional[str] = None
-    whatsapp_phone: Optional[str] = None
+    whatsapp_link: Optional[str] = None
 
 
 @router.get("/settings")
@@ -237,9 +237,9 @@ async def update_settings(data: PlatformSettingsIn, admin: User = Depends(requir
     if data.announcement_banner is not None:
         set_setting(db, "announcement_banner", data.announcement_banner.strip()[:240])
         changes.append("announcement_banner updated")
-    if data.whatsapp_phone is not None:
-        set_setting(db, "whatsapp_phone", data.whatsapp_phone.strip()[:20])
-        changes.append("whatsapp_phone updated")
+    if data.whatsapp_link is not None:
+        set_setting(db, "whatsapp_link", data.whatsapp_link.strip()[:200])
+        changes.append("whatsapp_link updated")
 
     if changes:
         log_audit(db, admin.id, "update_settings", details=", ".join(changes))

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 
 export interface AiHelpDeskProps {
-  phone: string
+  link: string
   token: string
   userName?: string
   show: boolean
@@ -54,7 +54,7 @@ function RobotMark({ size = 18 }: { size?: number }) {
  * the conversation context so follow-up questions work naturally.
  */
 export function AiHelpDesk({
-  phone,
+  link,
   token,
   userName,
   show,
@@ -465,11 +465,14 @@ export function AiHelpDesk({
       </div>
 
       {/* Support fallback */}
-      {phone && (
+      {link && (
         <button
           onClick={() => {
             if (onWhatsAppClick) onWhatsAppClick()
-            else window.open("https://wa.me/" + phone, "_blank", "noopener,noreferrer")
+            else {
+              const url = link.startsWith("http") ? link : `https://wa.me/${link}`
+              window.open(url, "_blank", "noopener,noreferrer")
+            }
           }}
           style={{
             width: "100%",

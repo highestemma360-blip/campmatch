@@ -192,7 +192,7 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
       signups_enabled: settings.signups_enabled,
       maintenance_mode: settings.maintenance_mode,
       announcement_banner: settings.announcement_banner,
-      whatsapp_phone: settings.whatsapp_phone || '',
+      whatsapp_link: settings.whatsapp_link || '',
     }
     try {
       const r = await fetch('/api/admin/settings', {
@@ -625,16 +625,16 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
               onChange={e => setSettings({ ...settings, announcement_banner: e.target.value })}
             />
 
-            <label className="field-label">WhatsApp Support Phone Number (Blank = Hidden)</label>
+            <label className="field-label">WhatsApp Support Link (Blank = Hidden)</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 className="modern-input"
-                placeholder="233241234567"
-                value={settings.whatsapp_phone || ''}
-                onChange={e => setSettings({ ...settings, whatsapp_phone: e.target.value })}
+                placeholder="https://wa.me/233241234567"
+                value={settings.whatsapp_link || ''}
+                onChange={e => setSettings({ ...settings, whatsapp_link: e.target.value })}
               />
               <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                International format (e.g. 233241234567). Leave blank to hide the WhatsApp support buttons.
+                Full WhatsApp link (e.g. https://wa.me/233241234567). Leave blank to hide the WhatsApp support buttons.
               </span>
             </div>
           </div>

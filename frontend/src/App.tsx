@@ -80,7 +80,7 @@ function StudentApp({
   const [tab, setTab] = useState<NavTab>('swipe')
   const [needsSetup, setNeedsSetup] = useState(false)
 
-  const [whatsappPhone, setWhatsappPhone] = useState('')
+  const [whatsappLink, setWhatsappLink] = useState('')
 
   const [me, setMe] = useState<CurrentUser | null>(null)
   const [pushState, setPushState] = useState<PushState>({
@@ -156,7 +156,7 @@ function StudentApp({
     fetch('/api/auth-config')
       .then(r => (r.ok ? r.json() : null))
       .then(d => {
-        if (active && d) setWhatsappPhone(d.whatsapp_phone || '')
+        if (active && d) setWhatsappLink(d.whatsapp_link || '')
       })
       .catch(() => {})
     return () => {
@@ -1463,9 +1463,9 @@ function StudentApp({
           onClose={install.close}
         />
       )}
-      {whatsappPhone && (
+      {whatsappLink && (
         <FloatingWhatsAppBtn
-          phone={whatsappPhone}
+          link={whatsappLink}
           message="Hello, I'd like to know more about Campmatch"
           showAiAssistant
           onAiOpen={() => setAiDeskOpen(true)}
@@ -1473,14 +1473,14 @@ function StudentApp({
         />
       )}
       <AiHelpDesk
-        phone={whatsappPhone}
+        link={whatsappLink}
         token={token}
         userName={me?.name}
         show={aiDeskOpen}
         onToggle={() => setAiDeskOpen(false)}
         onWhatsAppClick={() => {
-          if (!whatsappPhone) return
-          const url = `https://wa.me/${whatsappPhone}`
+          if (!whatsappLink) return
+          const url = whatsappLink.startsWith("http") ? whatsappLink : `https://wa.me/${whatsappLink}`
           window.open(url, "_blank", "noopener,noreferrer")
         }}
       />
