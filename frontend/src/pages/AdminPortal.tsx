@@ -223,7 +223,15 @@ export function AdminPortal() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg-app)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100dvh',
+        background: 'var(--bg-app)',
+        overflow: 'hidden',
+      }}
+    >
       {toast && <div className="toast-pill">{toast}</div>}
 
       <header
@@ -239,6 +247,7 @@ export function AdminPortal() {
           background: 'rgba(10, 12, 18, 0.92)',
           backdropFilter: 'blur(14px)',
           borderBottom: '1px solid var(--border-subtle)',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -276,7 +285,7 @@ export function AdminPortal() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <AdminPage token={token} onNotify={notify} />
       </main>
     </div>

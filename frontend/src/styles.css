@@ -3,6 +3,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 :root,
 [data-theme="dark"] {
   --bg-canvas: #08090d;
@@ -972,6 +977,8 @@ button:disabled {
   gap: 22px;
   align-items: center;
   justify-items: center;
+  overflow-x: hidden;
+  position: relative;
 }
 
 @media (min-width: 820px) {
