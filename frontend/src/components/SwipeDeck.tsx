@@ -62,20 +62,16 @@ export function SwipeDeck({
   const isBoostedActive = isBoosted && boostedUntil > Date.now()
 
   const [spotlightPopupOpen, setSpotlightPopupOpen] = useState(false)
-  const [spotlightDismissed, setSpotlightDismissed] = useState(false)
   const [boostSecondsLeft, setBoostSecondsLeft] = useState(0)
 
-  useEffect(() => {
-    setPhotoIdx(0)
-    setDrag({ x: 0, y: 0, pivotTop: true, active: false })
-    setFlyOut(null)
-  }, [topCard?.id])
+  // Persist dismissal across remounts using localStorage keyed by boost
+  const spotlightDismissedKey = `spotlightDismissed_${boostedUntil || 'none'}`
+  const wasDismissed = useRef(localStorage.getItem(spotlightDismissedKey) === '1')
 
   // Countdown timer for active spotlight boost
   useEffect(() => {
     if (!isBoostedActive) {
       setBoostSecondsLeft(0)
-      setSpotlightDismissed(false)
       return
     }
     const tick = () => {
@@ -90,10 +86,19 @@ export function SwipeDeck({
 
   // Open spotlight popup when boost activates (only once per boost session)
   useEffect(() => {
-    if (isBoostedActive && !spotlightPopupOpen && !spotlightDismissed) {
+    if (isBoostedActive && !spotlightPopupOpen && !wasDismissed.current) {
       setSpotlightPopupOpen(true)
     }
-  }, [isBoostedActive, spotlightPopupOpen, spotlightDismissed])
+  }, [isBoostedActive, spotlightPopupOpen, wasDismissed.current, boostedUntil])
+
+  // Mark as dismissed when boost expires
+  useEffect(() => {
+    if (!isBoostedActive) {
+      setBoostSecondsLeft(0)
+      localStorage.removeItem(spotlightDismissedKey)
+      wasDismissed.current = false
+    }
+  }, [isBoostedActive, boostedUntil, spotlightDismissedKey])
 
   function formatBoostTime(seconds: number) {
     const m = Math.floor(seconds / 60)
@@ -600,7 +605,8 @@ export function SwipeDeck({
                   </div>
                   <button
                     onClick={() => {
-                      setSpotlightDismissed(true)
+                      wasDismissed.current = true
+                      localStorage.setItem(spotlightDismissedKey, '1')
                       setSpotlightPopupOpen(false)
                     }}
                     style={{

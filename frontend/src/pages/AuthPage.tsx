@@ -177,7 +177,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   return (
     <div
       style={{
-        height: '100dvh',
+        height: '100vh',
+        minHeight: '100vh',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -189,6 +190,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
         position: 'relative',
+        touchAction: 'manipulation',
       }}
     >
       {banner && (

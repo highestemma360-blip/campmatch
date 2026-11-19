@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { EXPLORE_VIBES, ExploreVibe, makeAvatarPlaceholder } from '../constants'
-import { ProfileCard } from '../types'
+import { ProfileCard, CurrentUser } from '../types'
 import {
   BoltIcon,
   ExploreRoomIcon,
@@ -22,6 +22,7 @@ interface ExplorePageProps {
   onSwipeMember: (member: ProfileCard, liked: boolean) => Promise<void>
   onInspect: (card: ProfileCard) => void
   onBoostClick: () => void
+  me?: CurrentUser | null
 }
 
 export function ExplorePage({
@@ -34,12 +35,38 @@ export function ExplorePage({
   onSwipeMember,
   onInspect,
   onBoostClick,
+  me,
 }: ExplorePageProps) {
   const catalogue = rooms && rooms.length > 0 ? rooms : EXPLORE_VIBES
   const [selectedRoom, setSelectedRoom] = useState<ExploreVibe | null>(null)
   const [members, setMembers] = useState<ProfileCard[]>([])
   const [loadingRoom, setLoadingRoom] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  const boostedUntil = me?.boosted_until ? new Date(me.boosted_until).getTime() : 0
+  const isBoostedActive = me?.is_boosted && boostedUntil > Date.now()
+  const [boostSecondsLeft, setBoostSecondsLeft] = useState(0)
+
+  // Countdown timer for active spotlight boost
+  useEffect(() => {
+    if (!isBoostedActive) {
+      setBoostSecondsLeft(0)
+      return
+    }
+    const tick = () => {
+      const left = Math.max(0, Math.floor((boostedUntil - Date.now()) / 1000))
+      setBoostSecondsLeft(left)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [isBoostedActive, boostedUntil])
+
+  function formatBoostTime(seconds: number) {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
 
   useEffect(() => {
     if (!selectedRoom) return
@@ -495,17 +522,18 @@ export function ExplorePage({
             padding: '9px 15px',
             borderRadius: 999,
             border: 'none',
-            background: 'var(--boost-grad)',
-            color: '#fff',
+            background: isBoostedActive ? 'var(--boost-grad)' : undefined,
+            color: isBoostedActive ? '#fff' : undefined,
             fontWeight: 800,
-            fontSize: 12.5,
+            fontSize: 12,
             display: 'inline-flex',
             alignItems: 'center',
             gap: 5,
             flexShrink: 0,
           }}
         >
-          <BoltIcon size={14} /> Boost
+          <BoltIcon size={14} />
+          {isBoostedActive ? formatBoostTime(boostSecondsLeft) : 'Boost'}
         </button>
       </div>
     </div>

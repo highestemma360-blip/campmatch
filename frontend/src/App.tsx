@@ -1272,6 +1272,7 @@ function StudentApp({
                   onSwipeMember={handleSwipeAdmirer}
                   onInspect={card => setInspectedProfile(card)}
                   onBoostClick={handleBoost}
+                  me={me}
                 />
               )}
 
