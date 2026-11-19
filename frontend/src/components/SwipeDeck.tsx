@@ -62,6 +62,7 @@ export function SwipeDeck({
   const isBoostedActive = isBoosted && boostedUntil > Date.now()
 
   const [spotlightPopupOpen, setSpotlightPopupOpen] = useState(false)
+  const [spotlightDismissed, setSpotlightDismissed] = useState(false)
   const [boostSecondsLeft, setBoostSecondsLeft] = useState(0)
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export function SwipeDeck({
   useEffect(() => {
     if (!isBoostedActive) {
       setBoostSecondsLeft(0)
+      setSpotlightDismissed(false)
       return
     }
     const tick = () => {
@@ -86,12 +88,12 @@ export function SwipeDeck({
     return () => clearInterval(id)
   }, [isBoostedActive, boostedUntil])
 
-  // Open spotlight popup when boost activates
+  // Open spotlight popup when boost activates (only once per boost session)
   useEffect(() => {
-    if (isBoostedActive && !spotlightPopupOpen) {
+    if (isBoostedActive && !spotlightPopupOpen && !spotlightDismissed) {
       setSpotlightPopupOpen(true)
     }
-  }, [isBoostedActive, spotlightPopupOpen])
+  }, [isBoostedActive, spotlightPopupOpen, spotlightDismissed])
 
   function formatBoostTime(seconds: number) {
     const m = Math.floor(seconds / 60)
@@ -426,7 +428,7 @@ export function SwipeDeck({
                 </div>
               )}
 
-              <div className="card-overlay">
+                <div className="card-overlay">
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
@@ -464,68 +466,23 @@ export function SwipeDeck({
                   </button>
                 </div>
 
-                {photoIdx === 1 && topCard.prompts && topCard.prompts[0] ? (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      padding: '10px 13px',
-                      borderRadius: 14,
-                      background: 'rgba(255, 198, 41, 0.15)',
-                      border: '1px solid rgba(255, 198, 41, 0.36)',
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD84D', textTransform: 'uppercase' }}>
-                      {topCard.prompts[0].question}
-                    </div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 2, color: '#fff' }}>
-                      {topCard.prompts[0].answer}
-                    </div>
+                {/* Explore vibes (opted-in communities) */}
+                {(topCard.explore_vibes || []).length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    {(topCard.explore_vibes || []).slice(0, 3).map(vid => {
+                      const rm = EXPLORE_MAP[vid]
+                      return rm ? (
+                        <span
+                          key={vid}
+                          className="card-chip"
+                          style={{ borderColor: 'rgba(255,170,0,0.4)', color: '#ffd84d' }}
+                        >
+                          {rm.title}
+                        </span>
+                      ) : null
+                    })}
                   </div>
-                ) : (
-                  topCard.bio && (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontSize: 13.8,
-                        lineHeight: 1.38,
-                        color: 'rgba(255,255,255,0.86)',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {topCard.bio}
-                    </div>
-                  )
                 )}
-
-                <div className="card-chip-row">
-                  {(topCard.explore_vibes || []).slice(0, 2).map(vid => {
-                    const rm = EXPLORE_MAP[vid]
-                    return rm ? (
-                      <span
-                        key={vid}
-                        className="card-chip"
-                        style={{ borderColor: 'rgba(255,170,0,0.4)', color: '#ffd84d' }}
-                      >
-                        {rm.title}
-                      </span>
-                    ) : null
-                  })}
-                  {topCard.looking_for && <span className="card-chip">{topCard.looking_for}</span>}
-                  {(topCard.interests || []).slice(0, 2).map(tag => (
-                    <span key={tag} className="card-chip">
-                      {tag}
-                    </span>
-                  ))}
-                  {topCard.spotify_anthem && (
-                    <span className="card-chip">
-                      <MusicIcon size={12} /> {topCard.spotify_anthem}
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
           </div>
@@ -642,7 +599,10 @@ export function SwipeDeck({
                     .
                   </div>
                   <button
-                    onClick={() => setSpotlightPopupOpen(false)}
+                    onClick={() => {
+                      setSpotlightDismissed(true)
+                      setSpotlightPopupOpen(false)
+                    }}
                     style={{
                       width: '100%',
                       marginTop: 4,
