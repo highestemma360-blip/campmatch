@@ -257,6 +257,14 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
     if (user.token_version or 1) != token_ver:
         raise HTTPException(401, "Session has expired. Please sign in again.")
 
+    # Auto-resolve photo requirement for existing users who already have photos.
+    photos = parse_list(user.photo_urls)
+    if user.photo_required and len(photos) > 0:
+        user.photo_required = False
+        if user.photo_approved_at is None:
+            user.photo_approved_at = datetime.utcnow()
+        db.commit()
+
     now = datetime.utcnow()
     if user.is_premium and user.premium_until and user.premium_until < now and not user.is_admin:
         user.is_premium = False
@@ -425,6 +433,7 @@ async def upload_photos(
         # Mark the first approved photo timestamp.
         if user.photo_approved_at is None:
             user.photo_approved_at = datetime.utcnow()
+            user.photo_required = False
 
     if accepted_urls:
         user.photo_urls = ",".join((existing + accepted_urls)[:6])
