@@ -276,6 +276,7 @@ interface ChatConversationViewProps {
   chat: MatchSummary
   messages: ChatMessage[]
   partnerTyping: boolean
+  showReadReceipts?: boolean
   onBack: () => void
   onSend: (text: string) => void
   onTyping: (isTyping: boolean) => void
@@ -292,6 +293,7 @@ export function ChatConversationView({
   chat,
   messages,
   partnerTyping,
+  showReadReceipts = false,
   onBack,
   onSend,
   onTyping,
@@ -645,7 +647,9 @@ export function ChatConversationView({
                     <HeartIcon size={11} />
                   </button>
                 )}
-                {isLastMine && <span style={{ fontWeight: 700 }}>{m.read ? 'Seen' : 'Delivered'}</span>}
+                {isLastMine && showReadReceipts && (
+                  <span style={{ fontWeight: 700 }}>{m.read ? 'Seen' : 'Delivered'}</span>
+                )}
               </div>
             </div>
           )

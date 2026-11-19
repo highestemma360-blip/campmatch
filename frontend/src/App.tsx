@@ -929,6 +929,7 @@ function StudentApp() {
               chat={activeChat}
               messages={messages}
               partnerTyping={partnerTyping}
+              showReadReceipts={Boolean(me.is_premium || !plusConfig.enabled)}
               onBack={() => setActiveChat(null)}
               onSend={sendChatMessage}
               onTyping={sendTypingSignal}

@@ -26,7 +26,7 @@ You agree not to:
 
 ## 5. Matching, Messaging & Subscriptions
 - Mutual likes create a match and open private chat with a 24-hour initial response window.
-- When Campmatch Plus subscriptions are active, free accounts receive a daily swipe allowance (10 swipes per 24 hours unless adjusted by administrators), while Plus subscribers receive unlimited swipes, Rewind, Beeline visibility, and additional Super Likes.
+- When Campmatch Plus subscriptions are active, free accounts receive a daily swipe allowance (10 swipes per 24 hours unless adjusted by administrators), while Plus subscribers receive unlimited swipes, Rewind, Beeline visibility, read receipts, and additional Super Likes.
 - Subscription payments are processed via third-party gateways and are subject to provider terms.
 
 ## 6. Moderation & Account Deletion

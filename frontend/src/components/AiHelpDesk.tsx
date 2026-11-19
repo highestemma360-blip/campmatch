@@ -180,6 +180,7 @@ export function AiHelpDesk({ phone, show, onToggle, onWhatsAppClick }: AiHelpDes
           { label: "Safety", topic: "safety" },
           { label: "Profile", topic: "profile" },
           { label: "Matches", topic: "matches" },
+          { label: "Receipts", topic: "read receipts" },
           { label: "Location", topic: "location" },
           { label: "WhatsApp", topic: "whatsapp" },
         ].map(({ label, topic }) => (
@@ -241,6 +242,11 @@ function handleUserInput(text: string, phone: string): string {
   // Profile
   if (hasKeyword(lower, "profile", "photo", "picture", "avatar", "edit", "name")) {
     return "To update your profile: go to Profile page and tap 'Edit'. You can change your name, programme, and add/update photos. Photos are moderated and appear within 24 hours. Supported formats: JPEG, PNG (max 5MB). You can also set your discovery preferences (age range, distance, gender)."
+  }
+
+  // Read receipts
+  if (hasKeyword(lower, "receipt", "read receipt", "seen", "delivered", "opened")) {
+    return "Read Receipts are a Campmatch Plus feature. Plus members can see when a message is opened: it shows 'Delivered' while it is unread and switches to 'Seen' the moment the other person opens the chat. Free members can still chat normally, but the Seen/Delivered label stays hidden. While Plus is switched off during launch, read receipts are free for everyone."
   }
 
   // Matches

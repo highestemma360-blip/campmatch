@@ -25,7 +25,7 @@ Campmatch is a full-stack university student matching platform for verified `.ed
   - Three discovery modes: `Date`, `BFF`, and `Study`, plus curated Explore rooms.
   - Pointer-driven card physics with grab-point pivot rotation, directional tint wash, action burst animations, Rewind, Super Like, and 30-minute Campus Spotlight boosts.
   - Desktop split-pane layout (`>= 960px`) with keyboard shortcuts (`ArrowLeft`, `ArrowRight`, `Space`, `ArrowUp`, `Enter`, `Backspace`) and mobile bottom-sheet layout (`< 960px`).
-  - **Subscription Quota Enforcement**: When Campmatch Plus is enabled in the Admin Console, free accounts are capped at **10 swipes per rolling 24-hour window** (configurable by admin), while Plus subscribers receive unlimited swipes, Rewind, and full Beeline visibility.
+  - **Subscription Quota Enforcement**: When Campmatch Plus is enabled in the Admin Console, free accounts are capped at **10 swipes per rolling 24-hour window** (configurable by admin), while Plus subscribers receive unlimited swipes, Rewind, full Beeline visibility, and Seen/Delivered read receipts in chat.
 
 - **Real-Time Messaging & Match Queue**
   - Persistent WebSocket channel (`/ws?token=...`) delivering instant messages, live typing indicators, read receipts (`Seen`), message heart reactions, online presence dots, real-time mutual match alerts, and live platform configuration updates.

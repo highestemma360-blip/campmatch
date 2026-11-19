@@ -173,6 +173,7 @@ export function PlusModal({
     { title: 'See Who Likes You', desc: 'View your full Beeline grid and match immediately.' },
     { title: 'Rewind Last Swipe', desc: 'Undo accidental passes and bring profiles back.' },
     { title: '10 Daily Super Likes', desc: 'Prioritize your card in potential matches’ decks.' },
+    { title: 'Read Receipts', desc: 'See the moment your messages are opened.' },
     { title: 'Match Extensions & Spotlights', desc: 'Extend 24-hour match timers and boost visibility.' },
   ]
 

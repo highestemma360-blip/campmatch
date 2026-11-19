@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from ..database import get_db
 from ..models import User, Match, Message, Swipe, Report, Block
 from ..realtime import hub
+from ..security import get_bool_setting
 from .profiles import get_current_user, serialize_user
 from .swipes import get_blocked_user_ids
 
@@ -109,6 +110,11 @@ async def get_messages(match_id: int, user: User = Depends(get_current_user), db
     if not m or user.id not in (m.user1_id, m.user2_id):
         raise HTTPException(403, "Access denied.")
 
+    # Read receipts are a Campmatch Plus feature. While the admin has Plus turned
+    # off, every premium feature is free, so receipts unlock for everyone.
+    plus_enabled = get_bool_setting(db, "plus_enabled", False)
+    sender_sees_receipts = (not plus_enabled) or bool(user.is_premium)
+
     updated_count = (
         db.query(Message)
         .filter(
@@ -122,7 +128,11 @@ async def get_messages(match_id: int, user: User = Depends(get_current_user), db
 
     if updated_count > 0:
         other_id = m.user2_id if m.user1_id == user.id else m.user1_id
-        await hub.send_to_user(other_id, {"type": "messages_read", "match_id": match_id})
+        # Only notify the original sender when their receipt entitlement is active.
+        other = db.query(User).filter(User.id == other_id).first()
+        other_sees_receipts = (not plus_enabled) or bool(other and other.is_premium)
+        if other_sees_receipts:
+            await hub.send_to_user(other_id, {"type": "messages_read", "match_id": match_id})
 
     msgs = (
         db.query(Message)
@@ -137,7 +147,8 @@ async def get_messages(match_id: int, user: User = Depends(get_current_user), db
             "sender_id": msg.sender_id,
             "content": msg.content,
             "created_at": msg.created_at.isoformat(),
-            "read": bool(msg.read),
+            # Mask the read flag on my own sent messages when I don't have receipts.
+            "read": bool(msg.read) if (sender_sees_receipts or msg.sender_id != user.id) else False,
             "reaction": msg.reaction or "",
         }
         for msg in msgs
