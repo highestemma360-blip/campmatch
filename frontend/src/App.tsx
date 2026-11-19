@@ -30,6 +30,8 @@ import { ProfileSheet } from './components/ProfileSheet'
 import { MatchCelebration } from './components/MatchCelebration'
 import { NotificationsSheet } from './components/NotificationsSheet'
 import { DiscoveryModal, PlusModal, ReportModal, DeleteAccountModal } from './components/Modals'
+import { FloatingWhatsAppBtn } from './components/FloatingWhatsAppBtn'
+import { AiHelpDesk } from './components/AiHelpDesk'
 import { AuthPage } from './pages/AuthPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ExplorePage } from './pages/ExplorePage'
@@ -78,6 +80,7 @@ function StudentApp() {
   const [showFilters, setShowFilters] = useState(false)
   const [showPlusModal, setShowPlusModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [aiDeskOpen, setAiDeskOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState<ProfileCard | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -1233,6 +1236,22 @@ function StudentApp() {
           onClose={() => setShowNotifications(false)}
         />
       )}
+      <FloatingWhatsAppBtn
+        phone="9999999999"
+        message="Hello, I'd like to know more about Campmatch"
+        showAiAssistant
+        onAiOpen={() => setAiDeskOpen(true)}
+        onClose={() => setAiDeskOpen(false)}
+      />
+      <AiHelpDesk
+        phone="9999999999"
+        show={aiDeskOpen}
+        onToggle={() => setAiDeskOpen(false)}
+        onWhatsAppClick={() => {
+          const url = "https://wa.me/9999999999"
+          window.open(url, "_blank", "noopener,noreferrer")
+        }}
+      />
     </div>
   )
 }
