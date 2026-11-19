@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from math import radians, cos, sin, asin, sqrt
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -481,7 +481,7 @@ def rewind_last_swipe(user: User = Depends(get_current_user), db: Session = Depe
 
 @router.post("/boost")
 def activate_boost(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     if user.boosted_until and user.boosted_until > now:
         return {"ok": True, "boosted_until": user.boosted_until.isoformat(), "already_active": True}
     user.boosted_until = now + timedelta(minutes=30)
