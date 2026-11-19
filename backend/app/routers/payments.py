@@ -22,7 +22,10 @@ from .profiles import get_current_user
 router = APIRouter()
 
 VALID_MOMO_CHANNELS = {"MTN", "TELECEL", "AT"}
-PENDING_CODES = {"TP11", "TP18", "PY01", "PY02", "TR01", "TR02", "APY10", "APY16", "ASL06", "SYS500"}
+# Moolre transaction codes. sandbox codes differ from live; keep a broad set
+# and treat unknown codes as pending rather than failing.
+PENDING_CODES = {"TP11", "TP18", "PY01", "PY02", "TR01", "TR02", "APY10", "APY16", "ASL06", "SYS500",
+                 "TP17", "TP20", "P01", "P02", "LIVE01", "LIVE02"}
 
 
 def _setting_or_env(db: Session, key: str, env_name: str, default: str = "") -> str:
@@ -262,7 +265,8 @@ async def moolre_collect_momo(
             )
             body_otp = r_otp.json() if r_otp.content else {}
             code_otp = str(body_otp.get("code") or "")
-            if code_otp != "TP17" and str(body_otp.get("status")) != "1":
+            # Accept common live codes (TP17, TP20, P01) rather than sandbox-only TP17
+            if code_otp not in ("TP17", "TP20", "P01") and str(body_otp.get("status")) != "1":
                 raise HTTPException(400, body_otp.get("message") or "Invalid or expired verification code.")
 
             r_prompt = await client.post(
