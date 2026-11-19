@@ -1184,6 +1184,17 @@ button:disabled {
   to { opacity: 1; }
 }
 
+/* Install invitation sheet */
+.install-sheet {
+  animation: sheetUp 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .install-sheet {
+    animation: none;
+  }
+}
+
 /* Notification popup + Plus activation celebration */
 .notification-pop {
   animation: notifPopIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;

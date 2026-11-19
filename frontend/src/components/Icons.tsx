@@ -400,3 +400,11 @@ export const CreditCardIcon = ({ size = 20 }: { size?: number }) => (
     <line x1="1" y1="10" x2="23" y2="10" />
   </svg>
 )
+
+export const DownloadIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3v11" />
+    <path d="M7.5 10.5L12 15l4.5-4.5" />
+    <path d="M4.5 19.5h15" />
+  </svg>
+)

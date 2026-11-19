@@ -255,7 +255,18 @@ if os.path.exists(frontend_dist):
             return JSONResponse({"detail": "Not found"}, status_code=404)
         candidate = os.path.abspath(os.path.join(frontend_dist, full_path))
         if full_path and candidate.startswith(frontend_dist) and os.path.isfile(candidate):
-            return FileResponse(candidate)
+            # The service worker and app shell must revalidate so install and
+            # update prompts always see the current deployment.
+            headers = {}
+            if full_path.endswith("sw.js") or full_path.endswith("index.html"):
+                headers["Cache-Control"] = "no-cache"
+            if full_path.endswith(".webmanifest"):
+                return FileResponse(
+                    candidate,
+                    media_type="application/manifest+json",
+                    headers=headers,
+                )
+            return FileResponse(candidate, headers=headers)
         index = os.path.join(frontend_dist, "index.html")
         if os.path.exists(index):
             return FileResponse(index)

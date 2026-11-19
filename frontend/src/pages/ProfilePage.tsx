@@ -30,7 +30,9 @@ import {
   MusicIcon,
   MapPinIcon,
   BellIcon,
+  DownloadIcon,
 } from '../components/Icons'
+import { isStandalone } from '../utils/pwa'
 
 interface ProfilePageProps {
   me: CurrentUser
@@ -48,6 +50,7 @@ interface ProfilePageProps {
   onBoost: () => void
   onOpenFilters: () => void
   onOpenDeleteAccount: () => void
+  onInstallApp: () => void
   onTokenUpdated: (newToken: string) => void
   onLogout: () => void
 }
@@ -68,6 +71,7 @@ export function ProfilePage({
   onBoost,
   onOpenFilters,
   onOpenDeleteAccount,
+  onInstallApp,
   onTokenUpdated,
   onLogout,
 }: ProfilePageProps) {
@@ -787,7 +791,7 @@ export function ProfilePage({
             </div>
             <button
               className={pushState.enabled ? 'btn-ghost' : 'btn-brand'}
-              style={{ padding: '7px 14px', fontSize: 12 }}
+              style={{ padding: '7px 14px', fontSize: 12, width: 'auto', flexShrink: 0 }}
               disabled={!pushState.supported || pushBusy}
               onClick={handleTogglePush}
             >
@@ -796,6 +800,26 @@ export function ProfilePage({
           </div>
           {pushMsg && (
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0 2px', lineHeight: 1.45 }}>{pushMsg}</div>
+          )}
+
+          {!isStandalone() && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <DownloadIcon size={14} /> Home Screen App
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Full-screen access and one-tap launches
+                </div>
+              </div>
+              <button
+                className="btn-ghost"
+                style={{ padding: '7px 14px', fontSize: 12 }}
+                onClick={onInstallApp}
+              >
+                Install
+              </button>
+            </div>
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>

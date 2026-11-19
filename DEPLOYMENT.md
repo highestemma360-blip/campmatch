@@ -246,3 +246,36 @@ delivered to their phone via the browser Push API + `sw.js` service worker. VAPI
 and persisted on the disk; optionally set `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`
 in Render to pin them.
 
+### Installable app (PWA)
+Campmatch is installable from the browser — no Play Store or App Store listing is required.
+
+- **Android / Chrome / Edge**: students can use **Profile → Settings → Home Screen App → Install**, or
+  accept the automatic invitation that appears once per session about 18 seconds after sign-in. Where the
+  browser supports it, the native install dialog opens.
+- **iPhone / iPad**: only Safari can add a web app to the Home Screen. The in-app sheet shows
+  **Share → Add to Home Screen → Add**, and warns students who opened the site in Chrome, Firefox,
+  Instagram or another in-app browser to switch to Safari first.
+- **Prompt behaviour**: the automatic invitation is mobile-only, appears at most once per session, and is
+  skipped while a chat, modal, notification, Plus celebration or the AI assistant is open. Dismissing
+  pauses prompts for 7 days; a successful install pauses them for 180 days. The manual Settings entry is
+  always available.
+
+- **Phone notifications (web push)**: students opt in from **Profile → Settings → Phone Alerts**. Once
+  Campmatch is installed to the home screen, Phone Alerts are enabled automatically so match, message
+  and campus alerts arrive on the phone even when the app is closed. Students can turn them off again at
+  any time. Once per day, if there is unread activity, the installed app sends a system reminder to open
+  Campmatch and check new matches or messages. Push requires HTTPS (Render provides this automatically)
+  and VAPID keys are auto-generated and persisted on the disk; optionally set `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` in Render to pin them.
+
+Requirements on Render: serve the site over HTTPS (Render provides this automatically) and keep the
+persistent disk configured. `manifest.webmanifest` is served as `application/manifest+json`, and
+`sw.js` / `index.html` are sent with `Cache-Control: no-cache` by `backend/app/main.py`, so deployments
+revalidate the shell and install prompts see the current version. No extra environment variables are
+needed.
+
+To verify after a deploy, open Chrome DevTools → **Application → Manifest** (name, start URL and both
+icons must load) and **Application → Service Workers** (worker activated). On a phone, confirm the app
+opens without browser chrome and still launches when offline. If a device keeps an older worker, use
+**Application → Storage → Clear site data** once and reopen the site.
+

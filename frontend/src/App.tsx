@@ -34,6 +34,16 @@ import { PlusSuccessModal } from './components/PlusSuccessModal'
 import { DiscoveryModal, PlusModal, ReportModal, DeleteAccountModal } from './components/Modals'
 import { FloatingWhatsAppBtn } from './components/FloatingWhatsAppBtn'
 import { AiHelpDesk } from './components/AiHelpDesk'
+import { InstallPrompt } from './components/InstallPrompt'
+import { useInstallPrompt } from './utils/useInstallPrompt'
+import {
+  pushSupported,
+  PushState,
+  getPushState,
+  enablePush,
+  disablePush,
+} from './utils/push'
+import { isStandalone, wasJustInstalled } from './utils/pwa'
 import { AuthPage } from './pages/AuthPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ExplorePage } from './pages/ExplorePage'
@@ -49,6 +59,11 @@ function StudentApp() {
   const [needsSetup, setNeedsSetup] = useState(false)
 
   const [me, setMe] = useState<CurrentUser | null>(null)
+  const [pushState, setPushState] = useState<PushState>({
+    supported: pushSupported(),
+    permission: 'default',
+    enabled: false,
+  })
   const [quota, setQuota] = useState<SwipeQuota | undefined>(undefined)
   const [plusConfig, setPlusConfig] = useState<PlusConfig>({
     enabled: false,
@@ -94,6 +109,76 @@ function StudentApp() {
   activeChatRef.current = activeChat
   const notificationsRef = useRef<AppNotification[]>([])
   notificationsRef.current = notifications
+
+  const install = useInstallPrompt({
+    enabled: Boolean(me) && !needsSetup,
+    blocked:
+      aiDeskOpen ||
+      showPlusModal ||
+      showPlusSuccess ||
+      showNotifications ||
+      showFilters ||
+      showDeleteModal ||
+      Boolean(popupNotification) ||
+      Boolean(activeChat) ||
+      Boolean(matchedUser) ||
+      Boolean(inspectedProfile) ||
+      Boolean(reportTarget),
+  })
+
+  // Auto-enable phone alerts once the app is installed to the home screen.
+  useEffect(() => {
+    let active = true
+    const timer = setTimeout(async () => {
+      if (!active) return
+      if (!me || !token) return
+      if (!pushSupported() || !isStandalone()) return
+      if (!wasJustInstalled()) return
+      if (localStorage.getItem('campmatch_push_manually_disabled') === '1') return
+      if (localStorage.getItem('campmatch_push_auto_on_done') === '1') return
+      const state = await getPushState()
+      setPushState(state)
+      if (state.enabled || state.permission === 'denied') return
+      const res = await enablePush(token)
+      setPushState(await getPushState())
+      if (res.ok) {
+        localStorage.setItem('campmatch_push_auto_on_done', '1')
+        showToast('Phone alerts are on — you’ll get match and campus notifications.')
+      } else if (res.denied) {
+        localStorage.setItem('campmatch_push_manually_disabled', '1')
+      }
+    }, 2000)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [me, token])
+
+  // Daily nudge: once per day, if there is unread activity, surface a system
+  // notification so installed users keep returning to the app.
+  const DAILY_KEY = 'campmatch_daily_reminder_date'
+  useEffect(() => {
+    const today = new Date().toDateString()
+    const last = localStorage.getItem(DAILY_KEY)
+    if (last === today) return
+    const hasUnread = notifications.some(n => !n.read) || Boolean(matchedUser)
+    const mayNotify =
+      pushState.permission === 'granted' || pushState.enabled
+    if (
+      hasUnread &&
+      mayNotify &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+    ) {
+      new Notification('New on Campmatch', {
+        body:
+          'You have new matches or updates waiting — open Campmatch to check them out.',
+        icon: '/icon-192.png',
+        tag: 'daily-reminder',
+      })
+    }
+    localStorage.setItem(DAILY_KEY, today)
+  }, [notifications, matchedUser, pushState.permission, pushState.enabled])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -1169,6 +1254,7 @@ function StudentApp() {
                   onBoost={handleBoost}
                   onOpenFilters={() => setShowFilters(true)}
                   onOpenDeleteAccount={() => setShowDeleteModal(true)}
+                  onInstallApp={install.open}
                   onTokenUpdated={newTok => {
                     setToken(newTok)
                     localStorage.setItem('token', newTok)
@@ -1329,6 +1415,14 @@ function StudentApp() {
           userName={me?.name}
           premiumUntil={plusUntil || me?.premium_until || null}
           onClose={() => setShowPlusSuccess(false)}
+        />
+      )}
+      {install.visible && (
+        <InstallPrompt
+          platform={install.platform}
+          canPrompt={install.canPrompt}
+          onInstall={install.install}
+          onClose={install.close}
         />
       )}
       <FloatingWhatsAppBtn

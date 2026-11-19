@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from ..database import get_db
 from ..models import User, Match, Message, Swipe, Report, Block
 from ..realtime import hub
+from .. import push
 from ..security import get_bool_setting
 from .profiles import get_current_user, serialize_user
 from .swipes import get_blocked_user_ids
@@ -189,6 +190,20 @@ async def send_message(match_id: int, data: MsgIn, user: User = Depends(get_curr
 
     await hub.send_to_user(other_id, {"type": "new_message", "match_id": match_id, "message": payload_msg})
     await hub.send_to_user(user.id, {"type": "new_message", "match_id": match_id, "message": payload_msg})
+
+    # Deliver a phone notification so the recipient sees the message even when the app is closed.
+    if other_id != user.id and other:
+        push.push_to_user(
+            db,
+            other_id,
+            {
+                "title": "New message",
+                "body": f"{user.name or 'Someone'} sent you a message.",
+                "url": "/",
+                "icon": "/favicon.svg",
+                "tag": f"message-{match.id}",
+            },
+        )
 
     return {"ok": True, "message": payload_msg}
 

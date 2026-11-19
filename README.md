@@ -37,6 +37,18 @@ Campmatch is a full-stack university student matching platform for verified `.ed
   - Admin notifications appear as clean, centred pop-up cards with full-size flyers, and remain available in the notification sheet.
   - Successful Plus payments trigger an animated activation card and update the account automatically within seconds.
 
+- **Installable Phone App (PWA)**
+  - Android/Chrome uses the browser's native install prompt; iPhone users get live Safari **Share → Add to Home Screen** tips, with a clear warning when they are in a non-Safari iOS browser.
+  - One calm invitation is shown per session about 18 seconds after sign-in on phones. It is skipped while a chat, sheet, celebration or the assistant is open, dismissals pause prompts for 7 days, and installing pauses them for 180 days.
+  - Students can always install manually from **Profile → Settings → Home Screen App**.
+  - The service worker precaches the app shell so the installed app opens offline, while live data, uploads and WebSockets always use the network.
+
+- **Phone notifications (web push)**
+  - Students opt in from **Profile → Settings → Phone Alerts** to receive match, message and campus alerts on their phone via the browser Push API + `sw.js`.
+  - Once Campmatch is installed to the home screen, Phone Alerts are switched on automatically (students can turn them off again at any time).
+  - Once a day, if there is unread activity, an installed app sends a system notification reminding the student to open Campmatch and check new matches or messages.
+  - Matches, new messages, and admin campus notifications trigger real-time phone push so students are alerted even when the app is closed.
+
 - **Account Lifecycle & Record Preservation**
   - **Snooze Mode**: Temporarily hides a user's card from discovery decks without affecting existing matches.
   - **Soft Account Deletion**: Users can delete their account from Settings. Their profile, photos, and active matches are immediately removed from all public views and active sessions are terminated, while 100% of historical database records (`users`, `swipes`, `matches`, `messages`, `payments`, `reports`, and `image_moderation_logs`) remain intact and inspectable in the Admin Deleted Vault.
