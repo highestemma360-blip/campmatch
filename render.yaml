@@ -34,10 +34,6 @@ services:
         sync: false
       - key: VITE_GOOGLE_CLIENT_ID
         sync: false
-      # WhatsApp support phone (international format, e.g. 233241234567).
-      # Leave unset to hide the WhatsApp support buttons.
-      - key: VITE_WHATSAPP_PHONE
-        sync: false
       # Moolre payments (can also be entered in the admin console at runtime).
       - key: MOOLRE_ENV
         value: live

@@ -155,8 +155,6 @@ Optional environment variables:
   `AI_BASE_URL=https://integrate.api.nvidia.com/v1`). Set `AI_API_KEY` to your NVIDIA API key, or use any
   OpenAI-compatible provider. Can also be saved in **Admin → AI Assistant**. Without a key the assistant
   still replies in real time from the built-in Campmatch knowledge base.
-- `VITE_WHATSAPP_PHONE` — WhatsApp support number in international format (e.g. `233241234567`). Shows the
-  floating WhatsApp button and support option. If unset, WhatsApp buttons are hidden.
 
 ### 2. Frontend
 ```bash

@@ -969,34 +969,37 @@ button:disabled {
   grid-template-columns: 1fr;
   gap: 22px;
   align-items: center;
+  justify-items: center;
 }
 
 @media (min-width: 820px) {
   .auth-grid {
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: 1fr;
     gap: 40px;
   }
+}
+
+.auth-hero-copy {
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .auth-schools-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  justify-content: center;
 }
 
 @media (max-width: 819px) {
   .auth-hero-copy {
-    text-align: center;
-    align-items: center;
     padding: 4px 0 0 !important;
   }
   .auth-hero-sub {
     text-align: center;
-  }
-  .auth-schools-row {
-    display: flex !important;
-    justify-content: center;
-    gap: 8px;
   }
   .auth-grid {
     gap: 16px;

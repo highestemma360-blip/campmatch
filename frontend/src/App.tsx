@@ -80,7 +80,7 @@ function StudentApp({
   const [tab, setTab] = useState<NavTab>('swipe')
   const [needsSetup, setNeedsSetup] = useState(false)
 
-  const whatsappPhone = (import.meta.env.VITE_WHATSAPP_PHONE as string | undefined) || ''
+  const [whatsappPhone, setWhatsappPhone] = useState('')
 
   const [me, setMe] = useState<CurrentUser | null>(null)
   const [pushState, setPushState] = useState<PushState>({
@@ -150,6 +150,19 @@ function StudentApp({
       Boolean(reportTarget),
   })
 
+  // Fetch WhatsApp support phone from server config (admin-controlled).
+  useEffect(() => {
+    let active = true
+    fetch('/api/auth-config')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (active && d) setWhatsappPhone(d.whatsapp_phone || '')
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
   // Auto-enable phone alerts once the app is installed to the home screen.
   useEffect(() => {
     let active = true

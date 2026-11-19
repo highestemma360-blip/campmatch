@@ -151,6 +151,7 @@ def auth_config(db: Session = Depends(get_db)):
         "signups_enabled": get_bool_setting(db, "signups_enabled", True),
         "maintenance_mode": get_bool_setting(db, "maintenance_mode", False),
         "announcement_banner": get_setting(db, "announcement_banner", ""),
+        "whatsapp_phone": get_setting(db, "whatsapp_phone", ""),
     }
 
 

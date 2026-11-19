@@ -273,10 +273,10 @@ Campmatch is installable from the browser — no Play Store or App Store listing
   and VAPID keys are auto-generated and persisted on the disk; optionally set `VAPID_PUBLIC_KEY`,
   `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` in Render to pin them.
 
-- **WhatsApp support**: the floating WhatsApp button and the assistant's "chat with a person"
-  option open `https://wa.me/<phone>`. Set `VITE_WHATSAPP_PHONE` in Render to your support
-  number in international format (e.g. `233241234567`). If it is not set, the WhatsApp buttons
-  are hidden so students are never routed to a placeholder number.
+- **WhatsApp support**: set the support number in **Admin → Platform Settings → WhatsApp Support Phone**
+  (international format, e.g. `233241234567`). The floating WhatsApp button and the assistant's
+  "chat with a person" option open `https://wa.me/<phone>`. If blank, the WhatsApp buttons are hidden
+  so students are never routed to a placeholder number.
 
 Requirements on Render: serve the site over HTTPS (Render provides this automatically) and keep the
 persistent disk configured. `manifest.webmanifest` is served as `application/manifest+json`, and
