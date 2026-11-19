@@ -150,22 +150,33 @@ def get_deck(
     now = datetime.utcnow()
     plus_enabled = get_bool_setting(db, "plus_enabled", False)
     scored = []
+    scored_outside = []
     for u in candidates:
         if not matches_vibe(u, user, vibe):
             continue
         dist = haversine(user.lat, user.lng, u.lat, u.lng) if user.lat is not None else 9999
-        if user.max_distance_km and dist < 9000 and dist > user.max_distance_km:
-            continue
         is_boosted = 1 if (u.boosted_until and u.boosted_until > now) else 0
         inc = incoming.get(u.id)
         super_liked_me = 1 if (inc and inc.super_liked) else 0
         comp = compatibility_score(user, u)
-        scored.append(((-is_boosted, -super_liked_me, dist, -comp), dist, comp, inc, u))
+        entry = ((-is_boosted, -super_liked_me, dist, -comp), dist, comp, inc, u)
+        # Prefer users within the user's max distance, but fall back to showing
+        # distant users when none are nearby so the discovery page is never idle.
+        if user.max_distance_km and dist < 9000 and dist > user.max_distance_km:
+            scored_outside.append(entry)
+        else:
+            scored.append(entry)
 
     scored.sort(key=lambda x: x[0])
+    scored_outside.sort(key=lambda x: x[0])
+
+    # Use in-range users first; fill any remaining slots with out-of-range users.
+    final_scored = scored[:35]
+    if len(final_scored) < 35:
+        final_scored.extend(scored_outside[: 35 - len(final_scored)])
 
     result = []
-    for _, d, comp, inc, u in scored[:35]:
+    for _, d, comp, inc, u in final_scored:
         card = serialize_user(u, full=False)
         card["distance_km"] = max(1, round(d)) if d < 9000 else None
         card["compatibility"] = comp

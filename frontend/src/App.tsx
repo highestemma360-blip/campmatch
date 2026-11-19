@@ -1485,23 +1485,24 @@ function StudentApp({
           onClose={install.close}
         />
       )}
-      {whatsappLink && (
-        <FloatingWhatsAppBtn
-          link={whatsappLink}
-          message="Hello, I'd like to know more about Campmatch"
-          showAiAssistant
-          onAiOpen={() => setAiDeskOpen(true)}
-          onClose={() => setAiDeskOpen(false)}
-        />
-      )}
+      <FloatingWhatsAppBtn
+        link={whatsappLink || ''}
+        message="Hello, I'd like to know more about Campmatch"
+        showAiAssistant
+        onAiOpen={() => setAiDeskOpen(true)}
+        onClose={() => setAiDeskOpen(false)}
+      />
       <AiHelpDesk
-        link={whatsappLink}
+        link={whatsappLink || ''}
         token={token}
         userName={me?.name}
         show={aiDeskOpen}
         onToggle={() => setAiDeskOpen(false)}
         onWhatsAppClick={() => {
-          if (!whatsappLink) return
+          if (!whatsappLink) {
+            showToast('WhatsApp support link not configured by administrator.')
+            return
+          }
           const url = whatsappLink.startsWith("http") ? whatsappLink : `https://wa.me/${whatsappLink}`
           window.open(url, "_blank", "noopener,noreferrer")
         }}
