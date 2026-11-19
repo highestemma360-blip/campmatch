@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { ProfileCard } from '../types'
 import { makeAvatarPlaceholder } from '../constants'
-import { HeartIcon, CloseXIcon, VerifiedBadge, StarIcon } from '../components/Icons'
+import { HeartIcon, CloseXIcon, VerifiedBadge } from '../components/Icons'
 
 interface LikesYouPageProps {
   items: ProfileCard[]
@@ -18,9 +18,7 @@ export function LikesYouPage({
   onInspect,
   onUpgradeClick,
 }: LikesYouPageProps) {
-  const [filter, setFilter] = useState<'all' | 'super'>('all')
-  const visible = filter === 'super' ? items.filter(i => i.super_liked) : items
-
+  const visible = items
   return (
     <div className="scroll-pane" style={{ padding: '16px 16px 28px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -44,22 +42,6 @@ export function LikesYouPage({
           ? 'These students have already liked your profile. Upgrade to Campmatch Plus to reveal them.'
           : 'Like back anyone in your Beeline for an immediate match.'}
       </p>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <button
-          className={`selectable-chip ${filter === 'all' ? 'selected' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          All ({items.length})
-        </button>
-        <button
-          className={`selectable-chip ${filter === 'super' ? 'selected' : ''}`}
-          onClick={() => setFilter('super')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
-        >
-          <StarIcon size={13} /> Super Likes ({items.filter(i => i.super_liked).length})
-        </button>
-      </div>
 
       {visible.length === 0 ? (
         <div
@@ -91,9 +73,7 @@ export function LikesYouPage({
                 borderRadius: 20,
                 overflow: 'hidden',
                 background: '#1a1e2a',
-                border: card.super_liked
-                  ? '2px solid #38bdf8'
-                  : '1.5px solid rgba(255, 198, 41, 0.32)',
+                border: '1.5px solid rgba(255, 198, 41, 0.32)',
                 cursor: 'pointer',
                 boxShadow: '0 10px 24px rgba(0,0,0,0.25)',
               }}
@@ -108,27 +88,6 @@ export function LikesYouPage({
                   filter: card.blurred || locked ? 'blur(18px) scale(1.1)' : 'none',
                 }}
               />
-
-              {card.super_liked && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 10,
-                    left: 10,
-                    padding: '3px 8px',
-                    borderRadius: 999,
-                    background: 'var(--super-grad)',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 800,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <StarIcon size={10} /> Super Like
-                </span>
-              )}
 
               <div
                 style={{

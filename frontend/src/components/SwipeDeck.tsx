@@ -4,7 +4,6 @@ import { makeAvatarPlaceholder, EXPLORE_MAP } from '../constants'
 import {
   RewindIcon,
   CloseXIcon,
-  StarIcon,
   HeartIcon,
   BoltIcon,
   VerifiedBadge,
@@ -22,7 +21,7 @@ interface SwipeDeckProps {
   onClearVibe?: () => void
   canRewind: boolean
   isBoosted: boolean
-  onSwipe: (liked: boolean, superLike?: boolean) => void
+  onSwipe: (liked: boolean) => void
   onRewind: () => void
   onBoost: () => void
   onInspect: (card: ProfileCard) => void
@@ -51,14 +50,14 @@ export function SwipeDeck({
   const [photoIdx, setPhotoIdx] = useState(0)
   const [drag, setDrag] = useState({ x: 0, y: 0, pivotTop: true, active: false })
   const [flyOut, setFlyOut] = useState<'left' | 'right' | 'up' | null>(null)
-  const [fxAction, setFxAction] = useState<'like' | 'super' | 'nope' | null>(null)
+  const [fxAction, setFxAction] = useState<'like' | 'nope' | null>(null)
   const startRef = useRef<{ x: number; y: number; pivotTop: boolean; moved: boolean } | null>(null)
 
   const topCard = deck[0]
   const secondCard = deck[1]
   const thirdCard = deck[2]
 
-  const boostedUntil = me?.boosted_until ? new Date(me.boosted_until).getTime() : 0
+  const boostedUntil = me?.boosted_until ? new Date(me.boosted_until + (me.boosted_until.includes('+') || me.boosted_until.endsWith('Z') ? '' : 'Z')).getTime() : 0
   const isBoostedActive = isBoosted && boostedUntil > Date.now()
 
   const [spotlightPopupOpen, setSpotlightPopupOpen] = useState(false)
@@ -118,9 +117,6 @@ export function SwipeDeck({
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
         triggerSwipe('right')
-      } else if (e.key === 'Enter') {
-        e.preventDefault()
-        triggerSwipe('up')
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         onInspect(topCard)
@@ -137,21 +133,20 @@ export function SwipeDeck({
     return () => window.removeEventListener('keydown', onKey)
   }, [topCard, canRewind, quota, flyOut])
 
-  function triggerSwipe(dir: 'left' | 'right' | 'up') {
+  function triggerSwipe(dir: 'left' | 'right') {
     if (!topCard || flyOut) return
     if (quota?.limited && quota.remaining !== null && quota.remaining <= 0) {
       onOpenPlus()
       return
     }
     setFlyOut(dir)
-    const fx = dir === 'right' ? 'like' : dir === 'up' ? 'super' : 'nope'
+    const fx = dir === 'right' ? 'like' : 'nope'
     setFxAction(fx)
     setTimeout(() => setFxAction(null), 500)
 
     setTimeout(() => {
-      if (dir === 'right') onSwipe(true, false)
-      else if (dir === 'left') onSwipe(false, false)
-      else onSwipe(true, true)
+      if (dir === 'right') onSwipe(true)
+      else onSwipe(false)
     }, 230)
   }
 
@@ -202,7 +197,7 @@ export function SwipeDeck({
     } else if (dx < -95) {
       triggerSwipe('left')
     } else if (dy < -115 && Math.abs(dx) < 90) {
-      triggerSwipe('up')
+      setDrag({ x: 0, y: 0, pivotTop: true, active: false })
     } else {
       setDrag({ x: 0, y: 0, pivotTop: true, active: false })
     }
@@ -315,7 +310,6 @@ export function SwipeDeck({
         <div className="swipe-fx-burst">
           <div className={`fx-badge-circle ${fxAction}`}>
             {fxAction === 'like' && <HeartIcon size={44} />}
-            {fxAction === 'super' && <StarIcon size={44} />}
             {fxAction === 'nope' && <CloseXIcon size={42} />}
           </div>
         </div>
@@ -394,12 +388,7 @@ export function SwipeDeck({
 
               <div className="card-top-badges">
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {topCard.super_liked_me && (
-                    <span className="pill-badge super-banner">
-                      <StarIcon size={12} /> Super Liked You
-                    </span>
-                  )}
-                  {topCard.is_boosted && !topCard.super_liked_me && (
+                  {topCard.is_boosted && (
                     <span className="pill-badge boost-banner">
                       <BoltIcon size={12} /> Spotlight
                     </span>
@@ -425,11 +414,6 @@ export function SwipeDeck({
               {nopeOpacity > 0.04 && (
                 <div className="swipe-stamp nope" style={{ opacity: nopeOpacity }}>
                   NOPE
-                </div>
-              )}
-              {superOpacity > 0.04 && (
-                <div className="swipe-stamp super" style={{ opacity: superOpacity }}>
-                  SUPER LIKE
                 </div>
               )}
 
@@ -508,14 +492,6 @@ export function SwipeDeck({
               title="Pass (Left Arrow)"
             >
               <CloseXIcon size={27} />
-            </button>
-
-            <button
-              className="dock-btn sm super"
-              onClick={() => triggerSwipe('up')}
-              title="Super Like (Enter)"
-            >
-              <StarIcon size={22} />
             </button>
 
             <button
@@ -635,7 +611,6 @@ export function SwipeDeck({
             <span><kbd className="kbd-pill">→</kbd>Like</span>
             <span><kbd className="kbd-pill">Space</kbd>Next Photo</span>
             <span><kbd className="kbd-pill">↑</kbd>Open Card</span>
-            <span><kbd className="kbd-pill">Enter</kbd>Super Like</span>
           </div>
         </>
       ) : (

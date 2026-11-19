@@ -1285,7 +1285,7 @@ export function ProfilePage({
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
               {plusConfig.enabled && !me.is_premium
-                ? `Includes Rewind, 10 Super Likes/day & removes the ${plusConfig.free_daily_swipe_limit}/day cap`
+                ? `Includes Rewind & removes the ${plusConfig.free_daily_swipe_limit}/day swipe cap`
                 : 'View all Plus membership privileges'}
             </div>
           </div>

@@ -175,7 +175,7 @@ Accounts require an approved university student email. Profile photos are screen
 Private messaging opens only when two students mutually like each other. Harassment, impersonation, explicit imagery, or commercial spam results in immediate suspension.
 
 3. Subscriptions & Limits
-When Campmatch Plus is active, free accounts receive a set daily swipe allowance while Plus members receive unlimited swipes, Beeline visibility, Rewind, and extended Super Likes.
+When Campmatch Plus is active, free accounts receive a set daily swipe allowance while Plus members receive unlimited swipes, Beeline visibility, Rewind, and match extensions.
 
 4. Account Deletion & Records
 You may delete your account at any time from Account Settings. Deleting your account removes your profile and conversations from public visibility immediately while retaining encrypted historical records for safety compliance.`

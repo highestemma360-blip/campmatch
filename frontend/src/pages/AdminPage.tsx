@@ -193,8 +193,6 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
       free_daily_swipe_limit: Number(settings.free_daily_swipe_limit),
       plus_price_ghs: Number(settings.plus_price_ghs),
       plus_duration_days: Number(settings.plus_duration_days),
-      free_daily_super_likes: Number(settings.free_daily_super_likes),
-      plus_daily_super_likes: Number(settings.plus_daily_super_likes),
       umat_only: settings.umat_only,
       allowed_domains: settings.allowed_domains,
       signups_enabled: settings.signups_enabled,
@@ -562,26 +560,6 @@ export function AdminPage({ token, onNotify }: AdminPageProps) {
                   className="modern-input"
                   value={settings.plus_duration_days}
                   onChange={e => setSettings({ ...settings, plus_duration_days: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="field-label">Free Super/Day</label>
-                <input
-                  type="number"
-                  min={0}
-                  className="modern-input"
-                  value={settings.free_daily_super_likes}
-                  onChange={e => setSettings({ ...settings, free_daily_super_likes: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="field-label">Plus Super/Day</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="modern-input"
-                  value={settings.plus_daily_super_likes}
-                  onChange={e => setSettings({ ...settings, plus_daily_super_likes: e.target.value })}
                 />
               </div>
             </div>

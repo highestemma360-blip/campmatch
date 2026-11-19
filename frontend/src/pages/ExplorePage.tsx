@@ -43,7 +43,7 @@ export function ExplorePage({
   const [loadingRoom, setLoadingRoom] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  const boostedUntil = me?.boosted_until ? new Date(me.boosted_until).getTime() : 0
+  const boostedUntil = me?.boosted_until ? new Date(me.boosted_until + (me.boosted_until.includes('+') || me.boosted_until.endsWith('Z') ? '' : 'Z')).getTime() : 0
   const isBoostedActive = me?.is_boosted && boostedUntil > Date.now()
   const [boostSecondsLeft, setBoostSecondsLeft] = useState(0)
 

@@ -325,7 +325,7 @@ function StudentApp({
         }
         case 'new_like': {
           loadLikesYou()
-          showToast(event.super_liked ? 'Someone Super Liked your profile' : 'Someone liked your profile')
+          showToast('Someone liked your profile')
           break
         }
         case 'match_extended': {
@@ -646,7 +646,7 @@ function StudentApp({
     }
   }
 
-  async function handleSwipe(liked: boolean, superLike = false) {
+  async function handleSwipe(liked: boolean) {
     if (!deck.length) return
     const current = deck[0]
     setDeck(prev => prev.slice(1))
@@ -654,7 +654,7 @@ function StudentApp({
 
     try {
       const r = await fetch(
-        `/api/swipe?swiped_id=${current.id}&liked=${liked}&super_like=${superLike}`,
+        `/api/swipe?swiped_id=${current.id}&liked=${liked}`,
         { method: 'POST', headers: { Authorization: 'Bearer ' + token } }
       )
       const d = await r.json()
@@ -663,7 +663,7 @@ function StudentApp({
         setDeck(prev => [current, ...prev])
         const code = d.detail?.code
         if (d.detail?.quota) setQuota(d.detail.quota)
-        if (code === 'DAILY_SWIPE_LIMIT' || code === 'SUPER_LIKE_LIMIT') {
+        if (code === 'DAILY_SWIPE_LIMIT') {
           setShowPlusModal(true)
         } else {
           showToast(typeof d.detail === 'string' ? d.detail : d.detail?.message || 'Swipe failed.')
@@ -673,7 +673,6 @@ function StudentApp({
 
       setRewindAvailable(true)
       if (d.quota) setQuota(d.quota)
-      if (superLike) showToast(`Super Like sent to ${current.name}`)
       if (d.matched) {
         setMatchedUser(current)
         loadMatches()
@@ -1392,9 +1391,8 @@ function StudentApp({
             setPreviewingSelf(false)
           }}
           onAction={action => {
-            if (action === 'nope') handleSwipe(false, false)
-            else if (action === 'super') handleSwipe(true, true)
-            else handleSwipe(true, false)
+            if (action === 'nope') handleSwipe(false)
+            else handleSwipe(true)
           }}
           onBlock={handleBlockUser}
           onReport={target => setReportTarget(target)}

@@ -177,15 +177,15 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   return (
     <div
       style={{
-        height: '100vh',
         minHeight: '100vh',
+        height: 'auto',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         background:
           'radial-gradient(circle at 18% 18%, rgba(255, 76, 94, 0.2), transparent 44%), radial-gradient(circle at 82% 82%, rgba(255, 170, 0, 0.14), transparent 44%), #08090d',
-        padding: 'calc(18px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px))',
+        padding: 'calc(18px + env(safe-area-inset-top, 0px)) 18px calc(40px + env(safe-area-inset-bottom, 0px))',
         overflowY: 'auto',
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
