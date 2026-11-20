@@ -15,7 +15,9 @@ from ..database import get_db, UPLOAD_DIR
 from ..models import User, Swipe, Match, ImageModerationLog
 from ..security import (
     decode_token,
-    create_token,
+    create_token_pair,
+    store_refresh_token,
+    revoke_all_refresh_tokens,
     hash_password,
     verify_password,
     detect_school,
@@ -491,8 +493,19 @@ def change_password(data: PasswordChangeIn, user: User = Depends(get_current_use
         raise HTTPException(400, "New password must be at least 8 characters long.")
     user.password_hash = hash_password(data.new_password)
     user.token_version = (user.token_version or 1) + 1
+    # Revoke all refresh tokens so every device is logged out
+    revoke_all_refresh_tokens(db, user.id)
     db.commit()
-    return {"ok": True, "token": create_token(user.id, user.token_version)}
+    access, refresh = create_token_pair(user.id, user.token_version)
+    store_refresh_token(db, user.id, refresh)
+    return {
+        "ok": True,
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "expires_in": 900,
+        "message": "Password changed. All other devices logged out.",
+    }
 
 
 @router.post("/account/delete")

@@ -161,6 +161,15 @@ class AdminLoginIn(BaseModel):
     password: str
 
 
+class RefreshTokenIn(BaseModel):
+    refresh_token: str
+    device_info: str = ""
+
+
+class LogoutIn(BaseModel):
+    refresh_token: str = ""
+
+
 def is_school_email(email: str, db: Session) -> bool:
     clean = email.lower().strip()
     if any(clean.endswith(bad) for bad in BLOCKED_CONSUMER_DOMAINS):
@@ -243,8 +252,15 @@ def signup(data: SignupIn, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    access, refresh = create_token_pair(user.id, user.token_version or 1)
+    store_refresh_token(db, user.id, refresh,
+                        device_info=data.device_info or "",
+                        ip_address=_client_ip(request) if hasattr(request, 'client') else "")
     return {
-        "token": create_token(user.id, user.token_version or 1),
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "expires_in": 900,  # 15 minutes
         "user_id": user.id,
         "profile_complete": False,
     }
@@ -291,11 +307,65 @@ def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
     user.last_active = datetime.utcnow()
     db.commit()
     _record_login_log(db, request, email_clean, user.id)
+    access, refresh = create_token_pair(user.id, user.token_version or 1)
+    store_refresh_token(db, user.id, refresh,
+                        device_info=data.device_info or "",
+                        ip_address=_client_ip(request))
     return {
-        "token": create_token(user.id, user.token_version or 1),
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "expires_in": 900,  # 15 minutes
         "user_id": user.id,
         "profile_complete": bool(user.profile_complete),
     }
+
+
+@router.post("/refresh")
+def refresh_token(data: RefreshTokenIn, request: Request, db: Session = Depends(get_db)):
+    """Exchange a refresh token for a new access token."""
+    user = verify_refresh_token(db, data.refresh_token)
+    if not user:
+        raise HTTPException(401, "Invalid or expired refresh token.")
+
+    # Rotate: revoke old, issue new pair
+    revoke_refresh_token(db, data.refresh_token)
+    user.token_version = (user.token_version or 1) + 1
+    db.commit()
+    access, refresh = create_token_pair(user.id, user.token_version)
+    store_refresh_token(db, user.id, refresh,
+                        device_info=data.device_info or "",
+                        ip_address=_client_ip(request))
+    return {
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "expires_in": 900,
+        "user_id": user.id,
+    }
+
+
+@router.post("/logout")
+def logout(data: LogoutIn, request: Request, db: Session = Depends(get_db)):
+    """Server-side logout: revoke the refresh token and increment token_version
+    to invalidate all access tokens for this session."""
+    if data.refresh_token:
+        revoke_refresh_token(db, data.refresh_token)
+    # Also bump token_version so any existing access tokens become invalid
+    user = None
+    try:
+        from .security import decode_token
+        # Try to get user from access token if provided
+        auth = request.headers.get("authorization", "")
+        if auth.startswith("Bearer "):
+            payload = decode_token(auth[7:])
+            user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    except Exception:
+        pass
+    if user:
+        user.token_version = (user.token_version or 1) + 1
+        db.commit()
+    return {"ok": True, "message": "Logged out. All sessions invalidated."}
 
 
 @router.post("/google")

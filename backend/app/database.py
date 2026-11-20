@@ -223,6 +223,35 @@ def run_migrations():
             ("user_agent", "VARCHAR(255) DEFAULT ''"),
             ("logged_at", "DATETIME"),
         ],
+        "refresh_tokens": [
+            ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+            ("user_id", "INTEGER"),
+            ("token_hash", "VARCHAR(255) DEFAULT ''"),
+            ("expires_at", "DATETIME"),
+            ("created_at", "DATETIME"),
+            ("revoked_at", "DATETIME"),
+            ("device_info", "VARCHAR(255) DEFAULT ''"),
+            ("ip_address", "VARCHAR(64) DEFAULT ''"),
+            ("is_active", "BOOLEAN DEFAULT 1"),
+        ],
+        "stories": [
+            ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+            ("user_id", "INTEGER"),
+            ("media_url", "VARCHAR(500) DEFAULT ''"),
+            ("media_type", "VARCHAR(20) DEFAULT 'image'"),
+            ("caption", "TEXT DEFAULT ''"),
+            ("duration_hours", "INTEGER DEFAULT 24"),
+            ("expires_at", "DATETIME"),
+            ("created_at", "DATETIME"),
+            ("view_count", "INTEGER DEFAULT 0"),
+            ("is_active", "BOOLEAN DEFAULT 1"),
+        ],
+        "story_views": [
+            ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+            ("story_id", "INTEGER"),
+            ("viewer_id", "INTEGER"),
+            ("viewed_at", "DATETIME"),
+        ],
     }
 
     with engine.begin() as conn:
@@ -263,6 +292,20 @@ def run_migrations():
             "webhook_events": [
                 ("idx_webhook_events_type", "event_type"),
                 ("idx_webhook_events_created", "created_at"),
+            ],
+            "refresh_tokens": [
+                ("idx_refresh_tokens_user_active", "user_id", "is_active"),
+                ("idx_refresh_tokens_token_hash", "token_hash"),
+                ("idx_refresh_tokens_expires", "expires_at"),
+            ],
+            "stories": [
+                ("idx_stories_user_active", "user_id", "is_active"),
+                ("idx_stories_expires", "expires_at"),
+                ("idx_stories_created", "created_at"),
+            ],
+            "story_views": [
+                ("idx_story_views_story", "story_id"),
+                ("idx_story_views_viewer", "viewer_id"),
             ],
         }
 

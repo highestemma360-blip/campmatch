@@ -25,6 +25,7 @@ from .realtime import hub
 from .routers import auth, profiles, swipes, chat, admin, payments, notifications, ai
 from .routers import push as push_router
 from .routers import ai_features
+from .routers import stories as stories_router
 from .explore_rooms import seed_default_rooms
 from .security import (
     bootstrap_defaults,
@@ -262,6 +263,7 @@ app.include_router(notifications.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(ai_features.router, prefix="/api")
 app.include_router(push_router.router, prefix="/api")
+app.include_router(stories_router.router, prefix="/api")
 
 
 @app.get("/api/health")

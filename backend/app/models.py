@@ -279,3 +279,42 @@ class Appeal(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
     resolved_by = Column(Integer, nullable=True)  # None = AI admin
+
+
+class RefreshToken(Base):
+    """Refresh tokens for short-lived access token rotation."""
+    __tablename__ = "refresh_tokens"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    token_hash = Column(String(255), index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    revoked_at = Column(DateTime, nullable=True)
+    device_info = Column(String(255), default="")
+    ip_address = Column(String(64), default="")
+    is_active = Column(Boolean, default=True, index=True)
+
+
+class Story(Base):
+    """Snapchat-style stories: ephemeral media visible for a limited time."""
+    __tablename__ = "stories"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    media_url = Column(String(500), nullable=False)
+    media_type = Column(String(20), default="image")  # image | video
+    caption = Column(Text, default="")
+    duration_hours = Column(Integer, default=24)  # 6, 12, or 24 for Plus users
+    expires_at = Column(DateTime, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    view_count = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True, index=True)
+
+
+class StoryView(Base):
+    """Track who viewed which story."""
+    __tablename__ = "story_views"
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), index=True, nullable=False)
+    viewer_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    viewed_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint("story_id", "viewer_id"),)

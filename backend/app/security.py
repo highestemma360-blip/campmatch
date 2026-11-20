@@ -1,9 +1,10 @@
 import os
 import bcrypt
+import hashlib
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy.orm import Session
-from .models import User, Setting
+from .models import User, Setting, RefreshToken
 
 SECRET = os.environ.get("SECRET_KEY")
 if not SECRET:
@@ -90,19 +91,26 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def create_token(user_id: int, token_version: int = 1) -> str:
+def hash_token(token: str) -> str:
+    """SHA-256 hash a token for secure storage in the database."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_access_token(user_id: int, token_version: int = 1) -> str:
+    """Short-lived access token: 15 minutes."""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
         "ver": token_version,
+        "typ": "access",
         "iat": now,
-        "exp": now + timedelta(days=30),
+        "exp": now + timedelta(minutes=15),
     }
     return jwt.encode(payload, SECRET, algorithm=ALGORITHM)
 
 
-def create_refresh_token(user_id: int, token_version: int = 1) -> str:
-    """Long-lived refresh token used to rotate access tokens."""
+def create_refresh_token_jwt(user_id: int, token_version: int = 1) -> str:
+    """Long-lived refresh token JWT: 7 days."""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
@@ -114,13 +122,106 @@ def create_refresh_token(user_id: int, token_version: int = 1) -> str:
     return jwt.encode(payload, SECRET, algorithm=ALGORITHM)
 
 
+def create_token_pair(user_id: int, token_version: int = 1) -> tuple[str, str]:
+    """Create a short-lived access token and a long-lived refresh token."""
+    access = create_access_token(user_id, token_version)
+    refresh = create_refresh_token_jwt(user_id, token_version)
+    return access, refresh
+
+
+def store_refresh_token(db: Session, user_id: int, refresh_token_jwt: str,
+                        device_info: str = "", ip_address: str = "") -> str:
+    """Store a refresh token hash in the database and return its ID."""
+    token_hash = hash_token(refresh_token_jwt)
+    # Decode to get expiry
+    try:
+        payload = jwt.decode(refresh_token_jwt, SECRET, algorithms=[ALGORITHM])
+        expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+    except Exception:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+
+    rt = RefreshToken(
+        user_id=user_id,
+        token_hash=token_hash,
+        expires_at=expires_at,
+        device_info=device_info,
+        ip_address=ip_address,
+        is_active=True,
+    )
+    db.add(rt)
+    db.commit()
+    db.refresh(rt)
+    return str(rt.id)
+
+
+def verify_refresh_token(db: Session, refresh_token_jwt: str) -> User | None:
+    """Verify a refresh token JWT and check it exists in the DB (not revoked)."""
+    try:
+        payload = jwt.decode(refresh_token_jwt, SECRET, algorithms=[ALGORITHM])
+        if payload.get("typ") != "refresh":
+            return None
+        user_id = int(payload["sub"])
+        token_version = int(payload.get("ver", 1))
+    except Exception:
+        return None
+
+    # Check hash exists in DB and is active
+    token_hash = hash_token(refresh_token_jwt)
+    rt = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == token_hash, RefreshToken.is_active == True)
+        .first()
+    )
+    if not rt:
+        return None
+    if rt.expires_at < datetime.now(timezone.utc):
+        rt.is_active = False
+        db.commit()
+        return None
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or user.is_deleted or not user.is_active:
+        return None
+    if (user.token_version or 1) != token_version:
+        # Token version changed (password change / logout) - invalidate
+        rt.is_active = False
+        db.commit()
+        return None
+    return user
+
+
+def revoke_all_refresh_tokens(db: Session, user_id: int):
+    """Revoke all refresh tokens for a user (logout everywhere / password change)."""
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user_id, RefreshToken.is_active == True
+    ).update({RefreshToken.is_active: False, "revoked_at": datetime.now(timezone.utc)})
+    db.commit()
+
+
+def revoke_refresh_token(db: Session, refresh_token_jwt: str):
+    """Revoke a single refresh token (logout)."""
+    token_hash = hash_token(refresh_token_jwt)
+    db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).update(
+        {RefreshToken.is_active: False, "revoked_at": datetime.now(timezone.utc)}
+    )
+    db.commit()
+
+
+def create_token(user_id: int, token_version: int = 1) -> str:
+    """Legacy create_token - now returns short-lived access token (15 min)."""
+    return create_access_token(user_id, token_version)
+
+
 def rotate_token(user: User, db: Session) -> tuple[str, str]:
     """Rotate both access and refresh tokens, bumping token_version to
     invalidate all previously issued tokens for this user."""
     user.token_version = (user.token_version or 1) + 1
+    # Revoke all existing refresh tokens
+    revoke_all_refresh_tokens(db, user.id)
     db.commit()
-    access = create_token(user.id, user.token_version)
-    refresh = create_refresh_token(user.id, user.token_version)
+    access = create_access_token(user.id, user.token_version)
+    refresh = create_refresh_token_jwt(user.id, user.token_version)
+    store_refresh_token(db, user.id, refresh)
     return access, refresh
 
 
