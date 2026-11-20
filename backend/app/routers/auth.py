@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
@@ -143,7 +143,7 @@ def _reset_failed_login(db: Session, user: User):
 
 
 class SignupIn(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     device_info: str = ""
 
@@ -154,13 +154,13 @@ class GoogleAuthIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     device_info: str = ""
 
 
 class EmailCheckIn(BaseModel):
-    email: EmailStr
+    email: str
 
 
 class AdminLoginIn(BaseModel):
