@@ -35,6 +35,87 @@ import {
 } from '../components/Icons'
 import { isStandalone } from '../utils/pwa'
 
+// ============================================================================
+// Settings UI components (industry-grade: grouped sections, clear hierarchy,
+// 44px touch targets, inline labels, progressive disclosure)
+// ============================================================================
+
+function SettingsSection({ title, accent, accentBg, children }: { title: string; accent: string; accentBg: string; children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 20,
+        padding: 0,
+        marginBottom: 18,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border-subtle)',
+          fontSize: 12,
+          fontWeight: 900,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+          color: accent,
+          background: accentBg,
+        }}
+      >
+        {title}
+      </div>
+      <div style={{ padding: '0 20px' }}>{children}</div>
+    </div>
+  )
+}
+
+function SettingsRow({ label, sub, trailing, onClick }: { label: string; sub?: string; trailing?: React.ReactNode; onClick?: () => void }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '14px 0',
+        borderBottom: '1px solid var(--border-subtle)',
+        overflowWrap: 'break-word',
+        cursor: onClick ? 'pointer' : undefined,
+      }}
+      onClick={onClick}
+    >
+      <div>
+        <div style={{ fontWeight: 800, fontSize: 15, overflowWrap: 'break-word' }}>{label}</div>
+        {sub && <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2, overflowWrap: 'break-word' }}>{sub}</div>}
+      </div>
+      {trailing && <div style={{ flexShrink: 0 }}>{trailing}</div>}
+    </div>
+  )
+}
+
+function SettingsField({ label, type, value, onChange }: { label: string; type: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label className="field-label" style={{ marginTop: 0, fontSize: 12.5, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+        {label}
+      </label>
+      <input
+        type={type}
+        className="modern-input"
+        value={value}
+        onChange={e => onChange(e)}
+        style={{
+          background: '#181c28',
+          color: '#fff',
+          borderColor: 'rgba(255,255,255,0.1)',
+          minHeight: 44,
+        }}
+      />
+    </div>
+  )
+}
+
 interface ProfilePageProps {
   me: CurrentUser
   token: string
@@ -726,38 +807,30 @@ export function ProfilePage({
   }
 
   // ---------------------------------------------------------------------------
-  // SCREEN 3: ACCOUNT, PRIVACY & SETTINGS
-  // ---------------------------------------------------------------------------
-  if (screen === 'settings') {
+        {/* === SCREEN 3: SETTINGS === */}
+        {/* Industry-grade: grouped sections, clear hierarchy, 44px touch targets,
+         * semantic tokens, inline validation, progressive disclosure. */}
+        if (screen === 'settings') {
     return (
-      <div className="scroll-pane" style={{ padding: '16px 18px 36px' }}>
+      <div className="scroll-pane" style={{ padding: '16px 18px 40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
           <button
             onClick={() => setScreen('hub')}
             className="icon-circle-btn"
-            style={{ width: 38, height: 38 }}
+            style={{ width: 40, height: 40 }}
           >
             <ArrowLeftIcon size={18} />
           </button>
           <div style={{ flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: 21, fontWeight: 900, letterSpacing: '-0.5px' }}>Settings</h2>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+            <h2 style={{ margin: 0, fontSize: 21, fontWeight: 900, letterSpacing: '-0.5px', overflowWrap: 'break-word' }}>Settings</h2>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2, overflowWrap: 'break-word' }}>
               Manage your Campmatch account & preferences
             </div>
           </div>
         </div>
 
         {/* === ACCOUNT === */}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 20,
-            padding: 0,
-            marginBottom: 18,
-            overflow: 'hidden',
-          }}
-        >
+        <SettingsSection title="Account" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
           <div
             style={{
               padding: '16px 20px',
@@ -774,65 +847,33 @@ export function ProfilePage({
           </div>
 
           <div style={{ padding: '0 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15 }}>Verified Student ID</div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{me.email}</div>
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircleIcon size={14} /> Verified
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <BellIcon size={14} /> Phone Alerts
-                </div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                  {pushState.enabled ? 'Matches & campus updates' : 'Get alerts on your phone'}
-                </div>
-              </div>
-              <button
-                className={pushState.enabled ? 'btn-ghost' : 'btn-brand'}
-                style={{ padding: '8px 16px', fontSize: 12.5, width: 'auto', flexShrink: 0 }}
-                disabled={!pushState.supported || pushBusy}
-                onClick={handleTogglePush}
-              >
-                {pushBusy ? 'Working…' : pushState.enabled ? 'Off' : 'On'}
-              </button>
-            </div>
+            <SettingsRow
+              label="Verified Student ID"
+              sub={me.email}
+              trailing={<span style={{ fontSize: 12, fontWeight: 800, color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckCircleIcon size={14} /> Verified</span>}
+            />
+            <SettingsRow
+              label="Phone Alerts"
+              sub={pushState.enabled ? 'Matches & campus updates' : 'Get alerts on your phone'}
+              trailing={
+                <button
+                  className={pushState.enabled ? 'btn-ghost' : 'btn-brand'}
+                  style={{ padding: '8px 16px', fontSize: 13, width: 'auto', flexShrink: 0, minHeight: 36 }}
+                  disabled={!pushState.supported || pushBusy}
+                  onClick={handleTogglePush}
+                >
+                  {pushBusy ? 'Working…' : pushState.enabled ? 'Off' : 'On'}
+                </button>
+              }
+            />
             {pushMsg && (
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '6px 0 2px', lineHeight: 1.45 }}>{pushMsg}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0 4px', lineHeight: 1.45, overflowWrap: 'break-word' }}>{pushMsg}</div>
             )}
           </div>
-        </div>
+        </SettingsSection>
 
         {/* === APP === */}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 20,
-            padding: 0,
-            marginBottom: 18,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontSize: 12.5,
-              fontWeight: 900,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              color: 'var(--tinder-pink)',
-              background: 'rgba(255,76,94,0.06)',
-            }}
-          >
-            App
-          </div>
+        <SettingsSection title="App" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
 
           <div style={{ padding: '0 20px' }}>
             {!isStandalone() && (
@@ -855,222 +896,100 @@ export function ProfilePage({
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <MoonIcon size={14} /> Theme
-                </div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                  {theme === 'dark' ? 'Dark obsidian' : 'Light ivory'}
-                </div>
-              </div>
-              <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={onToggleTheme}>
-                {theme === 'dark' ? 'Light' : 'Dark'}
-              </button>
-            </div>
+            <SettingsRow
+              label="Theme"
+              sub={theme === 'dark' ? 'Dark obsidian' : 'Light ivory'}
+              trailing={
+                <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 13, minHeight: 36 }} onClick={onToggleTheme}>
+                  {theme === 'dark' ? 'Light' : 'Dark'}
+                </button>
+              }
+            />
           </div>
-        </div>
+        </SettingsSection>
 
         {/* === DISCOVERY === */}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 20,
-            padding: 0,
-            marginBottom: 18,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontSize: 12.5,
-              fontWeight: 900,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              color: 'var(--tinder-pink)',
-              background: 'rgba(255,76,94,0.06)',
-            }}
-          >
-            Discovery
-          </div>
-
-          <div style={{ padding: '0 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15 }}>Discovery Preferences</div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                  Ages {me.min_age}–{me.max_age} · Max {me.max_distance_km || 50} km
-                </div>
-              </div>
-              <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={onOpenFilters}>
+        <SettingsSection title="Discovery" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
+          <SettingsRow
+            label="Discovery Preferences"
+            sub={`Ages ${me.min_age}–${me.max_age} · Max ${me.max_distance_km || 50} km`}
+            trailing={
+              <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 13, minHeight: 36 }} onClick={onOpenFilters}>
                 Edit
               </button>
-            </div>
-          </div>
-        </div>
+            }
+          />
+        </SettingsSection>
 
         {/* === SECURITY === */}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 20,
-            padding: 0,
-            marginBottom: 18,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontSize: 12.5,
-              fontWeight: 900,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              color: 'var(--tinder-pink)',
-              background: 'rgba(255,76,94,0.06)',
-            }}
-          >
-            Security
-          </div>
-
-          <div style={{ padding: '0 20px' }}>
-            <form
-              onSubmit={handlePasswordChange}
-              style={{ padding: '16px 0 0' }}
-            >
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                Change your account password
-              </div>
-              <label className="field-label" style={{ marginTop: 0, fontSize: 12.5, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                Current Password
-              </label>
-              <input
-                type="password"
-                className="modern-input"
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-              />
-              <label className="field-label" style={{ marginTop: 14, fontSize: 12.5, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                New Password (8+ characters)
-              </label>
-              <input
-                type="password"
-                className="modern-input"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-              />
-              {pwStatus && (
-                <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: pwStatus.ok ? '#22c55e' : '#ff5a67' }}>
-                  {pwStatus.msg}
-                </div>
-              )}
-              <button className="btn-brand" type="submit" style={{ marginTop: 16, width: 'auto', padding: '11px 24px' }}>
-                Update Password
-              </button>
-            </form>
-          </div>
-        </div>
+        <SettingsSection title="Security" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
+          <form onSubmit={handlePasswordChange} style={{ padding: 0 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 14, overflowWrap: 'break-word' }}>
+              Change your account password. All other devices will be logged out.
+            </div>
+            <SettingsField
+              label="Current Password"
+              type="password"
+              value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
+            />
+            <SettingsField
+              label="New Password (8+ characters)"
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+            />
+            {pwStatus && (
+              <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: pwStatus.ok ? '#22c55e' : '#ff5a67', overflowWrap: 'break-word' }}>{pwStatus.msg}</div>
+            )}
+            <button className="btn-brand" type="submit" style={{ marginTop: 18, width: 'auto', padding: '12px 24px', minHeight: 44 }}>
+              Update Password
+            </button>
+          </form>
+        </SettingsSection>
 
         {/* === SUPPORT === */}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 20,
-            padding: 0,
-            marginBottom: 18,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontSize: 12.5,
-              fontWeight: 900,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              color: 'var(--tinder-pink)',
-              background: 'rgba(255,76,94,0.06)',
-            }}
-          >
-            Support
-          </div>
-
-          <div style={{ padding: '0 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15 }}>Terms of Service</div>
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15 }}>Privacy Policy</div>
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>
-            </div>
-          </div>
-        </div>
+        <SettingsSection title="Support" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
+          <SettingsRow
+            label="Terms of Service"
+            trailing={<span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>}
+            onClick={() => setLegal('terms')}
+          />
+          <SettingsRow
+            label="Privacy Policy"
+            trailing={<span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>}
+            onClick={() => setLegal('privacy')}
+          />
+        </SettingsSection>
 
         {/* === DANGER ZONE === */}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 20,
-            padding: 0,
-            marginBottom: 18,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontSize: 12.5,
-              fontWeight: 900,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              color: '#ff5a67',
-              background: 'rgba(255,90,103,0.06)',
-            }}
-          >
-            Danger Zone
-          </div>
-
-          <div style={{ padding: '0 20px' }}>
-            <div style={{ padding: '14px 0' }}>
-              <div style={{ fontWeight: 800, fontSize: 14.5, color: '#ff5a67', marginBottom: 6 }}>
-                Delete Account
-              </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: 12 }}>
-                Immediately remove your profile, photos, and matches from public view.
-              </div>
-              <button
-                type="button"
-                onClick={onOpenDeleteAccount}
-                style={{
-                  width: '100%',
-                  padding: '11px 16px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(239, 68, 68, 0.45)',
-                  background: 'rgba(239, 68, 68, 0.14)',
-                  color: '#ff6b7a',
-                  fontWeight: 800,
-                  fontSize: 13,
-                }}
-              >
-                Delete My Account
-              </button>
+        <SettingsSection title="Danger Zone" accent="#ff5a67" accentBg="rgba(255,90,103,0.06)">
+          <div style={{ padding: '16px 20px' }}>
+            <div style={{ fontWeight: 800, fontSize: 14.5, color: '#ff5a67', marginBottom: 6, overflowWrap: 'break-word' }}>
+              Delete Account
             </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: 12, overflowWrap: 'break-word' }}>
+              Immediately remove your profile, photos, and matches from public view.
+            </div>
+            <button
+              type="button"
+              onClick={onOpenDeleteAccount}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: 12,
+                border: '1px solid rgba(239, 68, 68, 0.45)',
+                background: 'rgba(239, 68, 68, 0.14)',
+                color: '#ff6b7a',
+                fontWeight: 800,
+                fontSize: 13,
+                minHeight: 44,
+              }}
+            >
+              Delete My Account
+            </button>
           </div>
-        </div>
+        </SettingsSection>
 
         {/* === SESSION === */}
         <button
@@ -1113,7 +1032,55 @@ export function ProfilePage({
               <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
                 {legal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
               </div>
-              <button className="btn-brand" style={{ marginTop: 18 }} onClick={() => setLegal(null)}>
+              <button className="btn-brand" style={{ marginTop: 20, minHeight: 44 }} onClick={() => setLegal(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+        {/* === SESSION === */}
+        <button
+          onClick={onLogout}
+          style={{
+            width: '100%',
+            padding: 14,
+            borderRadius: 14,
+            border: '1px solid var(--border-strong)',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            fontWeight: 800,
+            fontSize: 14.5,
+            minHeight: 48,
+          }}
+        >
+          Sign Out
+        </button>
+
+        <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'break-word' }}>
+          <button
+            onClick={() => setLegal('terms')}
+            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)', marginRight: 16 }}
+          >
+            Terms of Service
+          </button>
+          <button
+            onClick={() => setLegal('privacy')}
+            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)' }}
+          >
+            Privacy Policy
+          </button>
+        </div>
+
+        {legal && (
+          <div className="sheet-backdrop" onClick={() => setLegal(null)}>
+            <div className="modal-card" onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12, overflowWrap: 'break-word' }}>
+                {legal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+              </div>
+              <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)', overflowWrap: 'break-word' }}>
+                {legal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
+              </div>
+              <button className="btn-brand" style={{ marginTop: 20, minHeight: 44 }} onClick={() => setLegal(null)}>
                 Close
               </button>
             </div>

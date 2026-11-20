@@ -117,7 +117,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             shape: 'pill',
             logo_alignment: 'left',
             text: 'continue_with',
-            width: 336,
+            width: '100%',
           })
         }
         setGoogleStatus('ready')
@@ -140,7 +140,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     setErr('')
     setLoading(true)
     try {
-      // First try admin credentials — if they match, go straight to the admin panel.
       const adminRes = await fetch('/api/admin-auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,7 +150,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         onAuth(d.access_token || d.token, true)
         return
       }
-      // Otherwise fall through to student login.
       const r = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -187,7 +185,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         alignItems: 'center',
         background:
           'radial-gradient(circle at 18% 18%, rgba(255, 76, 94, 0.2), transparent 44%), radial-gradient(circle at 82% 82%, rgba(255, 170, 0, 0.14), transparent 44%), #08090d',
-        padding: 'calc(18px + env(safe-area-inset-top, 0px)) 18px calc(40px + env(safe-area-inset-bottom, 0px))',
+        padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px))',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         position: 'relative',
@@ -197,8 +195,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       {banner && (
         <div
           style={{
-            maxWidth: 920,
             width: '100%',
+            maxWidth: 1000,
             marginBottom: 16,
             padding: '10px 16px',
             borderRadius: 12,
@@ -208,33 +206,34 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             fontSize: 13,
             fontWeight: 600,
             textAlign: 'center',
-            flexShrink: 0,
+            overflowWrap: 'break-word',
           }}
         >
           {banner}
         </div>
       )}
 
-      <div className="auth-grid stagger-child" style={{ width: '100%', maxWidth: 460, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+      <div className="auth-grid stagger-child" style={{ width: '100%', maxWidth: 440, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         <div className="hero-glow" />
         <div className="auth-hero-copy text-reveal" style={{ color: '#fff', padding: '8px 4px', position: 'relative', zIndex: 1 }}>
-          <div style={{ marginBottom: 22 }}>
-            <CampmatchLogo iconSize={46} fontSize={36} gap={13} />
+          <div style={{ marginBottom: 20 }}>
+            <CampmatchLogo iconSize={40} fontSize={32} gap={12} />
           </div>
 
-          <span style={{ display: 'block', animationDelay: '0.05s', fontSize: 20, fontWeight: 800 }}>
+          <span style={{ display: 'block', animationDelay: '0.05s', fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', overflowWrap: 'break-word' }}>
             Meet students from
           </span>
-          <br />
           <span
             style={{
+              display: 'block',
               background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              display: 'block',
               animationDelay: '0.12s',
               fontSize: 20,
               fontWeight: 800,
+              letterSpacing: '-0.5px',
+              overflowWrap: 'break-word',
             }}
           >
             your campus.
@@ -243,13 +242,11 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           <p
             style={{
               color: '#9ba6bc',
-              fontSize: 17,
+              fontSize: 16,
               lineHeight: 1.7,
-              margin: '0 0 22px',
-              maxWidth: '100%',
+              margin: '16px 0 24px',
               width: '100%',
               overflowWrap: 'break-word',
-              wordWrap: 'break-word',
               animationDelay: '0.19s',
             }}
           >
@@ -257,17 +254,17 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             friends, and study partners.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
             {[
               'Verified students only — no fakes',
               'Dates, BFFs and study partners',
               'Private, safe and on your campus',
             ].map((line, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 16, color: '#e8ecf4', width: '100%', overflowWrap: 'break-word', animationDelay: `${0.26 + i * 0.08}s` }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, color: '#e8ecf4', width: '100%', overflowWrap: 'break-word', animationDelay: `${0.26 + i * 0.08}s` }}>
                 <span
                   style={{
-                    width: 22,
-                    height: 22,
+                    width: 20,
+                    height: 20,
                     borderRadius: '50%',
                     background: 'rgba(34,197,94,0.16)',
                     color: '#22c55e',
@@ -277,7 +274,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                     flexShrink: 0,
                   }}
                 >
-                  <CheckIcon size={13} />
+                  <CheckIcon size={12} />
                 </span>
                 {line}
               </div>
@@ -289,7 +286,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: 700,
               color: 'rgba(255,255,255,0.62)',
               animationDelay: '0.52s',
@@ -297,7 +294,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               whiteSpace: 'normal',
             }}
           >
-            <VerifiedBadge size={16} />
+            <VerifiedBadge size={14} />
             {schools.length > 1 ? `${schools.length} universities on board` : 'University students only'}
           </div>
         </div>
@@ -306,12 +303,13 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           style={{
             background: '#12151f',
             border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 26,
-            padding: '28px 26px',
-            boxShadow: '0 28px 70px rgba(0,0,0,0.65)',
+            borderRadius: 24,
+            padding: '24px 20px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.55)',
             color: '#fff',
             position: 'relative',
             zIndex: 1,
+            width: '100%',
           }}
           className="card-hover"
         >
@@ -326,6 +324,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 color: '#ffd84d',
                 fontSize: 12.5,
                 fontWeight: 600,
+                overflowWrap: 'break-word',
               }}
             >
               Scheduled maintenance is active. Existing students can still sign in.
@@ -333,10 +332,10 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           )}
 
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.4px', width: '100%', overflowWrap: 'break-word' }}>
+            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.4px', width: '100%', overflowWrap: 'break-word' }}>
               Continue with Google
             </div>
-            <div style={{ fontSize: 14, color: '#8e98ad', marginTop: 5, lineHeight: 1.55, width: '100%', overflowWrap: 'break-word' }}>
+            <div style={{ fontSize: 14, color: '#8e98ad', marginTop: 6, lineHeight: 1.55, width: '100%', overflowWrap: 'break-word' }}>
               Use your school-issued Google account. Only {domainHint} accounts are accepted.
             </div>
           </div>
@@ -346,7 +345,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           {googleStatus === 'unavailable' && (
             <div
               style={{
-                marginTop: 8,
+                marginTop: 10,
                 padding: '12px 14px',
                 borderRadius: 14,
                 background: 'rgba(56, 189, 248, 0.08)',
@@ -355,6 +354,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 fontSize: 12.5,
                 lineHeight: 1.55,
                 textAlign: 'center',
+                overflowWrap: 'break-word',
               }}
             >
               Google sign-in is not configured yet. Add a Google OAuth Client ID on the server
@@ -368,14 +368,14 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 marginTop: 12,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
                 gap: 6,
-                fontSize: 11.5,
+                fontSize: 12,
                 color: '#6f7a90',
                 textAlign: 'center',
+                overflowWrap: 'break-word',
               }}
             >
-              <ShieldIcon size={13} /> Non-school Gmail accounts are blocked automatically.
+              <ShieldIcon size={12} /> Non-school Gmail accounts are blocked automatically.
             </div>
           )}
 
@@ -383,7 +383,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             <div
               style={{
                 marginTop: 14,
-                padding: '11px 14px',
+                padding: '12px 14px',
                 borderRadius: 12,
                 background: 'rgba(255, 68, 88, 0.14)',
                 border: '1px solid rgba(255, 68, 88, 0.35)',
@@ -391,6 +391,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 fontSize: 13,
                 fontWeight: 600,
                 lineHeight: 1.5,
+                overflowWrap: 'break-word',
               }}
             >
               {err}
@@ -404,14 +405,14 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               setErr('')
             }}
             style={{
-              marginTop: 18,
+              marginTop: 16,
               width: '100%',
-              padding: '9px 12px',
+              padding: '10px 16px',
               borderRadius: 12,
               border: 'none',
               background: 'transparent',
               color: '#8e98ad',
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
@@ -425,31 +426,42 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           {showEmailForm && (
             <>
               <form onSubmit={submit}>
-                <label className="field-label" style={{ color: '#9aa4b8', marginTop: 0 }}>
+                <label className="field-label" style={{ color: '#9aa4b8', marginTop: 0, fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
                   Student Email
                 </label>
                 <input
                   type="email"
                   className="modern-input"
-                  style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)' }}
                   placeholder="you@university.edu.gh"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   autoComplete="email"
+                  style={{
+                    background: '#181c28',
+                    color: '#fff',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    minHeight: 44,
+                  }}
                 />
 
-                <label className="field-label" style={{ color: '#9aa4b8' }}>
+                <label className="field-label" style={{ color: '#9aa4b8', marginTop: 16, fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
                   Password
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', minHeight: 44 }}>
                   <input
                     type={showPw ? 'text' : 'password'}
                     className="modern-input"
-                    style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)', paddingRight: 64 }}
                     placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     autoComplete="current-password"
+                    style={{
+                      background: '#181c28',
+                      color: '#fff',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      paddingRight: 72,
+                      minHeight: 44,
+                    }}
                   />
                   <button
                     type="button"
@@ -462,22 +474,24 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                       border: 'none',
                       background: 'none',
                       color: '#8e98ad',
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: 700,
+                      minHeight: 36,
+                      minWidth: 36,
                     }}
                   >
-                    {showPw ? 'HIDE' : 'SHOW'}
+                    {showPw ? 'Hide' : 'Show'}
                   </button>
                 </div>
 
-                <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 18 }}>
-                  {loading ? 'Signing in...' : 'Sign In'}
+                <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 18, minHeight: 48 }}>
+                  {loading ? 'Signing in…' : 'Sign In'}
                 </button>
               </form>
             </>
           )}
 
-          <div style={{ marginTop: 18, textAlign: 'center', fontSize: 12, color: '#69748c', lineHeight: 1.5 }}>
+          <div style={{ marginTop: 18, textAlign: 'center', fontSize: 12, color: '#69748c', lineHeight: 1.5, overflowWrap: 'break-word' }}>
             By continuing, you agree to our{' '}
             <button
               type="button"
@@ -502,13 +516,13 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       {legalModal && (
         <div className="sheet-backdrop" onClick={() => setLegalModal(null)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12 }}>
+            <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12, overflowWrap: 'break-word' }}>
               {legalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
             </div>
-            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)', overflowWrap: 'break-word' }}>
               {legalModal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
             </div>
-            <button className="btn-brand" style={{ marginTop: 20 }} onClick={() => setLegalModal(null)}>
+            <button className="btn-brand" style={{ marginTop: 20, minHeight: 44 }} onClick={() => setLegalModal(null)}>
               Close
             </button>
           </div>
