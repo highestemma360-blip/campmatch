@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from . import models, database
 from .database import SessionLocal, UPLOAD_DIR, get_db
-from .models import User, Match, Setting
+from .models import User, Match, Setting, hash_password
 from .security import (
     bootstrap_defaults,
     decode_token,

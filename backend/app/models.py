@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from sqlalchemy import (
     Column,
@@ -11,6 +12,29 @@ from sqlalchemy import (
     Float,
 )
 from .database import Base
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    _is_prod = bool(os.environ.get("RENDER")) or os.environ.get("ENV", "").lower() == "production"
+    if _is_prod:
+        raise RuntimeError("SECRET_KEY must be set in Render environment variables.")
+    SECRET_KEY = "campmatch-dev-secret-change-me"
+ALGORITHM = "HS256"
+
+
+def hash_password(password: str) -> str:
+    import bcrypt
+    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt(rounds=10)).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    import bcrypt
+    if not password or not password_hash:
+        return False
+    try:
+        return bcrypt.checkpw(password.encode("utf-8")[:72], password_hash.encode("utf-8"))
+    except Exception:
+        return False
 
 
 class User(Base):
@@ -53,6 +77,7 @@ class User(Base):
     locked_reason = Column(String(255), default="")
 
     is_premium = Column(Boolean, default=False)
+    is_verified = Column(Boolean, default=False)
 
     # JWT rotation: incremented on password change / security events
     token_version = Column(Integer, default=1)
