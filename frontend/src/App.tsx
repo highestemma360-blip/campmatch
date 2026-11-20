@@ -964,8 +964,13 @@ function StudentApp({
     return (
       <AuthPage
         onAuth={t => {
-          setToken(t)
-          localStorage.setItem('token', t)
+          const accessToken = typeof t === 'string' ? t : t.access_token
+          const refreshToken = typeof t === 'string' ? undefined : t.refresh_token
+          setToken(accessToken)
+          localStorage.setItem('token', accessToken)
+          if (refreshToken) {
+            localStorage.setItem('refresh_token', refreshToken)
+          }
         }}
       />
     )
@@ -1538,14 +1543,19 @@ export default function App() {
   return (
     <AuthPage
       onAuth={(t, isAdmin) => {
+        const accessToken = typeof t === 'string' ? t : t.access_token
+        const refreshToken = typeof t === 'string' ? undefined : t.refresh_token
         if (isAdmin) {
-          setAdminToken(t)
-          localStorage.setItem('campmatch_admin_token', t)
+          setAdminToken(accessToken)
+          localStorage.setItem('campmatch_admin_token', accessToken)
           localStorage.removeItem('token')
           setToken('')
         } else {
-          setToken(t)
-          safeSetItem('token', t)
+          setToken(accessToken)
+          safeSetItem('token', accessToken)
+          if (refreshToken) {
+            safeSetItem('refresh_token', refreshToken)
+          }
           localStorage.removeItem('campmatch_admin_token')
           setAdminToken('')
         }

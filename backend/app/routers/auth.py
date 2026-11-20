@@ -445,8 +445,13 @@ async def google_login(data: GoogleAuthIn, request: Request, db: Session = Depen
         db.commit()
 
     _record_login_log(db, request, email, user.id)
+    access, refresh = create_token_pair(user.id, user.token_version or 1)
+    store_refresh_token(db, user.id, refresh, ip_address=_client_ip(request))
     return {
-        "token": create_token(user.id, user.token_version or 1),
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "expires_in": 900,
         "user_id": user.id,
         "profile_complete": bool(user.profile_complete),
     }

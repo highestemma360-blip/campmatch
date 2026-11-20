@@ -3,7 +3,7 @@ import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon } from '../componen
 import { TERMS_SUMMARY, PRIVACY_SUMMARY } from '../constants'
 
 interface AuthPageProps {
-  onAuth: (token: string, isAdmin?: boolean) => void
+  onAuth: (token: string | { access_token: string; refresh_token?: string }, isAdmin?: boolean) => void
 }
 
 function loadGoogleScript(): Promise<void> {
@@ -100,7 +100,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 )
                 return
               }
-              authRef.current(d.token)
+              authRef.current(d.access_token || d.token)
             } catch {
               setErr('Unable to complete Google sign-in. Check your connection and try again.')
             } finally {
@@ -148,7 +148,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       })
       if (adminRes.ok) {
         const d = await adminRes.json()
-        onAuth(d.token, true)
+        onAuth(d.access_token || d.token, true)
         return
       }
       // Otherwise fall through to student login.
@@ -161,7 +161,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       if (!r.ok) {
         setErr(typeof d.detail === 'string' ? d.detail : 'Authentication failed.')
       } else {
-        onAuth(d.token)
+        onAuth(d.access_token || d.token)
       }
     } catch {
       setErr('Unable to reach server. Check your connection and try again.')
@@ -177,9 +177,11 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         height: 'auto',
         width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -187,7 +189,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           'radial-gradient(circle at 18% 18%, rgba(255, 76, 94, 0.2), transparent 44%), radial-gradient(circle at 82% 82%, rgba(255, 170, 0, 0.14), transparent 44%), #08090d',
         padding: 'calc(18px + env(safe-area-inset-top, 0px)) 18px calc(40px + env(safe-area-inset-bottom, 0px))',
         overflowY: 'auto',
-        overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
         position: 'relative',
         touchAction: 'manipulation',
