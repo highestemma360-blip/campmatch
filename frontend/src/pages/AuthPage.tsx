@@ -180,13 +180,13 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         width: '100%',
         maxWidth: '100vw',
         overflowX: 'hidden',
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         background:
-          'radial-gradient(circle at 18% 18%, rgba(255, 76, 94, 0.2), transparent 44%), radial-gradient(circle at 82% 82%, rgba(255, 170, 0, 0.14), transparent 44%), #08090d',
-        padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px))',
-        overflowY: 'auto',
+          'radial-gradient(circle at 18% 18%, rgba(255, 76, 94, 0.3), transparent 40%), radial-gradient(circle at 82% 82%, rgba(255, 170, 0, 0.2), transparent 40%), #0a0a0f',
+        padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(40px + env(safe-area-inset-bottom, 0px))',
         WebkitOverflowScrolling: 'touch',
         position: 'relative',
         touchAction: 'manipulation',
@@ -197,7 +197,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           style={{
             width: '100%',
             maxWidth: 1000,
-            marginBottom: 16,
+            marginBottom: 20,
             padding: '10px 16px',
             borderRadius: 12,
             background: 'rgba(245, 158, 11, 0.14)',
@@ -216,8 +216,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       <div className="auth-grid stagger-child" style={{ width: '100%', maxWidth: 440, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         <div className="hero-glow" />
         <div className="auth-hero-copy text-reveal" style={{ color: '#fff', padding: '8px 4px', position: 'relative', zIndex: 1 }}>
-          <div style={{ marginBottom: 20 }}>
-            <CampmatchLogo iconSize={40} fontSize={32} gap={12} />
+          <div style={{ marginBottom: 24 }}>
+            <CampmatchLogo iconSize={44} fontSize={34} gap={12} />
           </div>
 
           <span style={{ display: 'block', animationDelay: '0.05s', fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', overflowWrap: 'break-word' }}>
@@ -244,7 +244,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               color: '#9ba6bc',
               fontSize: 16,
               lineHeight: 1.7,
-              margin: '16px 0 24px',
+              margin: '18px 0 24px',
               width: '100%',
               overflowWrap: 'break-word',
               animationDelay: '0.19s',
@@ -254,7 +254,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             friends, and study partners.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
             {[
               'Verified students only — no fakes',
               'Dates, BFFs and study partners',
@@ -432,16 +432,11 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 <input
                   type="email"
                   className="modern-input"
+                  style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)', minHeight: 44 }}
                   placeholder="you@university.edu.gh"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   autoComplete="email"
-                  style={{
-                    background: '#181c28',
-                    color: '#fff',
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    minHeight: 44,
-                  }}
                 />
 
                 <label className="field-label" style={{ color: '#9aa4b8', marginTop: 16, fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
@@ -491,7 +486,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </>
           )}
 
-          <div style={{ marginTop: 18, textAlign: 'center', fontSize: 12, color: '#69748c', lineHeight: 1.5, overflowWrap: 'break-word' }}>
+          <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: '#69748c', lineHeight: 1.5, overflowWrap: 'break-word' }}>
             By continuing, you agree to our{' '}
             <button
               type="button"

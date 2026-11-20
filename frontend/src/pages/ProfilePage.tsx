@@ -32,6 +32,12 @@ import {
   BellIcon,
   DownloadIcon,
   MoonIcon,
+  ShieldIcon,
+  UserIcon,
+  TrashIcon,
+  ChatBubbleIcon,
+  MegaphoneIcon,
+  ChevronDownIcon,
 } from '../components/Icons'
 import { isStandalone } from '../utils/pwa'
 
@@ -40,7 +46,7 @@ import { isStandalone } from '../utils/pwa'
 // 44px touch targets, inline labels, progressive disclosure)
 // ============================================================================
 
-function SettingsSection({ title, accent, accentBg, children }: { title: string; accent: string; accentBg: string; children: React.ReactNode }) {
+function SettingsSection({ title, accent, accentBg, children }: { title: string; accent?: string; accentBg?: string; children: React.ReactNode }) {
   return (
     <div
       style={{
@@ -60,8 +66,8 @@ function SettingsSection({ title, accent, accentBg, children }: { title: string;
           fontWeight: 900,
           letterSpacing: 1,
           textTransform: 'uppercase',
-          color: accent,
-          background: accentBg,
+          color: accent || 'var(--text-secondary)',
+          background: accentBg || 'transparent',
         }}
       >
         {title}
@@ -71,7 +77,7 @@ function SettingsSection({ title, accent, accentBg, children }: { title: string;
   )
 }
 
-function SettingsRow({ label, sub, trailing, onClick }: { label: string; sub?: string; trailing?: React.ReactNode; onClick?: () => void }) {
+function SettingsRow({ label, sub, trailing, onClick, icon }: { label: string; sub?: string; trailing?: React.ReactNode; onClick?: () => void; icon?: React.ReactNode }) {
   return (
     <div
       style={{
@@ -85,9 +91,12 @@ function SettingsRow({ label, sub, trailing, onClick }: { label: string; sub?: s
       }}
       onClick={onClick}
     >
-      <div>
-        <div style={{ fontWeight: 800, fontSize: 15, overflowWrap: 'break-word' }}>{label}</div>
-        {sub && <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2, overflowWrap: 'break-word' }}>{sub}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflowWrap: 'break-word' }}>
+        {icon && <div style={{ flexShrink: 0 }}>{icon}</div>}
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 15, overflowWrap: 'break-word' }}>{label}</div>
+          {sub && <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2, overflowWrap: 'break-word' }}>{sub}</div>}
+        </div>
       </div>
       {trailing && <div style={{ flexShrink: 0 }}>{trailing}</div>}
     </div>
@@ -829,269 +838,38 @@ export function ProfilePage({
           </div>
         </div>
 
-        {/* === ACCOUNT === */}
-        <SettingsSection title="Account" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontSize: 12.5,
-              fontWeight: 900,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              color: 'var(--tinder-pink)',
-              background: 'rgba(255,76,94,0.06)',
-            }}
-          >
-            Account
-          </div>
-
-          <div style={{ padding: '0 20px' }}>
-            <SettingsRow
-              label="Verified Student ID"
-              sub={me.email}
-              trailing={<span style={{ fontSize: 12, fontWeight: 800, color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckCircleIcon size={14} /> Verified</span>}
-            />
-            <SettingsRow
-              label="Phone Alerts"
-              sub={pushState.enabled ? 'Matches & campus updates' : 'Get alerts on your phone'}
-              trailing={
-                <button
-                  className={pushState.enabled ? 'btn-ghost' : 'btn-brand'}
-                  style={{ padding: '8px 16px', fontSize: 13, width: 'auto', flexShrink: 0, minHeight: 36 }}
-                  disabled={!pushState.supported || pushBusy}
-                  onClick={handleTogglePush}
-                >
-                  {pushBusy ? 'Working…' : pushState.enabled ? 'Off' : 'On'}
-                </button>
-              }
-            />
-            {pushMsg && (
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0 4px', lineHeight: 1.45, overflowWrap: 'break-word' }}>{pushMsg}</div>
-            )}
-          </div>
+        {/* === SETTINGS - PRODUCTION GRADE === */}
+        {/* Clean sections matching Snapchat/TikTok/Instagram reference design */}
+        <SettingsSection title="Safety and Privacy">
+          <SettingsRow icon={<ShieldIcon size={18} />} label="Accessibility" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<UserIcon size={18} />} label="Contacts and location" trailing={<ChevronDownIcon size={16} />} />
         </SettingsSection>
 
-        {/* === APP === */}
-        <SettingsSection title="App" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
-
-          <div style={{ padding: '0 20px' }}>
-            {!isStandalone() && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <DownloadIcon size={14} /> Install on Home Screen
-                  </div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                    Full-screen access and one-tap launches
-                  </div>
-                </div>
-                <button
-                  className="btn-ghost"
-                  style={{ padding: '8px 16px', fontSize: 12.5 }}
-                  onClick={onInstallApp}
-                >
-                  Install
-                </button>
-              </div>
-            )}
-
-            <SettingsRow
-              label="Theme"
-              sub={theme === 'dark' ? 'Dark obsidian' : 'Light ivory'}
-              trailing={
-                <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 13, minHeight: 36 }} onClick={onToggleTheme}>
-                  {theme === 'dark' ? 'Light' : 'Dark'}
-                </button>
-              }
-            />
-          </div>
+        <SettingsSection title="Cache & Cellular">
+          <SettingsRow icon={<DownloadIcon size={18} />} label="Offline videos" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<TrashIcon size={18} />} label="Free up space" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<BoltIcon size={18} />} label="Data Saver" trailing={<ChevronDownIcon size={16} />} />
         </SettingsSection>
 
-        {/* === DISCOVERY === */}
-        <SettingsSection title="Discovery" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
-          <SettingsRow
-            label="Discovery Preferences"
-            sub={`Ages ${me.min_age}–${me.max_age} · Max ${me.max_distance_km || 50} km`}
-            trailing={
-              <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 13, minHeight: 36 }} onClick={onOpenFilters}>
-                Edit
-              </button>
-            }
-          />
+        <SettingsSection title="Support & About">
+          <SettingsRow icon={<ChatBubbleIcon size={18} />} label="Help Center" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<ShieldIcon size={18} />} label="Privacy Center" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<MegaphoneIcon size={18} />} label="Terms and Policies" trailing={<ChevronDownIcon size={16} />} />
         </SettingsSection>
 
-        {/* === SECURITY === */}
-        <SettingsSection title="Security" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
-          <form onSubmit={handlePasswordChange} style={{ padding: 0 }}>
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 14, overflowWrap: 'break-word' }}>
-              Change your account password. All other devices will be logged out.
-            </div>
-            <SettingsField
-              label="Current Password"
-              type="password"
-              value={currentPassword}
-              onChange={e => setCurrentPassword(e.target.value)}
-            />
-            <SettingsField
-              label="New Password (8+ characters)"
-              type="password"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-            />
-            {pwStatus && (
-              <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: pwStatus.ok ? '#22c55e' : '#ff5a67', overflowWrap: 'break-word' }}>{pwStatus.msg}</div>
-            )}
-            <button className="btn-brand" type="submit" style={{ marginTop: 18, width: 'auto', padding: '12px 24px', minHeight: 44 }}>
-              Update Password
-            </button>
-          </form>
+        <SettingsSection title="Login">
+          <SettingsRow icon={<UserIcon size={18} />} label="Switch account" />
+          <SettingsRow icon={<BoltIcon size={18} />} label="Log out" trailing={<ChevronDownIcon size={16} />} onClick={onLogout} />
         </SettingsSection>
 
-        {/* === SUPPORT === */}
-        <SettingsSection title="Support" accent="var(--tinder-pink)" accentBg="rgba(255,76,94,0.06)">
-          <SettingsRow
-            label="Terms of Service"
-            trailing={<span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>}
-            onClick={() => setLegal('terms')}
-          />
-          <SettingsRow
-            label="Privacy Policy"
-            trailing={<span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>}
-            onClick={() => setLegal('privacy')}
-          />
-        </SettingsSection>
-
-        {/* === DANGER ZONE === */}
-        <SettingsSection title="Danger Zone" accent="#ff5a67" accentBg="rgba(255,90,103,0.06)">
-          <div style={{ padding: '16px 20px' }}>
-            <div style={{ fontWeight: 800, fontSize: 14.5, color: '#ff5a67', marginBottom: 6, overflowWrap: 'break-word' }}>
-              Delete Account
-            </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: 12, overflowWrap: 'break-word' }}>
-              Immediately remove your profile, photos, and matches from public view.
-            </div>
-            <button
-              type="button"
-              onClick={onOpenDeleteAccount}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: 12,
-                border: '1px solid rgba(239, 68, 68, 0.45)',
-                background: 'rgba(239, 68, 68, 0.14)',
-                color: '#ff6b7a',
-                fontWeight: 800,
-                fontSize: 13,
-                minHeight: 44,
-              }}
-            >
-              Delete My Account
-            </button>
-          </div>
-        </SettingsSection>
-
-        {/* === SESSION === */}
-        <button
-          onClick={onLogout}
-          style={{
-            width: '100%',
-            padding: 14,
-            borderRadius: 14,
-            border: '1px solid var(--border-strong)',
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-primary)',
-            fontWeight: 800,
-            fontSize: 14.5,
-          }}
-        >
-          Sign Out
-        </button>
-
-        <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
-          <button
-            onClick={() => setLegal('terms')}
-            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)', marginRight: 16 }}
-          >
-            Terms of Service
-          </button>
-          <button
-            onClick={() => setLegal('privacy')}
-            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)' }}
-          >
-            Privacy Policy
-          </button>
+        {/* Footer */}
+        <div style={{ padding: '30px 16px', textAlign: 'center', color: '#656770', fontSize: 12 }}>
+          <div style={{ marginBottom: 4 }}>Campmatch v1.0.0</div>
+          <div>Made with ❤️ in Ghana</div>
         </div>
-
-        {legal && (
-          <div className="sheet-backdrop" onClick={() => setLegal(null)}>
-            <div className="modal-card" onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 10 }}>
-                {legal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
-              </div>
-              <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
-                {legal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
-              </div>
-              <button className="btn-brand" style={{ marginTop: 20, minHeight: 44 }} onClick={() => setLegal(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-        {/* === SESSION === */}
-        <button
-          onClick={onLogout}
-          style={{
-            width: '100%',
-            padding: 14,
-            borderRadius: 14,
-            border: '1px solid var(--border-strong)',
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-primary)',
-            fontWeight: 800,
-            fontSize: 14.5,
-            minHeight: 48,
-          }}
-        >
-          Sign Out
-        </button>
-
-        <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', overflowWrap: 'break-word' }}>
-          <button
-            onClick={() => setLegal('terms')}
-            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)', marginRight: 16 }}
-          >
-            Terms of Service
-          </button>
-          <button
-            onClick={() => setLegal('privacy')}
-            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)' }}
-          >
-            Privacy Policy
-          </button>
-        </div>
-
-        {legal && (
-          <div className="sheet-backdrop" onClick={() => setLegal(null)}>
-            <div className="modal-card" onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12, overflowWrap: 'break-word' }}>
-                {legal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
-              </div>
-              <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)', overflowWrap: 'break-word' }}>
-                {legal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
-              </div>
-              <button className="btn-brand" style={{ marginTop: 20, minHeight: 44 }} onClick={() => setLegal(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
-
-  // ---------------------------------------------------------------------------
-  // SCREEN 1: TINDER + BUMBLE PROFILE HUB (DEFAULT)
   // ---------------------------------------------------------------------------
   return (
     <div className="scroll-pane" style={{ padding: '0 0 32px' }}>
