@@ -11,6 +11,7 @@ import {
   CloseXIcon,
   VerifiedBadge,
 } from '../components/Icons'
+import { StoryRow, StoryCapture, StoryViewer } from '../components/StoryComponents'
 
 interface ExplorePageProps {
   token: string
@@ -47,6 +48,13 @@ export function ExplorePage({
   const isBoostedActive = me?.is_boosted && boostedUntil > Date.now()
   const [boostSecondsLeft, setBoostSecondsLeft] = useState(0)
 
+  // Stories state
+  const [stories, setStories] = useState<any[]>([])
+  const [showStoryViewer, setShowStoryViewer] = useState(false)
+  const [currentStory, setCurrentStory] = useState<any>(null)
+  const [showCreateStory, setShowCreateStory] = useState(false)
+  const [storiesLoading, setStoriesLoading] = useState(false)
+
   // Countdown timer for active spotlight boost
   useEffect(() => {
     if (!isBoostedActive) {
@@ -73,6 +81,10 @@ export function ExplorePage({
     loadRoomMembers(selectedRoom.id)
   }, [selectedRoom?.id])
 
+  useEffect(() => {
+    loadStories()
+  }, [])
+
   async function loadRoomMembers(vibeId: string) {
     setLoadingRoom(true)
     try {
@@ -85,6 +97,49 @@ export function ExplorePage({
       }
     } finally {
       setLoadingRoom(false)
+    }
+  }
+
+  async function loadStories() {
+    setStoriesLoading(true)
+    try {
+      const r = await fetch('/api/stories/feed', {
+        headers: { Authorization: 'Bearer ' + token },
+      })
+      if (r.ok) {
+        const d = await r.json()
+        setStories(d || [])
+      }
+    } catch {
+      // Ignore errors
+    } finally {
+      setStoriesLoading(false)
+    }
+  }
+
+  async function handleViewStory(story: any) {
+    setCurrentStory(story)
+    setShowStoryViewer(true)
+    // Mark as viewed
+    try {
+      await fetch(`/api/stories/${story.id}/view`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+      })
+    } catch {
+      // Ignore
+    }
+  }
+
+  async function handleDeleteStory(storyId: string) {
+    try {
+      await fetch(`/api/stories/${storyId}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token },
+      })
+      setStories(prev => prev.filter((s: any) => s.id !== storyId))
+    } catch {
+      // Ignore
     }
   }
 
@@ -200,9 +255,55 @@ export function ExplorePage({
               }}
             >
               Swipe {unswipedCount} {unswipedCount === 1 ? 'Profile' : 'Profiles'} in Card Stack
-            </button>
-          )}
-        </div>
+              </button>
+            )}
+          </div>
+
+          {/* Stories Row */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                Stories
+              </div>
+              {me && me.photo_urls?.[0] && (
+                <button
+                  onClick={() => setShowCreateStory(true)}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 50,
+                    border: '3px solid var(--tinder-pink)',
+                    background: 'var(--bg-elevated)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <img
+                    src={me.photo_urls[0]}
+                    alt=""
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 50,
+                      objectFit: 'cover',
+                      border: '2px solid #fff',
+                    }}
+                  />
+                  <span style={{ position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 50, background: 'var(--tinder-pink)', border: '2px solid var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 900, color: '#fff' }}>
+                    +
+                  </span>
+                </button>
+              )}
+            </div>
+            <StoryRow
+              stories={stories}
+              onView={handleViewStory}
+              onDelete={handleDeleteStory}
+              viewerId={me?.id?.toString() || ''}
+            />
+          </div>
 
         {/* Opt-in visibility notice when user hasn't joined */}
         {!isJoined && (
