@@ -21,7 +21,7 @@ interface SwipeDeckProps {
   onClearVibe?: () => void
   canRewind: boolean
   isBoosted: boolean
-  onSwipe: (liked: boolean, superLike?: boolean) => void
+  onSwipe: (liked: boolean) => void
   onRewind: () => void
   onBoost: () => void
   onInspect: (card: ProfileCard) => void
