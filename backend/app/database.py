@@ -261,7 +261,10 @@ def run_migrations():
             existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
             for col_name, col_def in cols:
                 if col_name not in existing_cols:
-                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}"))
+                    try:
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}"))
+                    except Exception:
+                        pass  # a single bad migration must not crash the API
 
         # Ensure performance indexes exist on hot query columns
         index_defs = {

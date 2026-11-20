@@ -80,7 +80,6 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
 
     # JWT rotation: incremented on password change / security events
-    token_version = Column(Integer, default=1)
     premium_until = Column(DateTime, nullable=True)
     boosted_until = Column(DateTime, nullable=True)
 

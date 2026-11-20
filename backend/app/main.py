@@ -56,34 +56,40 @@ if _missing:
     print(f"[campmatch] WARNING: missing secrets: {', '.join(_missing)}")
 
 models.Base.metadata.create_all(bind=database.engine)
-database.run_migrations()
+try:
+    database.run_migrations()
+except Exception as exc:  # never let a migration crash the API
+    print(f"[campmatch] migration warning: {exc}")
 
 with SessionLocal() as _startup_db:
-    bootstrap_defaults(_startup_db)
-    seed_default_rooms(_startup_db)
-    # Initialize feature flags
-    for flag, default in DEFAULT_FLAGS.items():
-        existing = _startup_db.query(Setting).filter(Setting.key == f"flag_{flag}").first()
-        if not existing:
-            set_setting(_startup_db, f"flag_{flag}", "true" if default else "false")
+    try:
+        bootstrap_defaults(_startup_db)
+        seed_default_rooms(_startup_db)
+        # Initialize feature flags
+        for flag, default in DEFAULT_FLAGS.items():
+            existing = _startup_db.query(Setting).filter(Setting.key == f"flag_{flag}").first()
+            if not existing:
+                set_setting(_startup_db, f"flag_{flag}", "true" if default else "false")
 
-    # Create test student account for demo/testing
-    test_email = "student@st.umat.edu.gh"
-    existing_test = _startup_db.query(User).filter(User.email == test_email).first()
-    if not existing_test:
-        test_user = User(
-            email=test_email,
-            original_email=test_email,
-            password_hash=hash_password("Test1234!"),
-            name="Test Student",
-            school="UMaT",
-            is_active=True,
-            is_verified=True,
-            token_version=1,
-        )
-        _startup_db.add(test_user)
-        _startup_db.commit()
-        print(f"[campmatch] Test account created: {test_email} / Test1234!")
+        # Create test student account for demo/testing
+        test_email = "student@st.umat.edu.gh"
+        existing_test = _startup_db.query(User).filter(User.email == test_email).first()
+        if not existing_test:
+            test_user = User(
+                email=test_email,
+                original_email=test_email,
+                password_hash=hash_password("Test1234!"),
+                name="Test Student",
+                school="UMaT",
+                is_active=True,
+                is_verified=True,
+                token_version=1,
+            )
+            _startup_db.add(test_user)
+            _startup_db.commit()
+            print(f"[campmatch] Test account created: {test_email} / Test1234!")
+    except Exception as exc:  # never let startup seed data crash the API
+        print(f"[campmatch] startup seed warning: {exc}")
 
 # Start the AI admin worker (24/7 report/appeal reviewer, temporary bans only).
 from .ai_admin import ai_admin_worker
