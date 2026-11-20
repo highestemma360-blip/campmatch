@@ -236,7 +236,7 @@ def signup(data: SignupIn, db: Session = Depends(get_db)):
         original_email=email_clean,
         password_hash=hash_password(data.password),
         school=detect_school(email_clean),
-        last_active=datetime.now(timezone.utc),
+        last_active=datetime.utcnow(),
         is_admin=False,
         token_version=1,
     )
@@ -288,7 +288,7 @@ def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
 
     if not user.school:
         user.school = detect_school(email_clean)
-    user.last_active = datetime.now(timezone.utc)
+    user.last_active = datetime.utcnow()
     db.commit()
     _record_login_log(db, request, email_clean, user.id)
     return {
@@ -350,7 +350,7 @@ async def google_login(data: GoogleAuthIn, request: Request, db: Session = Depen
             password_hash=hash_password(secrets.token_urlsafe(32)),
             name=clean_name,
             school=detect_school(email),
-            last_active=datetime.now(timezone.utc),
+            last_active=datetime.utcnow(),
             is_admin=False,
             token_version=1,
         )

@@ -8,7 +8,7 @@ webhook retry delivery, cache invalidation sweep.
 
 import time
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from .database import SessionLocal, backup_sqlite
 from .models import User
 from .security import lift_expired_ban
@@ -122,9 +122,9 @@ def _task_webhook_retry():
 @register("cache_invalidation", 600)  # every 10 minutes
 def _task_cache_invalidation():
     try:
-        from .cache import sweep_expired
+        from .cache import cache
 
-        swept = sweep_expired()
+        swept = cache.sweep_expired()
         if swept:
             print(f"[cron] cache swept {swept} expired entries")
     except Exception as exc:
