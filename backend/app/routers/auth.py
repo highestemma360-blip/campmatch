@@ -2,7 +2,7 @@ import os
 import hmac
 import secrets
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -108,10 +108,10 @@ def _sanitize_input(value: str) -> str:
 
 
 def _is_account_locked(user: User) -> bool:
-    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+    if user.locked_until and user.locked_until > datetime.utcnow():
         return True
     # Auto-unlock if lockout expired
-    if user.locked_until and user.locked_until <= datetime.now(timezone.utc):
+    if user.locked_until and user.locked_until <= datetime.utcnow():
         user.locked_until = None
         user.failed_login_attempts = 0
         user.locked_reason = ""
@@ -124,7 +124,7 @@ def _record_failed_login(db: Session, user: User | None, request: Request, email
     if user:
         user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
         if user.failed_login_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
-            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+            user.locked_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
             user.locked_reason = f"Too many failed login attempts. Locked for {LOCKOUT_DURATION_MINUTES} minutes."
         db.commit()
     _record_login_log(db, request, email, user.id if user else None)
@@ -260,7 +260,7 @@ def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
 
     # Check account lockout BEFORE password verification (prevents user enumeration via timing)
     if user and _is_account_locked(user):
-        remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() / 60) + 1
+        remaining = int((user.locked_until - datetime.utcnow()).total_seconds() / 60) + 1
         raise HTTPException(
             423,
             f"Account is locked due to multiple failed login attempts. Try again in {remaining} minute(s).",
