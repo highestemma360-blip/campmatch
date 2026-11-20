@@ -208,37 +208,36 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
+# class TimeoutMiddleware(BaseHTTPMiddleware):
+#     """Enforce per-route request timeouts to prevent slow clients from
+#     holding connections and exhausting the server."""
 
-class TimeoutMiddleware(BaseHTTPMiddleware):
-    """Enforce per-route request timeouts to prevent slow clients from
-    holding connections and exhausting the server."""
+#     def __init__(self, app, default_timeout: float = 30.0):
+#         super().__init__(app)
+#         self.default_timeout = default_timeout
+#         self.route_timeouts = {
+#             "/api/login": 10.0,
+#             "/api/signup": 10.0,
+#             "/api/google": 15.0,
+#             "/api/boost": 5.0,
+#             "/api/swipe": 8.0,
+#             "/api/payments": 20.0,
+#         }
 
-    def __init__(self, app, default_timeout: float = 30.0):
-        super().__init__(app)
-        self.default_timeout = default_timeout
-        self.route_timeouts = {
-            "/api/login": 10.0,
-            "/api/signup": 10.0,
-            "/api/google": 15.0,
-            "/api/boost": 5.0,
-            "/api/swipe": 8.0,
-            "/api/payments": 20.0,
-        }
+#     async def dispatch(self, request: Request, call_next):
+#         path = request.url.path
+#         timeout = self.route_timeouts.get(path, self.default_timeout)
 
-    async def dispatch(self, request: Request, call_next):
-        path = request.url.path
-        timeout = self.route_timeouts.get(path, self.default_timeout)
-
-        try:
-            return await asyncio.wait_for(call_next(request), timeout=timeout)
-        except asyncio.TimeoutError:
-            return JSONResponse(
-                {"detail": "Request timeout. Please try again."},
-                status_code=504,
-            )
+#         try:
+#             return await asyncio.wait_for(call_next(request), timeout=timeout)
+#         except asyncio.TimeoutError:
+#             return JSONResponse(
+#                 {"detail": "Request timeout. Please try again."},
+#                 status_code=504,
+#             )
 
 
-app.add_middleware(TimeoutMiddleware)
+# app.add_middleware(TimeoutMiddleware)
 
 default_origins = ["https://campmatch.onrender.com", "http://localhost:5173", "http://localhost:8000"]
 extra_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
