@@ -488,6 +488,14 @@ if os.path.exists(frontend_dist):
         return JSONResponse({"detail": "Not found"}, status_code=404)
 
 
+@app.exception_handler(500)
+async def custom_500(request: Request, exc):
+    import traceback
+    tb = traceback.format_exc()
+    print(f"[500 ERROR] {tb}")
+    return JSONResponse({"detail": "Internal server error", "traceback": tb[-2000:]}, status_code=500)
+
+
 @app.exception_handler(404)
 async def custom_404(request: Request, exc):
     return JSONResponse({"detail": "Not found"}, status_code=404)
