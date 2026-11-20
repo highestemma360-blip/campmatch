@@ -145,6 +145,7 @@ def _reset_failed_login(db: Session, user: User):
 class SignupIn(BaseModel):
     email: EmailStr
     password: str
+    device_info: str = ""
 
 
 class GoogleAuthIn(BaseModel):
@@ -155,6 +156,7 @@ class GoogleAuthIn(BaseModel):
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
+    device_info: str = ""
 
 
 class EmailCheckIn(BaseModel):
