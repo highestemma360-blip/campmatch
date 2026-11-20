@@ -192,8 +192,9 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         flexDirection: 'column',
         alignItems: 'center',
         background:
-          'radial-gradient(circle at 20% 20%, rgba(255, 79, 94, 0.25), transparent 42%), radial-gradient(circle at 80% 80%, rgba(255, 170, 0, 0.18), transparent 42%), #0a0b0f',
-        padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(48px + env(safe-area-inset-bottom, 0px))',
+          'radial-gradient(circle at 20% 20%, rgba(255, 79, 94, 0.18), transparent 42%), radial-gradient(circle at 80% 80%, rgba(255, 170, 0, 0.12), transparent 42%), #0a0b0f',
+        padding:
+          'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))',
         WebkitOverflowScrolling: 'touch',
         position: 'relative',
         touchAction: 'manipulation',
@@ -203,9 +204,9 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         <div
           style={{
             width: '100%',
-            maxWidth: 440,
-            marginBottom: 16,
-            padding: '10px 16px',
+            maxWidth: 420,
+            marginBottom: 14,
+            padding: '10px 14px',
             borderRadius: 12,
             background: 'rgba(245, 158, 11, 0.14)',
             border: '1px solid rgba(245, 158, 11, 0.35)',
@@ -220,8 +221,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       )}
 
+      {/* Hero content — centered, generous spacing, nothing compressed */}
       <div
-        className="auth-grid stagger-child"
         style={{
           width: '100%',
           maxWidth: 420,
@@ -233,69 +234,54 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          textAlign: 'center',
         }}
       >
-        <div className="hero-glow" />
-
         {/* Brand lockup */}
         <div
-          className="auth-hero-copy text-reveal"
           style={{
             color: '#fff',
-            padding: '0 4px',
             position: 'relative',
             zIndex: 1,
-            textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 16,
-            marginBottom: 24,
+            gap: 18,
+            marginBottom: 30,
           }}
         >
-          <div style={{ marginBottom: 8 }}>
-            <CampmatchLogo iconSize={48} fontSize={36} gap={14} />
-          </div>
+          <CampmatchLogo iconSize={50} fontSize={38} gap={14} />
 
           <span
             style={{
               display: 'block',
-              fontSize: 26,
+              fontSize: 30,
               fontWeight: 900,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.15,
-              animationDelay: '0.05s',
-              overflowWrap: 'break-word',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.18,
+              color: '#fff',
             }}
           >
-            Meet students from
-          </span>
-          <span
-            style={{
-              display: 'block',
-              background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontSize: 26,
-              fontWeight: 900,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.15,
-              animationDelay: '0.12s',
-              overflowWrap: 'break-word',
-            }}
-          >
-            your campus.
+            Meet students from{' '}
+            <span
+              style={{
+                background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              your campus.
+            </span>
           </span>
 
           <p
             style={{
               color: '#c3c9d8',
-              fontSize: 15,
+              fontSize: 16,
               lineHeight: 1.6,
               margin: 0,
               width: '100%',
               overflowWrap: 'break-word',
-              animationDelay: '0.19s',
             }}
           >
             Verified university students in Ghana — for dates, new friends, and study
@@ -303,37 +289,35 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           </p>
         </div>
 
-        {/* Social proof — campus count + verified badge */}
+        {/* Social proof — verified badge + campus count */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            fontSize: 12.5,
+            fontSize: 13,
             fontWeight: 700,
             color: '#c3c9d8',
-            marginBottom: 28,
-            animationDelay: '0.26s',
+            marginBottom: 26,
           }}
         >
-          <VerifiedBadge size={14} />
+          <VerifiedBadge size={16} />
           <span>{schools.length > 1 ? `${schools.length} universities` : 'Verified students only'}</span>
         </div>
 
-        {/* Sign-in card */}
+        {/* Sign-in card — elevated surface, clear hierarchy */}
         <div
           style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
+            background: '#ffffff',
+            border: '1px solid rgba(17, 20, 29, 0.12)',
             borderRadius: 24,
-            padding: '24px 20px',
-            boxShadow: 'var(--shadow-card)',
-            color: 'var(--text-primary)',
+            padding: '26px 22px',
+            boxShadow: '0 24px 48px rgba(17, 20, 29, 0.14)',
+            color: '#11141d',
             position: 'relative',
             zIndex: 1,
             width: '100%',
           }}
-          className="card-hover"
         >
           {maintenance && (
             <div
@@ -353,17 +337,44 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </div>
           )}
 
-          {/* Primary CTA — Continue with Google */}
-          <div style={{ textAlign: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em', width: '100%', overflowWrap: 'break-word', color: 'var(--text-primary)' }}>
-              Continue with Google
-            </div>
-            <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55, width: '100%', overflowWrap: 'break-word' }}>
-              Sign in with your school-issued Google account. Only {domainHint} are accepted.
-            </div>
+          {/* Card heading */}
+          <div style={{ marginBottom: 6 }}>
+            <span
+              style={{
+                fontSize: 21,
+                fontWeight: 900,
+                letterSpacing: '-0.02em',
+                color: '#11141d',
+                display: 'block',
+              }}
+            >
+              Sign in
+            </span>
+            <span
+              style={{
+                fontSize: 14,
+                color: '#64748b',
+                marginTop: 2,
+                display: 'block',
+                fontWeight: 600,
+              }}
+            >
+              Join your campus community
+            </span>
           </div>
 
-          <div id="google-btn" ref={googleButtonRef} style={{ width: '100%', display: 'flex', justifyContent: 'center', minHeight: 44 }} />
+          {/* Primary CTA — Continue with Google, brand-colored, full width */}
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              marginTop: 24,
+              minHeight: 48,
+            }}
+          >
+            <div id="google-btn" ref={googleButtonRef} style={{ width: '100%' }} />
+          </div>
 
           {googleStatus === 'ready' && (
             <div
@@ -373,13 +384,12 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                fontSize: 11.5,
-                color: 'var(--text-muted)',
-                textAlign: 'center',
+                fontSize: 12.5,
+                color: '#64748b',
                 overflowWrap: 'break-word',
               }}
             >
-              <ShieldIcon size={13} /> Non-school Gmail accounts blocked automatically.
+              <ShieldIcon size={14} /> Non-school Gmail accounts blocked automatically.
             </div>
           )}
 
@@ -409,7 +419,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 marginTop: 14,
                 padding: '12px 14px',
                 borderRadius: 14,
-                background: 'rgba(255, 68, 88, 0.14)',
+                background: 'rgba(255, 68, 88, 0.12)',
                 border: '1px solid rgba(255, 68, 88, 0.35)',
                 color: '#ff6b7a',
                 fontSize: 13,
@@ -423,14 +433,24 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </div>
           )}
 
-          {/* Secondary divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0 10px', color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            <div style={{ flex: 1, borderTop: '1px solid var(--border-subtle)' }} />
-            <span>Or</span>
-            <div style={{ flex: 1, borderTop: '1px solid var(--border-subtle)' }} />
+          {/* Divider — "Or continue with email" */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 6px' }}>
+            <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                color: '#94a3b8',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+              }}
+            >
+              Or continue with email
+            </span>
+            <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
           </div>
 
-          {/* Email sign-in toggle */}
+          {/* Email sign-in toggle — progressive disclosure */}
           <button
             type="button"
             onClick={() => {
@@ -443,14 +463,14 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               borderRadius: 16,
               border: 'none',
               background: 'transparent',
-              color: 'var(--text-secondary)',
-              fontSize: 14,
+              color: '#64748b',
+              fontSize: 15,
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
-              minHeight: 44,
+              minHeight: 48,
             }}
             aria-expanded={showEmailForm}
             aria-controls="email-signin-form"
@@ -459,14 +479,32 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           </button>
 
           {showEmailForm && (
-            <form onSubmit={submit} id="email-signin-form">
-              <label className="field-label" style={{ color: 'var(--text-secondary)', marginTop: 0, fontSize: 12.5, fontWeight: 700, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <form onSubmit={submit} id="email-signin-form" style={{ marginTop: 18 }}>
+              <label
+                className="field-label"
+                style={{
+                  color: '#64748b',
+                  marginTop: 0,
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  display: 'block',
+                  marginBottom: 6,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
                 Student Email
               </label>
               <input
                 type="email"
                 className="modern-input"
-                style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)', minHeight: 44 }}
+                style={{
+                  background: '#f3f5fa',
+                  color: '#11141d',
+                  borderColor: 'rgba(17, 20, 29, 0.12)',
+                  minHeight: 48,
+                  fontSize: 16,
+                }}
                 placeholder="you@university.edu.gh"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -474,10 +512,22 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 required
               />
 
-              <label className="field-label" style={{ color: 'var(--text-secondary)', marginTop: 16, fontSize: 12.5, fontWeight: 700, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <label
+                className="field-label"
+                style={{
+                  color: '#64748b',
+                  marginTop: 18,
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  display: 'block',
+                  marginBottom: 6,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
                 Password
               </label>
-              <div style={{ position: 'relative', minHeight: 44 }}>
+              <div style={{ position: 'relative', minHeight: 48 }}>
                 <input
                   type={showPw ? 'text' : 'password'}
                   className="modern-input"
@@ -486,11 +536,12 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   style={{
-                    background: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                    borderColor: 'var(--border-subtle)',
+                    background: '#f3f5fa',
+                    color: '#11141d',
+                    borderColor: 'rgba(17, 20, 29, 0.12)',
                     paddingRight: 72,
-                    minHeight: 44,
+                    minHeight: 48,
+                    fontSize: 16,
                   }}
                   required
                 />
@@ -499,16 +550,16 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                   onClick={() => setShowPw((v) => !v)}
                   style={{
                     position: 'absolute',
-                    right: 12,
+                    right: 14,
                     top: '50%',
                     transform: 'translateY(-50%)',
                     border: 'none',
                     background: 'none',
-                    color: 'var(--text-muted)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    minHeight: 36,
-                    minWidth: 36,
+                    color: '#94a3b8',
+                    fontSize: 13,
+                    fontWeight: 800,
+                    minHeight: 40,
+                    minWidth: 40,
                   }}
                   aria-label={showPw ? 'Hide password' : 'Show password'}
                 >
@@ -516,18 +567,18 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 </button>
               </div>
 
-              <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 18, minHeight: 48 }}>
-                {loading ? 'Signing in…' : 'Sign In'}
+              <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 22, minHeight: 48, width: '100%' }}>
+                {loading ? 'Signing in…' : 'Sign in'}
               </button>
             </form>
           )}
 
-          <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, overflowWrap: 'break-word' }}>
+          <div style={{ marginTop: 22, textAlign: 'center', fontSize: 12, color: '#94a3b8', lineHeight: 1.5, overflowWrap: 'break-word' }}>
             By continuing, you agree to our{' '}
             <button
               type="button"
               onClick={() => setLegalModal('terms')}
-              style={{ border: 'none', background: 'none', color: 'var(--tinder-pink)', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 700 }}
+              style={{ border: 'none', background: 'none', color: '#ff4f5e', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 800 }}
             >
               Terms of Service
             </button>{' '}
@@ -535,7 +586,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             <button
               type="button"
               onClick={() => setLegalModal('privacy')}
-              style={{ border: 'none', background: 'none', color: 'var(--tinder-pink)', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 700 }}
+              style={{ border: 'none', background: 'none', color: '#ff4f5e', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 800 }}
             >
               Privacy Policy
             </button>
@@ -547,10 +598,10 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       {legalModal && (
         <div className="sheet-backdrop" onClick={() => setLegalModal(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 19, fontWeight: 900, marginBottom: 12, overflowWrap: 'break-word', color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: 19, fontWeight: 900, marginBottom: 12, overflowWrap: 'break-word', color: '#11141d' }}>
               {legalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
             </div>
-            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)', overflowWrap: 'break-word' }}>
+            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: '#64748b', overflowWrap: 'break-word' }}>
               {legalModal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
             </div>
             <button className="btn-brand" style={{ marginTop: 20, minHeight: 44 }} onClick={() => setLegalModal(null)}>
