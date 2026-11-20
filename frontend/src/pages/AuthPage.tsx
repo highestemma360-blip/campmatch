@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon, HeartIcon, DownloadIcon } from '../components/Icons'
+import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon, HeartIcon, DownloadIcon, MoonIcon, ArrowLeftIcon } from '../components/Icons'
 import { TERMS_SUMMARY, PRIVACY_SUMMARY } from '../constants'
+import { InstallPrompt } from '../components/InstallPrompt'
+import { useInstallPrompt } from '../utils/useInstallPrompt'
 
 interface AuthPageProps {
   onAuth: (token: string | { access_token: string; refresh_token?: string }, isAdmin?: boolean) => void
@@ -45,6 +47,12 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
   const authRef = useRef(onAuth)
   authRef.current = onAuth
+
+  const install = useInstallPrompt({
+    enabled: true,
+    blocked: false,
+    delayMs: 3000,
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -218,6 +226,34 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         <div className="auth-hero-copy text-reveal" style={{ color: '#fff', padding: '8px 4px', position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: 24 }}>
             <CampmatchLogo iconSize={44} fontSize={34} gap={12} />
+            {install.canPrompt && (
+              <button
+                onClick={() => install.install()}
+                style={{
+                  marginTop: 12,
+                  width: '100%',
+                  padding: '12px 24px',
+                  borderRadius: 50,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #FF4F5E 0%, #FFA800 100%)',
+                  color: '#fff',
+                  fontSize: 15,
+                  fontWeight: 900,
+                  letterSpacing: '-0.5px',
+                  boxShadow: '0 8px 24px rgba(255, 170, 0, 0.35)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <div style={{ color: '#fff', fontSize: 18 }}>
+                  <DownloadIcon size={18} />
+                </div>
+                <span style={{ fontWeight: 900 }}>Install App</span>
+              </button>
+            )}
           </div>
 
           <span style={{ display: 'block', animationDelay: '0.05s', fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', overflowWrap: 'break-word' }}>
@@ -534,6 +570,15 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </button>
           </div>
         </div>
+      )}
+      {install.visible && (
+        <InstallPrompt
+          platform={install.platform}
+          canPrompt={install.canPrompt}
+          onInstall={install.install}
+          onClose={install.close}
+          nextReminderSeconds={install.nextReminderSeconds}
+        />
       )}
     </div>
   )
