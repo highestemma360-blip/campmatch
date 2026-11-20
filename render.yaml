@@ -55,10 +55,8 @@ services:
         sync: false
       - key: AI_MODEL
         value: nvidia/llama-3.1-nemotron-70b-instruct
-        sync: false
       - key: AI_BASE_URL
         value: https://integrate.api.nvidia.com/v1
-        sync: false
       # Web push (VAPID). Optional — keys are auto-generated and persisted on the
       # disk if these are left empty. Set VAPID_SUBJECT to a mailto: or https: URL.
       - key: VAPID_PUBLIC_KEY
