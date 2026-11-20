@@ -67,6 +67,24 @@ with SessionLocal() as _startup_db:
         if not existing:
             set_setting(_startup_db, f"flag_{flag}", "true" if default else "false")
 
+    # Create test student account for demo/testing
+    test_email = "student@st.umat.edu.gh"
+    existing_test = _startup_db.query(User).filter(User.email == test_email).first()
+    if not existing_test:
+        test_user = User(
+            email=test_email,
+            original_email=test_email,
+            password_hash=hash_password("Test1234!"),
+            name="Test Student",
+            school="UMaT",
+            is_active=True,
+            is_verified=True,
+            token_version=1,
+        )
+        _startup_db.add(test_user)
+        _startup_db.commit()
+        print(f"[campmatch] Test account created: {test_email} / Test1234!")
+
 # Start the AI admin worker (24/7 report/appeal reviewer, temporary bans only).
 from .ai_admin import ai_admin_worker
 ai_admin_worker.start()

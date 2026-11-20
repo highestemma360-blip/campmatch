@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon, HeartIcon, DownloadIcon, MoonIcon, ArrowLeftIcon } from '../components/Icons'
+import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon, HeartIcon, DownloadIcon, ArrowLeftIcon } from '../components/Icons'
 import { TERMS_SUMMARY, PRIVACY_SUMMARY } from '../constants'
 import { InstallPrompt } from '../components/InstallPrompt'
 import { useInstallPrompt } from '../utils/useInstallPrompt'
@@ -185,7 +185,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       style={{
         minHeight: '100dvh',
         width: '100%',
-        maxWidth: '100vw',
+        height: '100%',
         overflowX: 'hidden',
         overflowY: 'auto',
         display: 'flex',
@@ -478,7 +478,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               gap: 6,
             }}
           >
-            {showEmailForm ? 'Hide email sign-in' : 'Use student email & password instead'}
+            {showEmailForm ? 'Hide email sign-in' : 'Use student email &amp; password instead'}
           </button>
 
           {showEmailForm && (
