@@ -2,24 +2,57 @@ import os
 import json
 import time
 import threading
+import asyncio
 from datetime import datetime, timedelta
 from collections import defaultdict
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from sqlalchemy.orm import Session
 
 from . import models, database
-from .database import SessionLocal, UPLOAD_DIR
-from .models import User, Match
-from .security import bootstrap_defaults, decode_token
+from .database import SessionLocal, UPLOAD_DIR, get_db
+from .models import User, Match, Setting
+from .security import (
+    bootstrap_defaults,
+    decode_token,
+    get_int_setting,
+    validate_secrets,
+)
 from .realtime import hub
 from .routers import auth, profiles, swipes, chat, admin, payments, notifications, ai
 from .routers import push as push_router
 from .routers import ai_features
 from .explore_rooms import seed_default_rooms
-from .security import bootstrap_defaults, decode_token, get_int_setting
+from .security import (
+    bootstrap_defaults,
+    decode_token,
+    get_int_setting,
+    set_setting,
+    get_bool_setting,
+)
+
+# --- New production infrastructure ---
+from .cron import start as cron_start, stop as cron_stop
+from .webhooks import register_webhook, list_webhooks, unregister_webhook
+from .feature_flags import is_enabled, set_flag, DEFAULT_FLAGS
+from .circuit_breaker import get_breaker, get_all_breaker_states
+from .idempotency import get_idempotency, set_idempotency, prune_idempotency
+from .dlq import dlq
+from .distributed_lock import distributed_lock
+from .cache import cache, invalidate_cache, CACHE_ALLOWED_DOMAINS
+from .backpressure import backpressure
+from .saga import saga
+from .pubsub import bus
+from .backoff import retry_with_backoff, async_retry_with_backoff
+from . import webhooks as webhooks_module
+
+# Validate secrets at startup
+_missing = validate_secrets()
+if _missing:
+    print(f"[campmatch] WARNING: missing secrets: {', '.join(_missing)}")
 
 models.Base.metadata.create_all(bind=database.engine)
 database.run_migrations()
@@ -27,10 +60,18 @@ database.run_migrations()
 with SessionLocal() as _startup_db:
     bootstrap_defaults(_startup_db)
     seed_default_rooms(_startup_db)
+    # Initialize feature flags
+    for flag, default in DEFAULT_FLAGS.items():
+        existing = _startup_db.query(Setting).filter(Setting.key == f"flag_{flag}").first()
+        if not existing:
+            set_setting(_startup_db, f"flag_{flag}", "true" if default else "false")
 
 # Start the AI admin worker (24/7 report/appeal reviewer, temporary bans only).
 from .ai_admin import ai_admin_worker
 ai_admin_worker.start()
+
+# Start the cron scheduler (daily backups, retention, lockout cleanup, webhook retry).
+cron_start()
 
 # Keep a rolling copy of the database on the durable disk so a bad deploy can
 # never wipe the only copy of student records.
@@ -39,6 +80,11 @@ print(
     f"[campmatch] data_dir={database.DATA_DIR} sqlite={database.sqlite_file_path()} "
     f"uploads={UPLOAD_DIR} startup_backup={_STARTUP_BACKUP.get('file') or _STARTUP_BACKUP.get('reason')}"
 )
+
+# Register default circuit breakers for external services
+get_breaker("google_oauth", failure_threshold=5, recovery_timeout_seconds=30)
+get_breaker("payment_gateway", failure_threshold=5, recovery_timeout_seconds=60)
+get_breaker("ai_moderation", failure_threshold=5, recovery_timeout_seconds=30)
 
 
 def purge_expired_messages() -> int:
@@ -162,6 +208,38 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
+
+class TimeoutMiddleware(BaseHTTPMiddleware):
+    """Enforce per-route request timeouts to prevent slow clients from
+    holding connections and exhausting the server."""
+
+    def __init__(self, app, default_timeout: float = 30.0):
+        super().__init__(app)
+        self.default_timeout = default_timeout
+        self.route_timeouts = {
+            "/api/login": 10.0,
+            "/api/signup": 10.0,
+            "/api/google": 15.0,
+            "/api/boost": 5.0,
+            "/api/swipe": 8.0,
+            "/api/payments": 20.0,
+        }
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        timeout = self.route_timeouts.get(path, self.default_timeout)
+
+        try:
+            return await asyncio.wait_for(call_next(request), timeout=timeout)
+        except asyncio.TimeoutError:
+            return JSONResponse(
+                {"detail": "Request timeout. Please try again."},
+                status_code=504,
+            )
+
+
+app.add_middleware(TimeoutMiddleware)
+
 default_origins = ["https://campmatch.onrender.com", "http://localhost:5173", "http://localhost:8000"]
 extra_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 
@@ -189,7 +267,139 @@ app.include_router(push_router.router, prefix="/api")
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "online": hub.online_count()}
+    return {
+        "status": "ok",
+        "online": hub.online_count(),
+        "breakers": get_all_breaker_states(),
+        "dlq_count": dlq.count(),
+        "cache_size": len(cache._data),
+    }
+
+
+# --- Infrastructure / Admin-Only Endpoints ---
+
+
+def _require_admin(request: Request, db: Session = Depends(get_db)):
+    """Simple admin check: token must belong to an admin user."""
+    auth = request.headers.get("authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Missing admin token")
+    token = auth[7:]
+    try:
+        payload = decode_token(token)
+        user_id = int(payload["sub"])
+        ver = payload.get("ver", 1)
+    except Exception:
+        raise HTTPException(401, "Invalid admin token")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or user.is_deleted or not user.is_admin or (user.token_version or 1) != ver:
+        raise HTTPException(403, "Admin access required")
+    return user
+
+
+@app.get("/api/admin/infra/feature-flags")
+def infra_feature_flags(request: Request, user: User = Depends(_require_admin)):
+    flags = {}
+    with SessionLocal() as db:
+        for flag in DEFAULT_FLAGS:
+            flags[flag] = is_enabled(flag, db)
+    return flags
+
+
+@app.post("/api/admin/infra/feature-flags/{flag_name}")
+async def infra_toggle_feature_flag(
+    flag_name: str,
+    request: Request,
+    user: User = Depends(_require_admin),
+    db: Session = Depends(get_db),
+):
+    body = await request.json()
+    enabled = bool(body.get("enabled", True))
+    set_flag(flag_name, enabled, db)
+    invalidate_cache(CACHE_FEATURE_FLAGS)
+    bus.publish("feature_flag_changed", {"flag": flag_name, "enabled": enabled})
+    return {"ok": True, "flag": flag_name, "enabled": enabled}
+
+
+@app.get("/api/admin/infra/circuit-breakers")
+def infra_circuit_breakers(user: User = Depends(_require_admin)):
+    return get_all_breaker_states()
+
+
+@app.get("/api/admin/infra/webhooks")
+def infra_webhooks(user: User = Depends(_require_admin)):
+    return list_webhooks()
+
+
+@app.post("/api/admin/infra/webhooks")
+async def infra_register_webhook(
+    request: Request,
+    user: User = Depends(_require_admin),
+    db: Session = Depends(get_db),
+):
+    body = await request.json()
+    url = body.get("url")
+    secret = body.get("secret", "")
+    events = body.get("events", ["*"])
+    if not url:
+        raise HTTPException(400, "URL required")
+    register_webhook(url, secret, events)
+    return {"ok": True, "url": url}
+
+
+@app.delete("/api/admin/infra/webhooks/{url:path}")
+def infra_unregister_webhook(url: str, user: User = Depends(_require_admin)):
+    unregister_webhook(url)
+    return {"ok": True}
+
+
+@app.get("/api/admin/infra/dlq")
+def infra_dlq(source: str | None = None, user: User = Depends(_require_admin)):
+    return {"items": dlq.list(source=source, unplayed_only=True), "count": dlq.count()}
+
+
+@app.get("/api/admin/infra/backpressure")
+def infra_backpressure(user: User = Depends(_require_admin)):
+    # Return queue sizes for active users (sample)
+    return {"controller": "backpressure", "max_queue_size": backpressure._max_queue_size}
+
+
+@app.post("/api/admin/infra/cache/invalidate")
+async def infra_cache_invalidate(
+    request: Request,
+    user: User = Depends(_require_admin),
+):
+    body = await request.json()
+    prefix = body.get("prefix", "")
+    count = invalidate_cache(prefix) if prefix else 0
+    return {"ok": True, "invalidated": count}
+
+
+@app.post("/api/admin/infra/idempotency/prune")
+def infra_idempotency_prune(user: User = Depends(_require_admin)):
+    prune_idempotency()
+    return {"ok": True}
+
+
+@app.get("/api/admin/infra/saga/{exec_id}")
+def infra_saga_status(exec_id: str, user: User = Depends(_require_admin)):
+    exec_obj = saga.get_status(exec_id)
+    if not exec_obj:
+        raise HTTPException(404, "Saga execution not found")
+    return {
+        "id": exec_obj.id,
+        "status": exec_obj.status,
+        "started_at": exec_obj.started_at,
+        "completed_at": exec_obj.completed_at,
+        "error": exec_obj.error,
+        "results": exec_obj.results,
+    }
+
+
+@app.on_event("shutdown")
+def _shutdown():
+    cron_stop()
+    prune_idempotency()
 
 
 @app.websocket("/ws")

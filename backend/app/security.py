@@ -91,16 +91,49 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_token(user_id: int, token_version: int = 1) -> str:
+    now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
         "ver": token_version,
-        "exp": datetime.utcnow() + timedelta(days=30),
+        "iat": now,
+        "exp": now + timedelta(days=30),
     }
     return jwt.encode(payload, SECRET, algorithm=ALGORITHM)
 
 
+def create_refresh_token(user_id: int, token_version: int = 1) -> str:
+    """Long-lived refresh token used to rotate access tokens."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "ver": token_version,
+        "typ": "refresh",
+        "iat": now,
+        "exp": now + timedelta(days=7),
+    }
+    return jwt.encode(payload, SECRET, algorithm=ALGORITHM)
+
+
+def rotate_token(user: User, db: Session) -> tuple[str, str]:
+    """Rotate both access and refresh tokens, bumping token_version to
+    invalidate all previously issued tokens for this user."""
+    user.token_version = (user.token_version or 1) + 1
+    db.commit()
+    access = create_token(user.id, user.token_version)
+    refresh = create_refresh_token(user.id, user.token_version)
+    return access, refresh
+
+
 def decode_token(token: str) -> dict:
     return jwt.decode(token, SECRET, algorithms=[ALGORITHM])
+
+
+def validate_secrets() -> list[str]:
+    """Validate that required secrets are set. Returns list of missing keys."""
+    missing = []
+    if not os.environ.get("SECRET_KEY") or os.environ.get("SECRET_KEY") == "campmatch-dev-secret-change-me":
+        missing.append("SECRET_KEY")
+    return missing
 
 
 def lift_expired_ban(user: User) -> bool:

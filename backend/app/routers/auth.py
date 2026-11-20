@@ -2,7 +2,7 @@ import os
 import hmac
 import secrets
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -89,6 +89,52 @@ def _record_login_log(db: Session, request: Request, email: str, user_id: int | 
         db.commit()
     except Exception:
         db.rollback()
+
+
+# Account lockout configuration
+MAX_FAILED_LOGIN_ATTEMPTS = 5
+LOCKOUT_DURATION_MINUTES = 30
+
+
+def _sanitize_input(value: str) -> str:
+    """Strip HTML/script tags to prevent XSS in stored fields."""
+    if not value:
+        return value
+    # Remove script tags and event handlers
+    value = re.sub(r"<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>", "", value, flags=re.IGNORECASE | re.DOTALL)
+    value = re.sub(r"on\w+\s*=\s*[\"'][^\"']*[\"']", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"javascript\s*:", "", value, flags=re.IGNORECASE)
+    return value.strip()
+
+
+def _is_account_locked(user: User) -> bool:
+    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        return True
+    # Auto-unlock if lockout expired
+    if user.locked_until and user.locked_until <= datetime.now(timezone.utc):
+        user.locked_until = None
+        user.failed_login_attempts = 0
+        user.locked_reason = ""
+        return False
+    return False
+
+
+def _record_failed_login(db: Session, user: User | None, request: Request, email: str):
+    """Increment failed attempts and lock account if threshold reached."""
+    if user:
+        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+        if user.failed_login_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+            user.locked_reason = f"Too many failed login attempts. Locked for {LOCKOUT_DURATION_MINUTES} minutes."
+        db.commit()
+    _record_login_log(db, request, email, user.id if user else None)
+
+
+def _reset_failed_login(db: Session, user: User):
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.locked_reason = ""
+    db.commit()
 
 
 class SignupIn(BaseModel):
@@ -190,7 +236,7 @@ def signup(data: SignupIn, db: Session = Depends(get_db)):
         original_email=email_clean,
         password_hash=hash_password(data.password),
         school=detect_school(email_clean),
-        last_active=datetime.utcnow(),
+        last_active=datetime.now(timezone.utc),
         is_admin=False,
         token_version=1,
     )
@@ -211,11 +257,28 @@ def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(400, school_email_error_message(email_clean, db))
 
     user = db.query(User).filter(User.email == email_clean, User.is_deleted == False).first()
+
+    # Check account lockout BEFORE password verification (prevents user enumeration via timing)
+    if user and _is_account_locked(user):
+        remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() / 60) + 1
+        raise HTTPException(
+            423,
+            f"Account is locked due to multiple failed login attempts. Try again in {remaining} minute(s).",
+        )
+
     if not user:
+        # Constant-time dummy check to prevent user enumeration
         verify_password(data.password or "x", DUMMY_BCRYPT_HASH)
+        _record_login_log(db, request, email_clean, None)
         raise HTTPException(401, "Invalid email or password.")
+
     if not verify_password(data.password, user.password_hash):
+        _record_failed_login(db, user, request, email_clean)
         raise HTTPException(401, "Invalid email or password.")
+
+    # Successful login: reset failure counter and unlock if previously locked
+    _reset_failed_login(db, user)
+
     if get_bool_setting(db, "maintenance_mode", False):
         raise HTTPException(503, "Platform is currently in maintenance mode.")
     if lift_expired_ban(user):
@@ -225,7 +288,7 @@ def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
 
     if not user.school:
         user.school = detect_school(email_clean)
-    user.last_active = datetime.utcnow()
+    user.last_active = datetime.now(timezone.utc)
     db.commit()
     _record_login_log(db, request, email_clean, user.id)
     return {
@@ -280,14 +343,14 @@ async def google_login(data: GoogleAuthIn, request: Request, db: Session = Depen
     if not user:
         if not get_bool_setting(db, "signups_enabled", True):
             raise HTTPException(403, "New registrations are temporarily paused.")
-        clean_name = re.sub(r"<[^>]*>", "", (name or "")).strip()[:100]
+        clean_name = _sanitize_input(re.sub(r"<[^>]*>", "", (name or "")).strip()[:100])
         user = User(
             email=email,
             original_email=email,
             password_hash=hash_password(secrets.token_urlsafe(32)),
             name=clean_name,
             school=detect_school(email),
-            last_active=datetime.utcnow(),
+            last_active=datetime.now(timezone.utc),
             is_admin=False,
             token_version=1,
         )

@@ -47,7 +47,15 @@ class User(Base):
     banned_at = Column(DateTime, nullable=True)
     banned_by = Column(Integer, nullable=True)
 
+    # Account lockout: brute-force protection
+    failed_login_attempts = Column(Integer, default=0, index=True)
+    locked_until = Column(DateTime, nullable=True, index=True)
+    locked_reason = Column(String(255), default="")
+
     is_premium = Column(Boolean, default=False)
+
+    # JWT rotation: incremented on password change / security events
+    token_version = Column(Integer, default=1)
     premium_until = Column(DateTime, nullable=True)
     boosted_until = Column(DateTime, nullable=True)
 

@@ -162,6 +162,9 @@ def run_migrations():
             ("deletion_reason", "VARCHAR(255) DEFAULT ''"),
             ("snoozed", "BOOLEAN DEFAULT 0"),
             ("token_version", "INTEGER DEFAULT 1"),
+            ("failed_login_attempts", "INTEGER DEFAULT 0"),
+            ("locked_until", "DATETIME"),
+            ("locked_reason", "VARCHAR(255) DEFAULT ''"),
             ("looking_for", "VARCHAR(60) DEFAULT 'Long-term partner'"),
             ("interests", "TEXT DEFAULT ''"),
             ("prompts", "TEXT DEFAULT '[]'"),
@@ -230,3 +233,50 @@ def run_migrations():
             for col_name, col_def in cols:
                 if col_name not in existing_cols:
                     conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}"))
+
+        # Ensure performance indexes exist on hot query columns
+        index_defs = {
+            "users": [
+                ("idx_users_email_active", "email", "is_active"),
+                ("idx_users_locked_until", "locked_until"),
+                ("idx_users_failed_attempts", "failed_login_attempts"),
+            ],
+            "login_logs": [
+                ("idx_login_logs_email", "email"),
+                ("idx_login_logs_ip", "ip_address"),
+                ("idx_login_logs_logged_at", "logged_at"),
+            ],
+            "swipes": [
+                ("idx_swipes_swiper_created", "swiper_id", "created_at"),
+            ],
+            "matches": [
+                ("idx_matches_user1_active", "user1_id", "is_active"),
+                ("idx_matches_user2_active", "user2_id", "is_active"),
+            ],
+            "messages": [
+                ("idx_messages_match_created", "match_id", "created_at"),
+            ],
+            "payments": [
+                ("idx_payments_reference", "reference"),
+                ("idx_payments_user_status", "user_id", "status"),
+            ],
+            "webhook_events": [
+                ("idx_webhook_events_type", "event_type"),
+                ("idx_webhook_events_created", "created_at"),
+            ],
+        }
+
+        for table_name, idx_list in index_defs.items():
+            if table_name not in existing_tables:
+                continue
+            existing_idx_names = {ix["name"] for ix in inspector.get_indexes(table_name)}
+            for idx_name, *cols in idx_list:
+                if idx_name in existing_idx_names:
+                    continue
+                col_list = ", ".join(cols)
+                try:
+                    conn.execute(
+                        text(f'CREATE INDEX IF NOT EXISTS "{idx_name}" ON {table_name} ({col_list})')
+                    )
+                except Exception:
+                    pass  # SQLite may not support IF NOT EXISTS on CREATE INDEX in older versions
