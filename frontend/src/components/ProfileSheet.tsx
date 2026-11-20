@@ -57,10 +57,10 @@ export function ProfileSheet({
             onClick={onClose}
             style={{
               position: 'absolute',
-              top: 16,
+              top: 'calc(16px + env(safe-area-inset-top, 0px))',
               right: 16,
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               borderRadius: '50%',
               border: 'none',
               background: 'var(--brand-grad)',
@@ -70,6 +70,7 @@ export function ProfileSheet({
               justifyContent: 'center',
               boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
             }}
+            aria-label="Close profile"
           >
             <ChevronDownIcon size={22} />
           </button>
@@ -92,7 +93,7 @@ export function ProfileSheet({
           </div>
         </div>
 
-        <div style={{ padding: '20px 20px 105px' }}>
+        <div style={{ padding: '20px 20px calc(105px + env(safe-area-inset-bottom, 0px))' }}>
           {profile.explore_vibes && profile.explore_vibes.length > 0 && (
             <div style={{ marginBottom: 18 }}>
               <div className="field-label" style={{ marginTop: 0 }}>Opted Into Explore Rooms</div>
@@ -320,45 +321,49 @@ export function ProfileSheet({
 
         {!previewOnly && onAction && (
           <div
+            className="safe-bottom"
             style={{
               position: 'sticky',
               bottom: 0,
               left: 0,
               right: 0,
-              padding: '12px 20px 18px',
-              background: 'linear-gradient(transparent, var(--bg-app) 35%)',
+              padding: '14px 20px calc(18px + env(safe-area-inset-bottom, 0px))',
+              background: 'linear-gradient(transparent, var(--bg-app) 40%)',
               display: 'flex',
               justifyContent: 'center',
               gap: 18,
             }}
           >
             <button
-              className="dock-btn lg nope"
+              className="dock-btn lg nope icon-btn"
               onClick={() => {
                 onClose()
                 onAction('nope')
               }}
+              aria-label={`Pass on ${profile.name}`}
             >
-              <CloseXIcon size={25} />
+              <CloseXIcon size={28} />
             </button>
             <button
-              className="dock-btn sm super"
-              style={{ alignSelf: 'center', width: 52, height: 52 }}
+              className="dock-btn sm super icon-btn"
+              style={{ alignSelf: 'center', width: 56, height: 56 }}
               onClick={() => {
                 onClose()
                 onAction('super')
               }}
+              aria-label={`Super Like ${profile.name}`}
             >
-              <StarIcon size={22} />
+              <StarIcon size={24} />
             </button>
             <button
-              className="dock-btn lg like"
+              className="dock-btn lg like icon-btn"
               onClick={() => {
                 onClose()
                 onAction('like')
               }}
+              aria-label={`Like ${profile.name}`}
             >
-              <HeartIcon size={28} />
+              <HeartIcon size={30} />
             </button>
           </div>
         )}

@@ -271,14 +271,59 @@ export function SwipeDeck({
                   alt={topCard.name}
                 />
                 {topCard.photo_urls?.length && topCard.photo_urls.length > 1 && (
-                  <div className="photo-indicators">
-                    {topCard.photo_urls.map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={`photo-dot ${idx === photoIdx ? 'active' : ''}`}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    {/* Photo tap zones — left/right for carousel navigation */}
+                    <button
+                      type="button"
+                      aria-label="Previous photo"
+                      onClick={e => {
+                        e.stopPropagation()
+                        setPhotoIdx(i => (i - 1 + topCard.photo_urls.length) % topCard.photo_urls.length)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 0, bottom: 0, left: 0, width: '20%',
+                        background: 'linear-gradient(to right, rgba(0,0,0,0.35), transparent)',
+                        border: 'none',
+                        color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 9, opacity: 0, transition: 'opacity 0.2s ease',
+                      }}
+                    >
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next photo"
+                      onClick={e => {
+                        e.stopPropagation()
+                        setPhotoIdx(i => (i + 1) % topCard.photo_urls.length)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 0, bottom: 0, right: 0, width: '20%',
+                        background: 'linear-gradient(to left, rgba(0,0,0,0.35), transparent)',
+                        border: 'none',
+                        color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 9, opacity: 0, transition: 'opacity 0.2s ease',
+                      }}
+                    >
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                    <div className="photo-indicators">
+                      {topCard.photo_urls.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`photo-dot ${idx === photoIdx ? 'active' : ''}`}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
                 {/* Like / Nope stamps */}
                 {likeOpacity > 0.04 && (
@@ -381,33 +426,37 @@ export function SwipeDeck({
 
           <div className="action-dock">
             <button
-              className="dock-btn sm rewind"
+              className="dock-btn sm rewind icon-btn"
               onClick={onRewind}
               disabled={!canRewind}
+              aria-label={!canRewind ? 'Rewind unavailable' : 'Rewind last swipe'}
               title="Rewind last swipe"
             >
-              <RewindIcon size={20} />
+              <RewindIcon size={24} />
             </button>
 
             <button
-              className="dock-btn lg nope"
+              className="dock-btn lg nope icon-btn"
               onClick={() => triggerSwipe('left')}
+              aria-label="Pass"
               title="Pass (Left Arrow)"
             >
-              <CloseXIcon size={27} />
+              <CloseXIcon size={30} />
             </button>
 
             <button
-              className="dock-btn lg like"
+              className="dock-btn lg like icon-btn"
               onClick={() => triggerSwipe('right')}
+              aria-label="Like"
               title="Like (Right Arrow)"
             >
-              <HeartIcon size={29} />
+              <HeartIcon size={32} />
             </button>
 
             <button
-              className={`dock-btn sm boost boost-btn-countdown`}
+              className={`dock-btn sm boost boost-btn-countdown icon-btn`}
               onClick={onBoost}
+              aria-label={isBoostedActive ? `Spotlight active: ${formatBoostTime(boostSecondsLeft)} remaining` : '30-minute Campus Spotlight'}
               title={isBoostedActive ? `Spotlight active: ${formatBoostTime(boostSecondsLeft)} remaining` : '30-minute Campus Spotlight'}
               style={{
                 background: isBoostedActive ? 'var(--boost-grad)' : undefined,
@@ -415,7 +464,7 @@ export function SwipeDeck({
                 borderColor: isBoostedActive ? 'transparent' : undefined,
               }}
             >
-              <BoltIcon size={20} />
+              <BoltIcon size={24} />
               {isBoostedActive && (
                 <span className="boost-countdown-text">{formatBoostTime(boostSecondsLeft)}</span>
               )}
@@ -518,14 +567,16 @@ export function SwipeDeck({
         </>
       ) : (
         <div
+          className="safe-bottom"
           style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 32,
+            padding: '24px 16px 32px',
             textAlign: 'center',
+            gap: 16,
           }}
         >
           <div className="radar-ring">
@@ -533,8 +584,8 @@ export function SwipeDeck({
               src={me?.photo_urls?.[0] || makeAvatarPlaceholder(me?.name)}
               alt=""
               style={{
-                width: 78,
-                height: 78,
+                width: 88,
+                height: 88,
                 borderRadius: '50%',
                 objectFit: 'cover',
                 border: '3px solid var(--tinder-pink)',
@@ -542,17 +593,17 @@ export function SwipeDeck({
               }}
             />
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>
-            No More Profiles Nearby
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 6 }}>
+            No More Students Nearby
           </div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: 14, maxWidth: 300, lineHeight: 1.5, marginBottom: 22 }}>
-            You have reviewed everyone matching your current preferences. Broaden your filters or check back soon.
+          <div style={{ color: 'var(--text-secondary)', fontSize: 14.5, maxWidth: 280, lineHeight: 1.6, marginBottom: 22 }}>
+            You have reviewed everyone matching your current preferences. Broaden your filters or check back later.
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn-ghost" onClick={onOpenFilters}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button className="btn-ghost" onClick={onOpenFilters} style={{ minHeight: 44, padding: '10px 18px' }}>
               Discovery Settings
             </button>
-            <button className="btn-brand" style={{ width: 'auto', padding: '11px 22px' }} onClick={onReload}>
+            <button className="btn-brand" onClick={onReload} style={{ minHeight: 44, padding: '10px 20px' }}>
               Refresh Deck
             </button>
           </div>

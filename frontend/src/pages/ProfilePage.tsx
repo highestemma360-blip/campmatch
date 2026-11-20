@@ -26,6 +26,7 @@ import {
   ArrowLeftIcon,
   BoltIcon,
   CheckIcon,
+  CompassIcon,
   PlusIcon,
   MusicIcon,
   MapPinIcon,
@@ -80,11 +81,15 @@ function SettingsSection({ title, accent, accentBg, children }: { title: string;
 function SettingsRow({ label, sub, trailing, onClick, icon }: { label: string; sub?: string; trailing?: React.ReactNode; onClick?: () => void; icon?: React.ReactNode }) {
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e: any) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
       style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '14px 0',
+        padding: '16px 0',
+        minHeight: 44,
         borderBottom: '1px solid var(--border-subtle)',
         overflowWrap: 'break-word',
         cursor: onClick ? 'pointer' : undefined,
@@ -838,34 +843,36 @@ export function ProfilePage({
           </div>
         </div>
 
-        {/* === SETTINGS - PRODUCTION GRADE === */}
-        {/* Clean sections matching Snapchat/TikTok/Instagram reference design */}
-        <SettingsSection title="Safety and Privacy">
-          <SettingsRow icon={<ShieldIcon size={18} />} label="Accessibility" trailing={<ChevronDownIcon size={16} />} />
-          <SettingsRow icon={<UserIcon size={18} />} label="Contacts and location" trailing={<ChevronDownIcon size={16} />} />
+        {/* === SETTINGS - CAMP MATCH SPECIFIC === */}
+        <SettingsSection title="Account">
+          <SettingsRow icon={<UserIcon size={18} />} label="Edit profile" trailing={<ChevronDownIcon size={16} />} onClick={openEditor} />
+          <SettingsRow icon={<BoltIcon size={18} />} label="Change password" trailing={<ChevronDownIcon size={16} />} />
         </SettingsSection>
 
-        <SettingsSection title="Cache & Cellular">
-          <SettingsRow icon={<DownloadIcon size={18} />} label="Offline videos" trailing={<ChevronDownIcon size={16} />} />
-          <SettingsRow icon={<TrashIcon size={18} />} label="Free up space" trailing={<ChevronDownIcon size={16} />} />
-          <SettingsRow icon={<BoltIcon size={18} />} label="Data Saver" trailing={<ChevronDownIcon size={16} />} />
+        <SettingsSection title="Discovery">
+          <SettingsRow icon={<CompassIcon size={18} />} label="Discovery preferences" trailing={<ChevronDownIcon size={16} />} onClick={() => setScreen('hub')} />
+          <SettingsRow icon={<MapPinIcon size={18} />} label="Location services" trailing={<ChevronDownIcon size={16} />} />
         </SettingsSection>
 
-        <SettingsSection title="Support & About">
-          <SettingsRow icon={<ChatBubbleIcon size={18} />} label="Help Center" trailing={<ChevronDownIcon size={16} />} />
-          <SettingsRow icon={<ShieldIcon size={18} />} label="Privacy Center" trailing={<ChevronDownIcon size={16} />} />
-          <SettingsRow icon={<MegaphoneIcon size={18} />} label="Terms and Policies" trailing={<ChevronDownIcon size={16} />} />
+        <SettingsSection title="Notifications">
+          <SettingsRow icon={<BellIcon size={18} />} label="Phone alerts" trailing={<ChevronDownIcon size={16} />} onClick={handleTogglePush} />
+          <SettingsRow icon={<ShieldIcon size={18} />} label="Safety & blocking" trailing={<ChevronDownIcon size={16} />} />
         </SettingsSection>
 
-        <SettingsSection title="Login">
-          <SettingsRow icon={<UserIcon size={18} />} label="Switch account" />
-          <SettingsRow icon={<BoltIcon size={18} />} label="Log out" trailing={<ChevronDownIcon size={16} />} onClick={onLogout} />
+        <SettingsSection title="Campus">
+          <SettingsRow icon={<MegaphoneIcon size={18} />} label="Campus announcements" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<ChatBubbleIcon size={18} />} label="Help & support" trailing={<ChevronDownIcon size={16} />} />
+        </SettingsSection>
+
+        <SettingsSection title="Account actions">
+          <SettingsRow icon={<TrashIcon size={18} />} label="Snooze my profile" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<ShieldIcon size={18} />} label="Delete account" onClick={onOpenDeleteAccount} />
         </SettingsSection>
 
         {/* Footer */}
         <div style={{ padding: '30px 16px', textAlign: 'center', color: '#656770', fontSize: 12 }}>
           <div style={{ marginBottom: 4 }}>Campmatch v1.0.0</div>
-          <div>Made with ❤️ in Ghana</div>
+          <div style={{ color: 'var(--text-muted)' }}>For verified university students in Ghana</div>
         </div>
       </div>
     )

@@ -42,7 +42,7 @@ export function MatchCelebration({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 24,
+        padding: 'calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px))',
         color: '#fff',
         animation: 'fadeIn 0.22s ease',
       }}
@@ -162,8 +162,8 @@ export function MatchCelebration({
         <button
           onClick={submitQuick}
           style={{
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             borderRadius: '50%',
             border: 'none',
             background: 'var(--brand-grad)',
@@ -172,8 +172,9 @@ export function MatchCelebration({
             alignItems: 'center',
             justifyContent: 'center',
           }}
+          aria-label="Send message"
         >
-          <SendIcon size={17} />
+          <SendIcon size={19} />
         </button>
       </div>
 
@@ -201,12 +202,19 @@ export function MatchCelebration({
         onClick={onClose}
         style={{
           border: 'none',
-          background: 'none',
-          color: 'rgba(255,255,255,0.7)',
+          background: 'rgba(255,255,255,0.12)',
+          color: '#fff',
           fontWeight: 700,
           fontSize: 14,
-          padding: 8,
+          padding: '12px 24px',
+          minHeight: 44,
+          minWidth: 44,
+          borderRadius: 999,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
+        aria-label="Keep swiping"
       >
         Keep Swiping
       </button>

@@ -192,8 +192,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         flexDirection: 'column',
         alignItems: 'center',
         background:
-          'radial-gradient(circle at 18% 18%, rgba(255, 76, 94, 0.3), transparent 40%), radial-gradient(circle at 82% 82%, rgba(255, 170, 0, 0.2), transparent 40%), #0a0a0f',
-        padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(40px + env(safe-area-inset-bottom, 0px))',
+          'radial-gradient(circle at 20% 20%, rgba(255, 79, 94, 0.25), transparent 42%), radial-gradient(circle at 80% 80%, rgba(255, 170, 0, 0.18), transparent 42%), #0a0b0f',
+        padding: 'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(48px + env(safe-area-inset-bottom, 0px))',
         WebkitOverflowScrolling: 'touch',
         position: 'relative',
         touchAction: 'manipulation',
@@ -203,15 +203,15 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         <div
           style={{
             width: '100%',
-            maxWidth: 1000,
-            marginBottom: 20,
+            maxWidth: 440,
+            marginBottom: 16,
             padding: '10px 16px',
             borderRadius: 12,
             background: 'rgba(245, 158, 11, 0.14)',
             border: '1px solid rgba(245, 158, 11, 0.35)',
             color: '#ffd84d',
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: 12.5,
+            fontWeight: 700,
             textAlign: 'center',
             overflowWrap: 'break-word',
           }}
@@ -224,49 +224,50 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         className="auth-grid stagger-child"
         style={{
           width: '100%',
-          maxWidth: 440,
+          maxWidth: 420,
           margin: '0 auto',
           position: 'relative',
           zIndex: 1,
           padding: '0 12px',
           overflowWrap: 'break-word',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
         <div className="hero-glow" />
-        <div className="auth-hero-copy text-reveal" style={{ color: '#fff', padding: '8px 4px', position: 'relative', zIndex: 1 }}>
-          <div style={{ marginBottom: 24 }}>
-            <CampmatchLogo iconSize={44} fontSize={34} gap={12} />
-            {install.canPrompt && (
-              <button
-                onClick={() => install.install()}
-                style={{
-                  marginTop: 12,
-                  width: '100%',
-                  padding: '12px 24px',
-                  borderRadius: 50,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #FF4F5E 0%, #FFA800 100%)',
-                  color: '#fff',
-                  fontSize: 15,
-                  fontWeight: 900,
-                  letterSpacing: '-0.5px',
-                  boxShadow: '0 8px 24px rgba(255, 170, 0, 0.35)',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-              >
-                <div style={{ color: '#fff', fontSize: 18 }}>
-                  <DownloadIcon size={18} />
-                </div>
-                <span style={{ fontWeight: 900 }}>Install App</span>
-              </button>
-            )}
+
+        {/* Brand lockup */}
+        <div
+          className="auth-hero-copy text-reveal"
+          style={{
+            color: '#fff',
+            padding: '0 4px',
+            position: 'relative',
+            zIndex: 1,
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ marginBottom: 8 }}>
+            <CampmatchLogo iconSize={48} fontSize={36} gap={14} />
           </div>
 
-          <span style={{ display: 'block', animationDelay: '0.05s', fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', overflowWrap: 'break-word' }}>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 26,
+              fontWeight: 900,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.15,
+              animationDelay: '0.05s',
+              overflowWrap: 'break-word',
+            }}
+          >
             Meet students from
           </span>
           <span
@@ -275,10 +276,11 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              fontSize: 26,
+              fontWeight: 900,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.15,
               animationDelay: '0.12s',
-              fontSize: 20,
-              fontWeight: 800,
-              letterSpacing: '-0.5px',
               overflowWrap: 'break-word',
             }}
           >
@@ -287,84 +289,46 @@ export function AuthPage({ onAuth }: AuthPageProps) {
 
           <p
             style={{
-              color: '#9ba6bc',
-              fontSize: 16,
-              lineHeight: 1.7,
-              margin: '18px 0 24px',
+              color: '#c3c9d8',
+              fontSize: 15,
+              lineHeight: 1.6,
+              margin: 0,
               width: '100%',
               overflowWrap: 'break-word',
               animationDelay: '0.19s',
             }}
           >
-            Campmatch is where verified university students in Ghana connect — for dates, new
-            friends, and study partners.
+            Verified university students in Ghana — for dates, new friends, and study
+            partners.
           </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-            {[
-              'Verified students only — no fakes',
-              'Dates, BFFs and study partners',
-              'Private, safe and on your campus',
-            ].map((line, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  fontSize: 15,
-                  color: '#e8ecf4',
-                  width: '100%',
-                  overflowWrap: 'break-word',
-                  animationDelay: `${0.26 + i * 0.08}s`,
-                }}
-              >
-                <span
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: 'rgba(34,197,94,0.16)',
-                    color: '#22c55e',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <CheckIcon size={12} />
-                </span>
-                {line}
-              </div>
-            ))}
-          </div>
-
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: 14,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.62)',
-              animationDelay: '0.52s',
-              overflowWrap: 'break-word',
-              whiteSpace: 'normal',
-            }}
-          >
-            <VerifiedBadge size={14} />
-            {schools.length > 1 ? `${schools.length} universities on board` : 'University students only'}
-          </div>
         </div>
 
+        {/* Social proof — campus count + verified badge */}
         <div
           style={{
-            background: '#12151f',
-            border: '1px solid rgba(255,255,255,0.1)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 12.5,
+            fontWeight: 700,
+            color: '#c3c9d8',
+            marginBottom: 28,
+            animationDelay: '0.26s',
+          }}
+        >
+          <VerifiedBadge size={14} />
+          <span>{schools.length > 1 ? `${schools.length} universities` : 'Verified students only'}</span>
+        </div>
+
+        {/* Sign-in card */}
+        <div
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 24,
             padding: '24px 20px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.55)',
-            color: '#fff',
+            boxShadow: 'var(--shadow-card)',
+            color: 'var(--text-primary)',
             position: 'relative',
             zIndex: 1,
             width: '100%',
@@ -381,7 +345,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 border: '1px solid rgba(245, 158, 11, 0.35)',
                 color: '#ffd84d',
                 fontSize: 12.5,
-                fontWeight: 600,
+                fontWeight: 700,
                 overflowWrap: 'break-word',
               }}
             >
@@ -389,51 +353,53 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </div>
           )}
 
-          <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.4px', width: '100%', overflowWrap: 'break-word' }}>
+          {/* Primary CTA — Continue with Google */}
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em', width: '100%', overflowWrap: 'break-word', color: 'var(--text-primary)' }}>
               Continue with Google
             </div>
-            <div style={{ fontSize: 14, color: '#8e98ad', marginTop: 6, lineHeight: 1.55, width: '100%', overflowWrap: 'break-word' }}>
-              Use your school-issued Google account. Only {domainHint} accounts are accepted.
+            <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55, width: '100%', overflowWrap: 'break-word' }}>
+              Sign in with your school-issued Google account. Only {domainHint} are accepted.
             </div>
           </div>
 
-          <div id="google-btn" ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center', minHeight: 44 }} />
+          <div id="google-btn" ref={googleButtonRef} style={{ width: '100%', display: 'flex', justifyContent: 'center', minHeight: 44 }} />
+
+          {googleStatus === 'ready' && (
+            <div
+              style={{
+                marginTop: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                fontSize: 11.5,
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+                overflowWrap: 'break-word',
+              }}
+            >
+              <ShieldIcon size={13} /> Non-school Gmail accounts blocked automatically.
+            </div>
+          )}
 
           {googleStatus === 'unavailable' && (
             <div
               style={{
-                marginTop: 10,
+                marginTop: 14,
                 padding: '12px 14px',
                 borderRadius: 14,
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.22)',
-                color: '#9fc9e6',
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                color: '#7dd3fc',
                 fontSize: 12.5,
                 lineHeight: 1.55,
                 textAlign: 'center',
                 overflowWrap: 'break-word',
               }}
             >
-              Google sign-in is not configured yet. Add a Google OAuth Client ID on the server
-              (GOOGLE_CLIENT_ID) and it will appear here automatically.
-            </div>
-          )}
-
-          {googleStatus === 'ready' && (
-            <div
-              style={{
-                marginTop: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12,
-                color: '#6f7a90',
-                textAlign: 'center',
-                overflowWrap: 'break-word',
-              }}
-            >
-              <ShieldIcon size={12} /> Non-school Gmail accounts blocked automatically.
+              Google sign-in is not configured yet. Add a GOOGLE_CLIENT_ID on the server and
+              it will appear here automatically.
             </div>
           )}
 
@@ -451,11 +417,20 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 lineHeight: 1.5,
                 overflowWrap: 'break-word',
               }}
+              role="alert"
             >
               {err}
             </div>
           )}
 
+          {/* Secondary divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0 10px', color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <div style={{ flex: 1, borderTop: '1px solid var(--border-subtle)' }} />
+            <span>Or</span>
+            <div style={{ flex: 1, borderTop: '1px solid var(--border-subtle)' }} />
+          </div>
+
+          {/* Email sign-in toggle */}
           <button
             type="button"
             onClick={() => {
@@ -463,93 +438,96 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               setErr('')
             }}
             style={{
-              marginTop: 16,
               width: '100%',
-              padding: '10px 16px',
+              padding: '12px 16px',
               borderRadius: 16,
               border: 'none',
               background: 'transparent',
-              color: '#8e98ad',
+              color: 'var(--text-secondary)',
               fontSize: 14,
-              fontWeight: 700,
+              fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
+              minHeight: 44,
             }}
+            aria-expanded={showEmailForm}
+            aria-controls="email-signin-form"
           >
-            {showEmailForm ? 'Hide email sign-in' : 'Use student email &amp; password instead'}
+            {showEmailForm ? 'Hide email sign-in' : 'Use student email & password instead'}
           </button>
 
           {showEmailForm && (
-            <>
-              <form onSubmit={submit}>
-                <label className="field-label" style={{ color: '#9aa4b8', marginTop: 0, fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                  Student Email
-                </label>
+            <form onSubmit={submit} id="email-signin-form">
+              <label className="field-label" style={{ color: 'var(--text-secondary)', marginTop: 0, fontSize: 12.5, fontWeight: 700, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Student Email
+              </label>
+              <input
+                type="email"
+                className="modern-input"
+                style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)', minHeight: 44 }}
+                placeholder="you@university.edu.gh"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+
+              <label className="field-label" style={{ color: 'var(--text-secondary)', marginTop: 16, fontSize: 12.5, fontWeight: 700, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Password
+              </label>
+              <div style={{ position: 'relative', minHeight: 44 }}>
                 <input
-                  type="email"
+                  type={showPw ? 'text' : 'password'}
                   className="modern-input"
-                  style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)', minHeight: 44 }}
-                  placeholder="you@university.edu.gh"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  style={{
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    borderColor: 'var(--border-subtle)',
+                    paddingRight: 72,
+                    minHeight: 44,
+                  }}
+                  required
                 />
-
-                <label className="field-label" style={{ color: '#9aa4b8', marginTop: 16, fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                  Password
-                </label>
-                <div style={{ position: 'relative', minHeight: 44 }}>
-                  <input
-                    type={showPw ? 'text' : 'password'}
-                    className="modern-input"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    style={{
-                      background: '#181c28',
-                      color: '#fff',
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      paddingRight: 72,
-                      minHeight: 44,
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    style={{
-                      position: 'absolute',
-                      right: 12,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      border: 'none',
-                      background: 'none',
-                      color: '#8e98ad',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      minHeight: 36,
-                      minWidth: 36,
-                    }}
-                  >
-                    {showPw ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-
-                <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 18, minHeight: 48 }}>
-                  {loading ? 'Signing in…' : 'Sign In'}
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    border: 'none',
+                    background: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    minHeight: 36,
+                    minWidth: 36,
+                  }}
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                >
+                  {showPw ? 'Hide' : 'Show'}
                 </button>
-              </form>
-            </>
+              </div>
+
+              <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 18, minHeight: 48 }}>
+                {loading ? 'Signing in…' : 'Sign In'}
+              </button>
+            </form>
           )}
 
-          <div style={{ marginTop: 22, textAlign: 'center', fontSize: 12, color: '#69748c', lineHeight: 1.5, overflowWrap: 'break-word' }}>
+          <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, overflowWrap: 'break-word' }}>
             By continuing, you agree to our{' '}
             <button
               type="button"
               onClick={() => setLegalModal('terms')}
-              style={{ border: 'none', background: 'none', color: '#a3adc2', textDecoration: 'underline', padding: 0, fontSize: 12 }}
+              style={{ border: 'none', background: 'none', color: 'var(--tinder-pink)', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 700 }}
             >
               Terms of Service
             </button>{' '}
@@ -557,7 +535,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             <button
               type="button"
               onClick={() => setLegalModal('privacy')}
-              style={{ border: 'none', background: 'none', color: '#a3adc2', textDecoration: 'underline', padding: 0, fontSize: 12 }}
+              style={{ border: 'none', background: 'none', color: 'var(--tinder-pink)', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 700 }}
             >
               Privacy Policy
             </button>
@@ -569,7 +547,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       {legalModal && (
         <div className="sheet-backdrop" onClick={() => setLegalModal(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12, overflowWrap: 'break-word' }}>
+            <div style={{ fontSize: 19, fontWeight: 900, marginBottom: 12, overflowWrap: 'break-word', color: 'var(--text-primary)' }}>
               {legalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
             </div>
             <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)', overflowWrap: 'break-word' }}>

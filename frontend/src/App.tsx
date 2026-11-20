@@ -1328,12 +1328,14 @@ function StudentApp({
                 />
               )}
 
-              <nav className="bottom-nav mobile-only-nav">
+              <nav className="bottom-nav mobile-only-nav" aria-label="Main navigation">
                 <button
                   className={`nav-tab-btn ${tab === 'swipe' ? 'active' : ''}`}
                   onClick={() => setTab('swipe')}
+                  aria-label="Discover"
+                  aria-current={tab === 'swipe' ? 'true' : undefined}
                 >
-                  <FlameIcon size={22} />
+                  <FlameIcon size={24} />
                   <span>Discover</span>
                 </button>
 
@@ -1343,8 +1345,10 @@ function StudentApp({
                     setTab('explore')
                     loadExploreCounts()
                   }}
+                  aria-label="Explore"
+                  aria-current={tab === 'explore' ? 'true' : undefined}
                 >
-                  <CompassIcon size={21} />
+                  <CompassIcon size={24} />
                   <span>Explore</span>
                 </button>
 
@@ -1354,9 +1358,11 @@ function StudentApp({
                     setTab('likes')
                     loadLikesYou()
                   }}
+                  aria-label="Likes"
+                  aria-current={tab === 'likes' ? 'true' : undefined}
                 >
                   {likesItems.length > 0 && <span className="nav-badge gold">{likesItems.length}</span>}
-                  <HeartIcon size={21} />
+                  <HeartIcon size={24} />
                   <span>Likes</span>
                 </button>
 
@@ -1366,19 +1372,23 @@ function StudentApp({
                     setTab('matches')
                     loadMatches()
                   }}
+                  aria-label="Chats"
+                  aria-current={tab === 'matches' ? 'true' : undefined}
                 >
                   {(totalUnread + newMatchesCount) > 0 && (
                     <span className="nav-badge">{totalUnread || newMatchesCount}</span>
                   )}
-                  <ChatBubbleIcon size={21} />
+                  <ChatBubbleIcon size={24} />
                   <span>Chats</span>
                 </button>
 
                 <button
                   className={`nav-tab-btn ${tab === 'profile' ? 'active' : ''}`}
                   onClick={() => setTab('profile')}
+                  aria-label="Profile"
+                  aria-current={tab === 'profile' ? 'true' : undefined}
                 >
-                  <UserIcon size={21} />
+                  <UserIcon size={24} />
                   <span>Profile</span>
                 </button>
               </nav>

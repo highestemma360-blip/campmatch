@@ -73,7 +73,7 @@ export function MatchesListView({
           borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        <div className="match-ring-item" onClick={onOpenLikes}>
+        <div className="match-ring-item" onClick={onOpenLikes} role="button" tabIndex={0} aria-label="Likes You">
           <div
             style={{
               width: 68,
@@ -111,7 +111,7 @@ export function MatchesListView({
           const hrs = m.hours_left ?? 20
           const pct = Math.min(100, Math.max(12, Math.round((hrs / 24) * 100)))
           return (
-            <div key={m.match_id} className="match-ring-item" onClick={() => onOpenChat(m)}>
+            <div key={m.match_id} className="match-ring-item" onClick={() => onOpenChat(m)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') onOpenChat(m) }} aria-label={`${m.user.name.split(' ')[0]}, ${Math.max(1, Math.round(hrs))} hours left`}>
               <div
                 className={`match-ring-wrap ${m.is_super ? 'super' : ''}`}
                 style={{ ['--pct' as any]: `${pct}%` }}
@@ -349,10 +349,11 @@ export function ChatConversationView({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             onClick={onBack}
-            className="icon-circle-btn"
-            style={{ width: 35, height: 35 }}
+            className="icon-circle-btn icon-btn"
+            style={{ width: 44, height: 44 }}
+            aria-label="Back"
           >
-            <ArrowLeftIcon size={18} />
+            <ArrowLeftIcon size={20} />
           </button>
           <div
             onClick={() => onInspectProfile(chat.user)}
