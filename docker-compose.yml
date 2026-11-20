@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  campmatch-backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: campmatch-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////data/campmatch.db}
+      - DATA_DIR=/data
+      - UPLOAD_DIR=/data/uploads
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173}
+      - ENV=production
+    volumes:
+      - campmatch_data:/data
+    networks:
+      - campmatch-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  campmatch-redis:
+    image: redis:7-alpine
+    container_name: campmatch-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - campmatch_redis:/data
+    networks:
+      - campmatch-network
+
+volumes:
+  campmatch_data:
+  campmatch_redis:
+
+networks:
+  campmatch-network:
+    driver: bridge

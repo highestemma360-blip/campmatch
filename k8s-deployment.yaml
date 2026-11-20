@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campmatch-backend
+  labels:
+    app: campmatch
+    component: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: campmatch
+      component: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: campmatch
+        component: backend
+    spec:
+      containers:
+        - name: backend
+          image: campmatch/backend:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: campmatch-secrets
+          env:
+            - name: DATA_DIR
+              value: "/data"
+            - name: UPLOAD_DIR
+              value: "/data/uploads"
+            - name: ENV
+              value: "production"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: campmatch-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: campmatch-backend
+  labels:
+    app: campmatch
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: campmatch
+    component: backend
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: campmatch-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: campmatch-secrets
+type: Opaque
+stringData:
+  SECRET_KEY: "change-this-to-a-strong-secret-key"
+  DATABASE_URL: "sqlite:////data/campmatch.db"
+  GOOGLE_CLIENT_ID: "your-google-client-id"
+  ADMIN_EMAIL: "admin@st.umat.edu.gh"
+  ADMIN_PASSWORD: "change-this-admin-password"
+  ALLOWED_ORIGINS: "https://yourdomain.com"
