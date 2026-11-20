@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon } from '../components/Icons'
+import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon, HeartIcon, DownloadIcon } from '../components/Icons'
 import { TERMS_SUMMARY, PRIVACY_SUMMARY } from '../constants'
 
 interface AuthPageProps {
@@ -50,8 +50,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     let cancelled = false
 
     fetch('/api/auth-config')
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
         if (!d) return
         if (Array.isArray(d.schools) && d.schools.length) setSchools(d.schools)
         if (Array.isArray(d.domains)) setDomains(d.domains)
@@ -169,7 +169,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   }
 
   const domainHint = domains.length
-    ? domains.map(d => '@' + d.replace(/^@/, '')).slice(0, 3).join(', ')
+    ? domains.map((d) => '@' + d.replace(/^@/, '')).slice(0, 3).join(', ')
     : 'approved university domains'
 
   return (
@@ -260,7 +260,19 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               'Dates, BFFs and study partners',
               'Private, safe and on your campus',
             ].map((line, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, color: '#e8ecf4', width: '100%', overflowWrap: 'break-word', animationDelay: `${0.26 + i * 0.08}s` }}>
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontSize: 15,
+                  color: '#e8ecf4',
+                  width: '100%',
+                  overflowWrap: 'break-word',
+                  animationDelay: `${0.26 + i * 0.08}s`,
+                }}
+              >
                 <span
                   style={{
                     width: 20,
@@ -375,7 +387,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 overflowWrap: 'break-word',
               }}
             >
-              <ShieldIcon size={12} /> Non-school Gmail accounts are blocked automatically.
+              <ShieldIcon size={12} /> Non-school Gmail accounts blocked automatically.
             </div>
           )}
 
@@ -384,7 +396,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               style={{
                 marginTop: 14,
                 padding: '12px 14px',
-                borderRadius: 12,
+                borderRadius: 14,
                 background: 'rgba(255, 68, 88, 0.14)',
                 border: '1px solid rgba(255, 68, 88, 0.35)',
                 color: '#ff6b7a',
@@ -408,7 +420,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               marginTop: 16,
               width: '100%',
               padding: '10px 16px',
-              borderRadius: 12,
+              borderRadius: 16,
               border: 'none',
               background: 'transparent',
               color: '#8e98ad',
@@ -435,7 +447,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                   style={{ background: '#181c28', color: '#fff', borderColor: 'rgba(255,255,255,0.1)', minHeight: 44 }}
                   placeholder="you@university.edu.gh"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                 />
 
@@ -448,7 +460,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                     className="modern-input"
                     placeholder="••••••••"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     style={{
                       background: '#181c28',
@@ -460,7 +472,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPw(v => !v)}
+                    onClick={() => setShowPw((v) => !v)}
                     style={{
                       position: 'absolute',
                       right: 12,
@@ -486,7 +498,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </>
           )}
 
-          <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: '#69748c', lineHeight: 1.5, overflowWrap: 'break-word' }}>
+          <div style={{ marginTop: 22, textAlign: 'center', fontSize: 12, color: '#69748c', lineHeight: 1.5, overflowWrap: 'break-word' }}>
             By continuing, you agree to our{' '}
             <button
               type="button"
@@ -510,7 +522,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
 
       {legalModal && (
         <div className="sheet-backdrop" onClick={() => setLegalModal(null)}>
-          <div className="modal-card" onClick={e => e.stopPropagation()}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12, overflowWrap: 'break-word' }}>
               {legalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
             </div>

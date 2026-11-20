@@ -21,7 +21,7 @@ interface SwipeDeckProps {
   onClearVibe?: () => void
   canRewind: boolean
   isBoosted: boolean
-  onSwipe: (liked: boolean) => void
+  onSwipe: (liked: boolean, superLike?: boolean) => void
   onRewind: () => void
   onBoost: () => void
   onInspect: (card: ProfileCard) => void
@@ -163,163 +163,53 @@ export function SwipeDeck({
     if (!startRef.current || !drag.active) return
     const dx = e.clientX - startRef.current.x
     const dy = e.clientY - startRef.current.y
-    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
-      startRef.current.moved = true
-    }
-    setDrag({ x: dx, y: dy, pivotTop: startRef.current.pivotTop, active: true })
+    setDrag({ x: dx, y: dy, pivotTop: drag.pivotTop, active: true })
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    if (!startRef.current) return
-    const wasMoved = startRef.current.moved
-    const dx = drag.x
-    const dy = drag.y
-    startRef.current = null
+    if (!startRef.current || !drag.active) return
+    const dx = e.clientX - startRef.current.x
+    const dy = e.clientY - startRef.current.y
+    const isFast = Math.abs(dx) > 100 || Math.abs(dy) > 100
 
-    if (!wasMoved && topCard) {
-      const rect = e.currentTarget.getBoundingClientRect()
-      const relX = e.clientX - rect.left
-      const relY = e.clientY - rect.top
-      const photosCount = topCard.photo_urls?.length || 1
-      if (relY > rect.height * 0.74) {
-        onInspect(topCard)
-      } else if (relX < rect.width * 0.42) {
-        setPhotoIdx(i => Math.max(0, i - 1))
-      } else {
-        setPhotoIdx(i => (i < photosCount - 1 ? i + 1 : 0))
-      }
-      setDrag({ x: 0, y: 0, pivotTop: true, active: false })
-      return
-    }
-
-    if (dx > 95) {
-      triggerSwipe('right')
-    } else if (dx < -95) {
-      triggerSwipe('left')
-    } else if (dy < -115 && Math.abs(dx) < 90) {
-      setDrag({ x: 0, y: 0, pivotTop: true, active: false })
+    if (Math.abs(dx) > 120 || Math.abs(dy) > 150 || isFast) {
+      if (dx > 0) triggerSwipe('right')
+      else if (dx < 0) triggerSwipe('left')
+      else if (dy < -120) setDrag({ x: 0, y: 0, pivotTop: true, active: false })
+      else setDrag({ x: 0, y: 0, pivotTop: true, active: false })
     } else {
       setDrag({ x: 0, y: 0, pivotTop: true, active: false })
     }
+    startRef.current = null
   }
 
-  const likeOpacity = flyOut === 'right' ? 1 : Math.min(1, Math.max(0, (drag.x - 24) / 85))
-  const nopeOpacity = flyOut === 'left' ? 1 : Math.min(1, Math.max(0, (-drag.x - 24) / 85))
-  const superOpacity = flyOut === 'up' ? 1 : Math.min(1, Math.max(0, (-drag.y - 40) / 85))
+  const cardWidth = 330
+  const cardHeight = 520
 
-  const rotSign = drag.pivotTop ? 1 : -1
-  const rotation = drag.x * 0.058 * rotSign
-  let cardTransform = `translate3d(${drag.x}px, ${drag.y}px, 0) rotate(${rotation}deg)`
-  let cardTransition = drag.active
-    ? 'none'
-    : 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)'
+  const cardTransform = `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x / 20}deg)`
+  const cardTransition = drag.active ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
 
-  if (flyOut === 'right') {
-    cardTransform = `translate3d(600px, ${drag.y - 18}px, 0) rotate(${26 * rotSign}deg) scale(1.04)`
-    cardTransition = 'transform 0.26s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.26s ease'
-  } else if (flyOut === 'left') {
-    cardTransform = `translate3d(-600px, ${drag.y - 18}px, 0) rotate(${-26 * rotSign}deg) scale(1.04)`
-    cardTransition = 'transform 0.26s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.26s ease'
-  } else if (flyOut === 'up') {
-    cardTransform = 'translate3d(0px, -720px, 0) scale(0.9)'
-    cardTransition = 'transform 0.26s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.26s ease'
-  }
+  const tintOpacity = Math.min(1, Math.abs(drag.x) / 200)
+  const tintBackground = drag.x > 0 ? '#22c55e' : drag.x < 0 ? '#ef4444' : 'transparent'
 
-  let tintBackground = 'transparent'
-  let tintOpacity = 0
-  if (likeOpacity > 0.05) {
-    tintBackground = 'radial-gradient(circle at top left, rgba(34, 197, 94, 0.42), transparent 68%)'
-    tintOpacity = likeOpacity
-  } else if (nopeOpacity > 0.05) {
-    tintBackground = 'radial-gradient(circle at top right, rgba(255, 68, 88, 0.42), transparent 68%)'
-    tintOpacity = nopeOpacity
-  } else if (superOpacity > 0.05) {
-    tintBackground = 'radial-gradient(circle at bottom center, rgba(56, 189, 248, 0.48), transparent 72%)'
-    tintOpacity = superOpacity
-  }
+  const likeOpacity = Math.min(1, Math.max(0, drag.x / 150))
+  const nopeOpacity = Math.min(1, Math.max(0, -drag.x / 150))
+
+  const topCardPhoto = topCard?.photo_urls?.[photoIdx] || makeAvatarPlaceholder(topCard?.name || '')
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
-      {/* Top Status Strip: Active Explore Filter or Free Daily Swipe Quota */}
-      {(activeVibeLabel || quota?.limited) && (
-        <div
-          style={{
-            margin: '8px 14px 0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-          }}
-        >
-          {activeVibeLabel ? (
-            <div
-              style={{
-                padding: '5px 12px',
-                borderRadius: 999,
-                background: 'rgba(253, 38, 122, 0.14)',
-                border: '1px solid rgba(253, 38, 122, 0.32)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              <span>Filter: {activeVibeLabel}</span>
-              {onClearVibe && (
-                <button
-                  onClick={onClearVibe}
-                  style={{
-                    border: 'none',
-                    background: 'none',
-                    color: 'var(--tinder-pink)',
-                    fontWeight: 800,
-                    fontSize: 11.5,
-                    padding: 0,
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          ) : (
-            <div />
-          )}
-
-          {quota?.limited && quota.daily_limit !== null && (
-            <button
-              onClick={onOpenPlus}
-              style={{
-                padding: '5px 12px',
-                borderRadius: 999,
-                border: '1px solid var(--border-strong)',
-                background: quota.remaining === 0 ? 'rgba(255, 68, 88, 0.14)' : 'var(--bg-elevated)',
-                color: quota.remaining === 0 ? '#ff5a67' : 'var(--text-secondary)',
-                fontSize: 11.5,
-                fontWeight: 700,
-              }}
-            >
-              {quota.remaining} of {quota.daily_limit} daily swipes left
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Animated Action Burst Overlay */}
-      {fxAction && (
-        <div className="swipe-fx-burst">
-          <div className={`fx-badge-circle ${fxAction}`}>
-            {fxAction === 'like' && <HeartIcon size={44} />}
-            {fxAction === 'nope' && <CloseXIcon size={42} />}
-          </div>
-        </div>
-      )}
-
+    <>
       {topCard ? (
         <>
           <div className="deck-arena">
             {thirdCard && (
-              <div className="swipe-card behind-2">
+              <div
+                className="swipe-card behind-2"
+                style={{
+                  transform: 'scale(0.9) translateY(22px)',
+                  opacity: 0.85,
+                }}
+              >
                 <img
                   className="card-photo"
                   src={thirdCard.photo_urls?.[0] || makeAvatarPlaceholder(thirdCard.name)}
@@ -359,33 +249,73 @@ export function SwipeDeck({
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerUp}
             >
-              <img
-                className="card-photo"
-                src={
-                  topCard.photo_urls?.[photoIdx] ||
-                  topCard.photo_urls?.[0] ||
-                  makeAvatarPlaceholder(topCard.name)
-                }
-                onError={e => {
-                  ;(e.currentTarget as HTMLImageElement).src = makeAvatarPlaceholder(topCard.name)
-                }}
-                alt={topCard.name}
-              />
+              {/* Full-size card photo - Tinder style */}
+              <div className="card-photo-container">
+                <img
+                  className="card-photo"
+                  src={topCardPhoto}
+                  onError={e => {
+                    ;(e.currentTarget as HTMLImageElement).src = makeAvatarPlaceholder(topCard.name)
+                  }}
+                  alt={topCard.name}
+                />
+                {topCard.photo_urls?.length && topCard.photo_urls.length > 1 && (
+                  <div className="photo-indicators">
+                    {topCard.photo_urls.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`photo-dot ${idx === photoIdx ? 'active' : ''}`}
+                      />
+                    ))}
+                  </div>
+                )}
+                {/* Like / Nope stamps */}
+                {likeOpacity > 0.04 && (
+                  <div className="swipe-stamp like" style={{ opacity: likeOpacity }}>
+                    LIKE
+                  </div>
+                )}
+                {nopeOpacity > 0.04 && (
+                  <div className="swipe-stamp nope" style={{ opacity: nopeOpacity }}>
+                    NOPE
+                  </div>
+                )}
+              </div>
 
-              {/* Directional Tint Glow Wash */}
-              <div
-                className="card-tint-wash"
-                style={{ background: tintBackground, opacity: tintOpacity }}
-              />
-
-              {(topCard.photo_urls?.length || 0) > 1 && (
-                <div className="story-bars">
-                  {topCard.photo_urls.map((_, idx) => (
-                    <div key={idx} className={`story-bar ${idx === photoIdx ? 'active' : ''}`} />
-                  ))}
+              {/* Bottom info overlay - Tinder style */}
+              <div className="card-info-overlay">
+                <div className="card-info-content">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                      {topCard.name}
+                    </span>
+                    <span style={{ fontSize: 22, fontWeight: 600, opacity: 0.95 }}>{topCard.age}</span>
+                    {topCard.verified !== false && <VerifiedBadge size={20} />}
+                  </div>
+                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 3, fontWeight: 600 }}>
+                    {topCard.school || ''} · Level {topCard.level} · {topCard.course}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      fontSize: 13,
+                      color: 'rgba(255,255,255,0.85)',
+                      marginTop: 4,
+                    }}
+                  >
+                    {topCard.distance_km != null && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <MapPinIcon size={13} /> {topCard.distance_km} km away
+                      </span>
+                    )}
+                    {topCard.hall && <span>{topCard.hall}</span>}
+                  </div>
                 </div>
-              )}
+              </div>
 
+              {/* Badges at top */}
               <div className="card-top-badges">
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {topCard.is_boosted && (
@@ -399,80 +329,42 @@ export function SwipeDeck({
                       {topCard.online ? 'Online now' : 'Recently active'}
                     </span>
                   )}
+                  {topCard.compatibility && (
+                    <span className="pill-badge match-score">{topCard.compatibility}% Match</span>
+                  )}
                 </div>
-
-                {topCard.compatibility && (
-                  <span className="pill-badge match-score">{topCard.compatibility}% Match</span>
-                )}
               </div>
 
-              {likeOpacity > 0.04 && (
-                <div className="swipe-stamp like" style={{ opacity: likeOpacity }}>
-                  LIKE
-                </div>
-              )}
-              {nopeOpacity > 0.04 && (
-                <div className="swipe-stamp nope" style={{ opacity: nopeOpacity }}>
-                  NOPE
-                </div>
-              )}
+              {/* Expand button */}
+              <button
+                type="button"
+                className="expand-profile-btn"
+                title="Open full profile"
+                onClick={e => {
+                  e.stopPropagation()
+                  onInspect(topCard)
+                }}
+              >
+                <ChevronUpIcon size={20} />
+              </button>
 
-                <div className="card-overlay">
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.6px', lineHeight: 1.1 }}>
-                        {topCard.name}
+              {/* Explore vibes */}
+              {(topCard.explore_vibes || []).length > 0 && (
+                <div className="explore-vibes-bar">
+                  {(topCard.explore_vibes || []).slice(0, 3).map(vid => {
+                    const rm = EXPLORE_MAP[vid]
+                    return rm ? (
+                      <span
+                        key={vid}
+                        className="card-chip"
+                        style={{ borderColor: 'rgba(255,170,0,0.4)', color: '#ffd84d' }}
+                      >
+                        {rm.title}
                       </span>
-                      <span style={{ fontSize: 24, fontWeight: 500, opacity: 0.92 }}>{topCard.age}</span>
-                      {topCard.verified !== false && <VerifiedBadge size={20} />}
-                    </div>
-
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', marginTop: 4, fontWeight: 600 }}>
-                      {topCard.school || ''} · Level {topCard.level} · {topCard.course}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 12.5, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
-                      {topCard.distance_km != null && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <MapPinIcon size={13} /> {topCard.distance_km} km away
-                        </span>
-                      )}
-                      {topCard.hall && <span>{topCard.hall}</span>}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="expand-profile-btn"
-                    title="Open full profile"
-                    onClick={e => {
-                      e.stopPropagation()
-                      onInspect(topCard)
-                    }}
-                  >
-                    <ChevronUpIcon size={20} />
-                  </button>
+                    ) : null
+                  })}
                 </div>
-
-                {/* Explore vibes (opted-in communities) */}
-                {(topCard.explore_vibes || []).length > 0 && (
-                  <div style={{ marginTop: 10 }}>
-                    {(topCard.explore_vibes || []).slice(0, 3).map(vid => {
-                      const rm = EXPLORE_MAP[vid]
-                      return rm ? (
-                        <span
-                          key={vid}
-                          className="card-chip"
-                          style={{ borderColor: 'rgba(255,170,0,0.4)', color: '#ffd84d' }}
-                        >
-                          {rm.title}
-                        </span>
-                      ) : null
-                    })}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
@@ -655,6 +547,6 @@ export function SwipeDeck({
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
