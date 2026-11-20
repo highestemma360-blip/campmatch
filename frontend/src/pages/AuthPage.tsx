@@ -184,7 +184,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     <div
       style={{
         minHeight: '100dvh',
-        height: 'auto',
         width: '100%',
         maxWidth: '100vw',
         overflowX: 'hidden',
@@ -221,7 +220,18 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       )}
 
-      <div className="auth-grid stagger-child" style={{ width: '100%', maxWidth: 440, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+      <div
+        className="auth-grid stagger-child"
+        style={{
+          width: '100%',
+          maxWidth: 440,
+          margin: '0 auto',
+          position: 'relative',
+          zIndex: 1,
+          padding: '0 12px',
+          overflowWrap: 'break-word',
+        }}
+      >
         <div className="hero-glow" />
         <div className="auth-hero-copy text-reveal" style={{ color: '#fff', padding: '8px 4px', position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: 24 }}>

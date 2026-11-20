@@ -49,9 +49,10 @@ export function SwipeDeck({
 }: SwipeDeckProps) {
   const [photoIdx, setPhotoIdx] = useState(0)
   const [drag, setDrag] = useState({ x: 0, y: 0, pivotTop: true, active: false })
-  const [flyOut, setFlyOut] = useState<'left' | 'right' | 'up' | null>(null)
+  const [flyOut, setFlyOut] = useState<'left' | 'right' | null>(null)
   const [fxAction, setFxAction] = useState<'like' | 'nope' | null>(null)
-  const startRef = useRef<{ x: number; y: number; pivotTop: boolean; moved: boolean } | null>(null)
+  const startRef = useRef<{ x: number; y: number } | null>(null)
+  const isDraggingRef = useRef(false)
 
   const topCard = deck[0]
   const secondCard = deck[1]
@@ -63,11 +64,9 @@ export function SwipeDeck({
   const [spotlightPopupOpen, setSpotlightPopupOpen] = useState(false)
   const [boostSecondsLeft, setBoostSecondsLeft] = useState(0)
 
-  // Persist dismissal across remounts using localStorage keyed by boost
   const spotlightDismissedKey = `spotlightDismissed_${boostedUntil || 'none'}`
   const wasDismissed = useRef(localStorage.getItem(spotlightDismissedKey) === '1')
 
-  // Countdown timer for active spotlight boost
   useEffect(() => {
     if (!isBoostedActive) {
       setBoostSecondsLeft(0)
@@ -83,14 +82,12 @@ export function SwipeDeck({
     return () => clearInterval(id)
   }, [isBoostedActive, boostedUntil])
 
-  // Open spotlight popup when boost activates (only once per boost session)
   useEffect(() => {
     if (isBoostedActive && !spotlightPopupOpen && !wasDismissed.current) {
       setSpotlightPopupOpen(true)
     }
   }, [isBoostedActive, spotlightPopupOpen, wasDismissed.current, boostedUntil])
 
-  // Mark as dismissed when boost expires
   useEffect(() => {
     if (!isBoostedActive) {
       setBoostSecondsLeft(0)
@@ -145,6 +142,7 @@ export function SwipeDeck({
     setTimeout(() => setFxAction(null), 500)
 
     setTimeout(() => {
+      setFlyOut(null)
       if (dir === 'right') onSwipe(true)
       else onSwipe(false)
     }, 230)
@@ -155,7 +153,8 @@ export function SwipeDeck({
     const rect = e.currentTarget.getBoundingClientRect()
     const pivotTop = e.clientY - rect.top < rect.height * 0.55
     e.currentTarget.setPointerCapture(e.pointerId)
-    startRef.current = { x: e.clientX, y: e.clientY, pivotTop, moved: false }
+    startRef.current = { x: e.clientX, y: e.clientY }
+    isDraggingRef.current = true
     setDrag({ x: 0, y: 0, pivotTop, active: true })
   }
 
@@ -172,15 +171,27 @@ export function SwipeDeck({
     const dy = e.clientY - startRef.current.y
     const isFast = Math.abs(dx) > 100 || Math.abs(dy) > 100
 
-    if (Math.abs(dx) > 120 || Math.abs(dy) > 150 || isFast) {
-      if (dx > 0) triggerSwipe('right')
-      else if (dx < 0) triggerSwipe('left')
-      else if (dy < -120) setDrag({ x: 0, y: 0, pivotTop: true, active: false })
-      else setDrag({ x: 0, y: 0, pivotTop: true, active: false })
-    } else {
-      setDrag({ x: 0, y: 0, pivotTop: true, active: false })
-    }
     startRef.current = null
+    isDraggingRef.current = false
+
+    // Snap back if not swiped far enough
+    if (Math.abs(dx) <= 120 && Math.abs(dy) <= 150 && !isFast) {
+      setDrag({ x: 0, y: 0, pivotTop: true, active: false })
+      return
+    }
+
+    if (dx > 0) triggerSwipe('right')
+    else if (dx < 0) triggerSwipe('left')
+    else if (dy < -120) setDrag({ x: 0, y: 0, pivotTop: true, active: false })
+    else setDrag({ x: 0, y: 0, pivotTop: true, active: false })
+  }
+
+  function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
+    if (!startRef.current) return
+    startRef.current = null
+    isDraggingRef.current = false
+    setDrag({ x: 0, y: 0, pivotTop: true, active: false })
+    setFlyOut(null)
   }
 
   const cardWidth = 330
@@ -247,7 +258,7 @@ export function SwipeDeck({
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
             >
               {/* Full-size card photo - Tinder style */}
               <div className="card-photo-container">
@@ -289,7 +300,7 @@ export function SwipeDeck({
                     <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1 }}>
                       {topCard.name}
                     </span>
-                    <span style={{ fontSize: 22, fontWeight: 600, opacity: 0.95 }}>{topCard.age}</span>
+                    <span style={{ fontSize: 22, fontWeight: 500, opacity: 0.95 }}>{topCard.age}</span>
                     {topCard.verified !== false && <VerifiedBadge size={20} />}
                   </div>
                   <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 3, fontWeight: 600 }}>
