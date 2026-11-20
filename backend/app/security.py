@@ -1,6 +1,6 @@
 import os
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy.orm import Session
 from .models import User, Setting
