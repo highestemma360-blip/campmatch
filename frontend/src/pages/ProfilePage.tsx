@@ -31,6 +31,7 @@ import {
   MapPinIcon,
   BellIcon,
   DownloadIcon,
+  MoonIcon,
 } from '../components/Icons'
 import { isStandalone } from '../utils/pwa'
 
@@ -730,211 +731,368 @@ export function ProfilePage({
   if (screen === 'settings') {
     return (
       <div className="scroll-pane" style={{ padding: '16px 18px 36px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
           <button
             onClick={() => setScreen('hub')}
             className="icon-circle-btn"
-            style={{ width: 36, height: 36 }}
+            style={{ width: 38, height: 38 }}
           >
             <ArrowLeftIcon size={18} />
           </button>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>Settings & Privacy</h2>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: 21, fontWeight: 900, letterSpacing: '-0.5px' }}>Settings</h2>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+              Manage your Campmatch account & preferences
+            </div>
+          </div>
         </div>
 
+        {/* === ACCOUNT === */}
         <div
           style={{
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-subtle)',
-            borderRadius: 18,
-            padding: 16,
-            marginBottom: 16,
+            borderRadius: 20,
+            padding: 0,
+            marginBottom: 18,
+            overflow: 'hidden',
           }}
         >
-          <div className="field-label" style={{ marginTop: 0 }}>Account & Visibility</div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>Verified Student ID</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{me.email}</div>
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <CheckCircleIcon size={14} /> Active
-            </span>
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-subtle)',
+              fontSize: 12.5,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: 'var(--tinder-pink)',
+              background: 'rgba(255,76,94,0.06)',
+            }}
+          >
+            Account
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>Snooze Mode (Bumble Pause)</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {me.snoozed ? 'Hidden from Discover & Explore' : 'Visible to matching students'}
-              </div>
-            </div>
-            <button
-              className="btn-ghost"
-              style={{ padding: '7px 14px', fontSize: 12 }}
-              onClick={() => onSaveProfile({ snoozed: !me.snoozed })}
-            >
-              {me.snoozed ? 'Resume' : 'Snooze'}
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <BellIcon size={14} /> Phone Alerts
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {pushState.enabled
-                  ? 'Matches & campus updates sent to your phone'
-                  : 'Get matches and notifications on your phone'}
-              </div>
-            </div>
-            <button
-              className={pushState.enabled ? 'btn-ghost' : 'btn-brand'}
-              style={{ padding: '7px 14px', fontSize: 12, width: 'auto', flexShrink: 0 }}
-              disabled={!pushState.supported || pushBusy}
-              onClick={handleTogglePush}
-            >
-              {pushBusy ? 'Working…' : pushState.enabled ? 'Turn Off' : 'Turn On'}
-            </button>
-          </div>
-          {pushMsg && (
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0 2px', lineHeight: 1.45 }}>{pushMsg}</div>
-          )}
-
-          {!isStandalone() && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <DownloadIcon size={14} /> Home Screen App
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Verified Student ID</div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{me.email}</div>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <CheckCircleIcon size={14} /> Verified
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <BellIcon size={14} /> Phone Alerts
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Full-screen access and one-tap launches
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  {pushState.enabled ? 'Matches & campus updates' : 'Get alerts on your phone'}
                 </div>
               </div>
               <button
-                className="btn-ghost"
-                style={{ padding: '7px 14px', fontSize: 12 }}
-                onClick={onInstallApp}
+                className={pushState.enabled ? 'btn-ghost' : 'btn-brand'}
+                style={{ padding: '8px 16px', fontSize: 12.5, width: 'auto', flexShrink: 0 }}
+                disabled={!pushState.supported || pushBusy}
+                onClick={handleTogglePush}
               >
-                Install
+                {pushBusy ? 'Working…' : pushState.enabled ? 'Off' : 'On'}
               </button>
             </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>Theme</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {theme === 'dark' ? 'Dark obsidian' : 'Light ivory'}
-              </div>
-            </div>
-            <button className="btn-ghost" style={{ padding: '7px 14px', fontSize: 12 }} onClick={onToggleTheme}>
-              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>Discovery Preferences</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Ages {me.min_age}–{me.max_age} · Max {me.max_distance_km || 50} km
-              </div>
-            </div>
-            <button className="btn-ghost" style={{ padding: '7px 14px', fontSize: 12 }} onClick={onOpenFilters}>
-              Edit
-            </button>
+            {pushMsg && (
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '6px 0 2px', lineHeight: 1.45 }}>{pushMsg}</div>
+            )}
           </div>
         </div>
 
-        <form
-          onSubmit={handlePasswordChange}
+        {/* === APP === */}
+        <div
           style={{
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-subtle)',
-            borderRadius: 18,
-            padding: 16,
-            marginBottom: 16,
+            borderRadius: 20,
+            padding: 0,
+            marginBottom: 18,
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Change Password</div>
-          <label className="field-label" style={{ marginTop: 0 }}>Current Password</label>
-          <input
-            type="password"
-            className="modern-input"
-            value={currentPassword}
-            onChange={e => setCurrentPassword(e.target.value)}
-          />
-          <label className="field-label">New Password (8+ characters)</label>
-          <input
-            type="password"
-            className="modern-input"
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-          />
-          {pwStatus && (
-            <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: pwStatus.ok ? '#22c55e' : '#ff5a67' }}>
-              {pwStatus.msg}
-            </div>
-          )}
-          <button className="btn-brand" type="submit" style={{ marginTop: 14 }}>
-            Update Password
-          </button>
-        </form>
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-subtle)',
+              fontSize: 12.5,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: 'var(--tinder-pink)',
+              background: 'rgba(255,76,94,0.06)',
+            }}
+          >
+            App
+          </div>
 
+          <div style={{ padding: '0 20px' }}>
+            {!isStandalone() && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <DownloadIcon size={14} /> Install on Home Screen
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                    Full-screen access and one-tap launches
+                  </div>
+                </div>
+                <button
+                  className="btn-ghost"
+                  style={{ padding: '8px 16px', fontSize: 12.5 }}
+                  onClick={onInstallApp}
+                >
+                  Install
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <MoonIcon size={14} /> Theme
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  {theme === 'dark' ? 'Dark obsidian' : 'Light ivory'}
+                </div>
+              </div>
+              <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={onToggleTheme}>
+                {theme === 'dark' ? 'Light' : 'Dark'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* === DISCOVERY === */}
+        <div
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 20,
+            padding: 0,
+            marginBottom: 18,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-subtle)',
+              fontSize: 12.5,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: 'var(--tinder-pink)',
+              background: 'rgba(255,76,94,0.06)',
+            }}
+          >
+            Discovery
+          </div>
+
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Discovery Preferences</div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  Ages {me.min_age}–{me.max_age} · Max {me.max_distance_km || 50} km
+                </div>
+              </div>
+              <button className="btn-ghost" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={onOpenFilters}>
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* === SECURITY === */}
+        <div
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 20,
+            padding: 0,
+            marginBottom: 18,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-subtle)',
+              fontSize: 12.5,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: 'var(--tinder-pink)',
+              background: 'rgba(255,76,94,0.06)',
+            }}
+          >
+            Security
+          </div>
+
+          <div style={{ padding: '0 20px' }}>
+            <form
+              onSubmit={handlePasswordChange}
+              style={{ padding: '16px 0 0' }}
+            >
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                Change your account password
+              </div>
+              <label className="field-label" style={{ marginTop: 0, fontSize: 12.5, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                Current Password
+              </label>
+              <input
+                type="password"
+                className="modern-input"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+              />
+              <label className="field-label" style={{ marginTop: 14, fontSize: 12.5, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                New Password (8+ characters)
+              </label>
+              <input
+                type="password"
+                className="modern-input"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+              />
+              {pwStatus && (
+                <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: pwStatus.ok ? '#22c55e' : '#ff5a67' }}>
+                  {pwStatus.msg}
+                </div>
+              )}
+              <button className="btn-brand" type="submit" style={{ marginTop: 16, width: 'auto', padding: '11px 24px' }}>
+                Update Password
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* === SUPPORT === */}
+        <div
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 20,
+            padding: 0,
+            marginBottom: 18,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-subtle)',
+              fontSize: 12.5,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: 'var(--tinder-pink)',
+              background: 'rgba(255,76,94,0.06)',
+            }}
+          >
+            Support
+          </div>
+
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Terms of Service</div>
+              </div>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Privacy Policy</div>
+              </div>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>›</span>
+            </div>
+          </div>
+        </div>
+
+        {/* === DANGER ZONE === */}
+        <div
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 20,
+            padding: 0,
+            marginBottom: 18,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-subtle)',
+              fontSize: 12.5,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: '#ff5a67',
+              background: 'rgba(255,90,103,0.06)',
+            }}
+          >
+            Danger Zone
+          </div>
+
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ padding: '14px 0' }}>
+              <div style={{ fontWeight: 800, fontSize: 14.5, color: '#ff5a67', marginBottom: 6 }}>
+                Delete Account
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: 12 }}>
+                Immediately remove your profile, photos, and matches from public view.
+              </div>
+              <button
+                type="button"
+                onClick={onOpenDeleteAccount}
+                style={{
+                  width: '100%',
+                  padding: '11px 16px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(239, 68, 68, 0.45)',
+                  background: 'rgba(239, 68, 68, 0.14)',
+                  color: '#ff6b7a',
+                  fontWeight: 800,
+                  fontSize: 13,
+                }}
+              >
+                Delete My Account
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* === SESSION === */}
         <button
           onClick={onLogout}
           style={{
             width: '100%',
-            padding: 13,
+            padding: 14,
             borderRadius: 14,
             border: '1px solid var(--border-strong)',
             background: 'var(--bg-elevated)',
             color: 'var(--text-primary)',
             fontWeight: 800,
-            fontSize: 14,
-            marginBottom: 14,
+            fontSize: 14.5,
           }}
         >
           Sign Out
         </button>
 
-        <div
-          style={{
-            background: 'rgba(239, 68, 68, 0.06)',
-            border: '1px solid rgba(239, 68, 68, 0.24)',
-            borderRadius: 18,
-            padding: 16,
-          }}
-        >
-          <div style={{ fontWeight: 800, fontSize: 14.5, color: '#ff5a67', marginBottom: 4 }}>
-            Delete Account
-          </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: 12 }}>
-            Immediately remove your profile, photos, and matches from public view.
-          </div>
-          <button
-            type="button"
-            onClick={onOpenDeleteAccount}
-            style={{
-              width: '100%',
-              padding: '11px 16px',
-              borderRadius: 12,
-              border: '1px solid rgba(239, 68, 68, 0.45)',
-              background: 'rgba(239, 68, 68, 0.14)',
-              color: '#ff6b7a',
-              fontWeight: 800,
-              fontSize: 13,
-            }}
-          >
-            Delete My Account
-          </button>
-        </div>
-
-        <div style={{ marginTop: 18, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+        <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
           <button
             onClick={() => setLegal('terms')}
-            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)', marginRight: 14 }}
+            style={{ border: 'none', background: 'none', color: 'var(--text-secondary)', marginRight: 16 }}
           >
             Terms of Service
           </button>

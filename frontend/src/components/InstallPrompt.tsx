@@ -69,7 +69,7 @@ function Step({ n, children }: { n: number; children: ReactNode }) {
  * One calm invitation to install the app. Android uses the browser's native
  * install prompt when available; iPhone gets literal Add to Home Screen tips.
  */
-export function InstallPrompt({ platform, canPrompt, onInstall, onClose }: InstallPromptProps) {
+export function InstallPrompt({ platform, canPrompt, onInstall, onClose, nextReminderSeconds }: InstallPromptProps & { nextReminderSeconds: number }) {
   const [manualOnly, setManualOnly] = useState(false)
   const [busy, setBusy] = useState(false)
   const primaryRef = useRef<HTMLButtonElement | null>(null)
@@ -103,6 +103,15 @@ export function InstallPrompt({ platform, canPrompt, onInstall, onClose }: Insta
 
   const nativeAvailable = canPrompt && !manualOnly
   const showSteps = platform === 'ios' || !nativeAvailable
+
+  function formatTime(seconds: number) {
+    if (seconds === 0) return 'soon'
+    const d = Math.floor(seconds / 86400)
+    const h = Math.floor((seconds % 86400) / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    return `${d > 0 ? d + 'd ' : ''}${h > 0 ? h + 'h ' : ''}${m}m ${s}s`
+  }
 
   const overlay: CSSProperties = {
     position: 'fixed',
@@ -319,6 +328,19 @@ export function InstallPrompt({ platform, canPrompt, onInstall, onClose }: Insta
           }}
         >
           Works on Android and iPhone. No app store needed.
+        </div>
+
+        <div
+          style={{
+            marginTop: 12,
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            textAlign: 'center',
+            lineHeight: 1.5,
+            fontStyle: 'italic',
+          }}
+        >
+          Next reminder in {formatTime(nextReminderSeconds)}
         </div>
       </div>
     </div>

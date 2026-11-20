@@ -1482,6 +1482,7 @@ function StudentApp({
           canPrompt={install.canPrompt}
           onInstall={install.install}
           onClose={install.close}
+          nextReminderSeconds={install.nextReminderSeconds}
         />
       )}
       <FloatingWhatsAppBtn
