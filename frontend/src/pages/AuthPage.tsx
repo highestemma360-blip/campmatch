@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { CampmatchLogo, VerifiedBadge, ShieldIcon, CheckIcon, HeartIcon, DownloadIcon, ArrowLeftIcon } from '../components/Icons'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import {
+  CampmatchLogo,
+  VerifiedBadge,
+  ShieldIcon,
+  CheckIcon,
+  HeartIcon,
+  ArrowLeftIcon,
+  CloseXIcon,
+} from '../components/Icons'
 import { TERMS_SUMMARY, PRIVACY_SUMMARY } from '../constants'
 import { InstallPrompt } from '../components/InstallPrompt'
 import { useInstallPrompt } from '../utils/useInstallPrompt'
@@ -31,8 +39,11 @@ function loadGoogleScript(): Promise<void> {
 }
 
 export function AuthPage({ onAuth }: AuthPageProps) {
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [authTab, setAuthTab] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
@@ -43,7 +54,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null)
   const [googleClientId, setGoogleClientId] = useState('')
   const [googleStatus, setGoogleStatus] = useState<'idle' | 'loading' | 'ready' | 'unavailable'>('idle')
-  const [showEmailForm, setShowEmailForm] = useState(false)
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
   const authRef = useRef(onAuth)
   authRef.current = onAuth
@@ -54,6 +64,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     delayMs: 3000,
   })
 
+  // Fetch auth config (schools, domains, google client id, maintenance)
   useEffect(() => {
     let cancelled = false
 
@@ -111,6 +122,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 )
                 return
               }
+              setAuthModalOpen(false)
               authRef.current(d.access_token || d.token)
             } catch {
               setErr('Unable to complete Google sign-in. Check your connection and try again.')
@@ -120,7 +132,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           },
         })
 
-        if (googleButtonRef.current) {
+        if (googleButtonRef.current && googleStatus === 'ready') {
           window.google.accounts.id.renderButton(googleButtonRef.current, {
             type: 'standard',
             theme: 'filled_black',
@@ -140,12 +152,16 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [googleStatus])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || !password) {
       setErr('Please enter your email and password.')
+      return
+    }
+    if (authTab === 'signup' && password !== confirmPw) {
+      setErr('Passwords do not match.')
       return
     }
     setErr('')
@@ -158,10 +174,12 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       })
       if (adminRes.ok) {
         const d = await adminRes.json()
+        setAuthModalOpen(false)
         onAuth(d.access_token || d.token, true)
         return
       }
-      const r = await fetch('/api/login', {
+      const endpoint = authTab === 'signup' ? '/api/register' : '/api/login'
+      const r = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -170,6 +188,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       if (!r.ok) {
         setErr(typeof d.detail === 'string' ? d.detail : 'Authentication failed.')
       } else {
+        setAuthModalOpen(false)
         onAuth(d.access_token || d.token)
       }
     } catch {
@@ -183,38 +202,54 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     ? domains.map((d) => '@' + d.replace(/^@/, '')).slice(0, 3).join(', ')
     : 'approved university domains'
 
+  // Body scroll lock helpers
+  const lockBodyScroll = useCallback(() => {
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+  }, [])
+
+  const unlockBodyScroll = useCallback(() => {
+    document.body.style.overflow = ''
+    document.body.style.position = ''
+    document.body.style.width = ''
+  }, [])
+
+  useEffect(() => {
+    if (authModalOpen) {
+      lockBodyScroll()
+    } else {
+      unlockBodyScroll()
+    }
+    return () => {
+      unlockBodyScroll()
+    }
+  }, [authModalOpen, lockBodyScroll, unlockBodyScroll])
+
+  const openAuth = (tab: 'signin' | 'signup') => {
+    setAuthTab(tab)
+    setEmail('')
+    setPassword('')
+    setConfirmPw('')
+    setShowPw(false)
+    setErr('')
+    setLoading(false)
+    setAuthModalOpen(true)
+  }
+
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        width: '100%',
-        height: '100%',
-        overflowX: 'hidden',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        background:
-          'radial-gradient(circle at 20% 20%, rgba(255, 79, 94, 0.18), transparent 42%), radial-gradient(circle at 80% 80%, rgba(255, 170, 0, 0.12), transparent 42%), #0a0b0f',
-        padding:
-          'calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))',
-        WebkitOverflowScrolling: 'touch',
-        position: 'relative',
-        touchAction: 'manipulation',
-      }}
-    >
+    <div className="auth-shell">
+      {/* Announcement Banner */}
       {banner && (
         <div
           style={{
             width: '100%',
-            maxWidth: 420,
-            marginBottom: 14,
-            padding: '10px 14px',
-            borderRadius: 12,
+            maxWidth: 1000,
+            padding: '10px 16px',
             background: 'rgba(245, 158, 11, 0.14)',
             border: '1px solid rgba(245, 158, 11, 0.35)',
             color: '#ffd84d',
-            fontSize: 12.5,
+            fontSize: 13,
             fontWeight: 700,
             textAlign: 'center',
             overflowWrap: 'break-word',
@@ -224,12 +259,36 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       )}
 
-      {/* Hero Section — Mobile First */}
-      <div className="hero-section">
-        <div className="hero-brand">
-          <CampmatchLogo iconSize={48} fontSize={36} gap={14} />
+      {/* Sticky Header */}
+      <header className="landing-header">
+        <div className="landing-header-left">
+          <CampmatchLogo iconSize={28} fontSize={20} gap={8} />
         </div>
+        <div className="landing-header-right">
+          <button
+            type="button"
+            className="pill-btn pill-btn-secondary"
+            onClick={() => openAuth('signin')}
+            aria-label="Sign in"
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className="pill-btn pill-btn-primary"
+            onClick={() => openAuth('signup')}
+            aria-label="Create account"
+          >
+            Create account
+          </button>
+        </div>
+      </header>
 
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-brand">
+          <CampmatchLogo iconSize={56} fontSize={40} gap={16} />
+        </div>
         <div className="hero-content">
           <h1 className="hero-title">
             Meet students from{' '}
@@ -238,245 +297,469 @@ export function AuthPage({ onAuth }: AuthPageProps) {
           <p className="hero-subtitle">
             Verified university students in Ghana — for dates, new friends, and study partners.
           </p>
-
-          <div className="social-proof">
+          <div className="trust-pill">
             <VerifiedBadge size={16} />
-            <span>{schools.length > 1 ? `${schools.length} universities` : 'Verified students only'}</span>
+            <span>
+              {schools.length > 1 ? `${schools.length} universities` : 'Verified students only'}
+            </span>
+          </div>
+          <div className="hero-ctas">
+            <button
+              type="button"
+              className="pill-btn pill-btn-primary"
+              onClick={() => openAuth('signup')}
+            >
+              <HeartIcon size={20} /> Create account
+            </button>
+            <button
+              type="button"
+              className="pill-btn pill-btn-secondary"
+              onClick={() => openAuth('signin')}
+            >
+              Sign in
+            </button>
+          </div>
+          <div className="scroll-invite" role="button" tabIndex={0} onClick={() => {
+            const el = document.querySelector('.connect-section')
+            el?.scrollIntoView({ behavior: 'smooth' })
+          }}>
+            Find your people across Ghana’s campuses ↓
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Sign-In Card */}
-      <div className="signin-card">
-        {maintenance && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: '10px 12px',
-              borderRadius: 12,
-              background: 'rgba(245, 158, 11, 0.14)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
-              color: '#ffd84d',
-              fontSize: 12.5,
-              fontWeight: 700,
-              overflowWrap: 'break-word',
-            }}
-          >
-            Scheduled maintenance is active. Existing students can still sign in.
+      {/* Section 1: Three Ways to Connect */}
+      <section className="section connect-section" id="connect">
+        <div className="section-inner">
+          <div className="section-label">What Campmatch Offers</div>
+          <h2 className="section-heading">More than just dating on campus.</h2>
+          <p className="section-subheading">
+            Choose how you want to connect. Every connection starts with a verified student badge.
+          </p>
+          <div className="mode-cards">
+            <div className="mode-card">
+              <div className="mode-card-icon" style={{ background: 'rgba(255, 79, 94, 0.14)', borderColor: 'rgba(255, 79, 94, 0.30)' }}>
+                <span style={{ color: '#ff4f5e' }}><HeartIcon size={20} /></span>
+              </div>
+              <h3 className="mode-card-title">Campus Dating</h3>
+              <p className="mode-card-desc">
+                Meet verified students on your campus or nearby universities for genuine relationships.
+              </p>
+            </div>
+            <div className="mode-card">
+              <div className="mode-card-icon" style={{ background: 'rgba(56, 189, 248, 0.14)', borderColor: 'rgba(56, 189, 248, 0.30)' }}>
+                <span style={{ color: '#38bdf8' }}><HeartIcon size={20} /></span>
+              </div>
+              <h3 className="mode-card-title">New Friends</h3>
+              <p className="mode-card-desc">
+                Fresh on campus or looking to expand your circle? Connect by hall, faculty, or shared interests.
+              </p>
+            </div>
+            <div className="mode-card">
+              <div className="mode-card-icon" style={{ background: 'rgba(255, 170, 0, 0.14)', borderColor: 'rgba(255, 170, 0, 0.30)' }}>
+                <span style={{ color: '#ffaa00' }}><HeartIcon size={20} /></span>
+              </div>
+              <h3 className="mode-card-title">Study Partners</h3>
+              <p className="mode-card-desc">
+                Pair up with classmates or students in your course for library sessions, projects, and exam prep.
+              </p>
+            </div>
           </div>
-        )}
-
-        <div className="form-header">
-          <h2 className="form-title">Sign in</h2>
-          <p className="form-subtitle">Join your campus community</p>
         </div>
+      </section>
 
-        {/* Primary CTA — Continue with Google */}
-        <div className="google-btn-wrapper">
-          <div id="google-btn" ref={googleButtonRef} style={{ width: '100%' }} />
+      {/* Section 2: Campus Verification */}
+      <section className="section" id="verification">
+        <div className="section-inner">
+          <div className="section-label">Student Verification</div>
+          <h2 className="section-heading">Real students. Zero outsiders.</h2>
+          <p className="section-subheading">
+            Campmatch is designed for university students in Ghana. Our student-focused verification helps create a community where students can connect with greater confidence.
+          </p>
+          <div className="verify-steps">
+            <div className="verify-step">
+              <div className="verify-step-number">01</div>
+              <div className="verify-step-content">
+                <h3 className="verify-step-title">Enter your university email</h3>
+                <p className="verify-step-desc">
+                  Sign up with your institutional email (e.g., student@st.umat.edu.gh, name@ug.edu.gh, name@knust.edu.gh).
+                </p>
+              </div>
+            </div>
+            <div className="verify-step">
+              <div className="verify-step-number">02</div>
+              <div className="verify-step-content">
+                <h3 className="verify-step-title">Confirm your verification code</h3>
+                <p className="verify-step-desc">
+                  Enter the one-time code sent to your university inbox to unlock your verified student badge.
+                </p>
+              </div>
+            </div>
+            <div className="verify-step">
+              <div className="verify-step-number">03</div>
+              <div className="verify-step-content">
+                <h3 className="verify-step-title">Choose your intent and connect</h3>
+                <p className="verify-step-desc">
+                  Select Dating, Friends, or Study. Set campus filters and start matching mutually with verified students.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
 
-        {googleStatus === 'ready' && (
-          <div style={{
-            marginTop: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            fontSize: 12.5,
-            color: '#64748b',
-            overflowWrap: 'break-word',
-          }}
-          >
-            <ShieldIcon size={14} /> Non-school Gmail accounts blocked automatically.
+      {/* Section 3: Ghanaian Campuses */}
+      <section className="section" id="campuses">
+        <div className="section-inner">
+          <div className="section-label">Supported Campuses</div>
+          <h2 className="section-heading">Built for universities across Ghana.</h2>
+          <p className="section-subheading">
+            We support institutional .edu.gh domains from universities and technical colleges nationwide.
+          </p>
+          <div className="campus-grid">
+            <div className="campus-badge">
+              <span className="campus-name">UG Legon</span>
+            </div>
+            <div className="campus-badge">
+              <span className="campus-name">KNUST</span>
+            </div>
+            <div className="campus-badge">
+              <span className="campus-name">UCC</span>
+            </div>
+            <div className="campus-badge">
+              <span className="campus-name">UMaT</span>
+            </div>
+            <div className="campus-badge">
+              <span className="campus-name">Ashesi</span>
+            </div>
+            <div className="campus-badge">
+              <span className="campus-name">UEW</span>
+            </div>
+            <div className="campus-badge">
+              <span className="campus-name">UDS</span>
+            </div>
+            <div className="campus-badge">
+              <span className="campus-name">Tech Universities</span>
+            </div>
           </div>
-        )}
-
-        {googleStatus === 'unavailable' && (
-          <div style={{
-            marginTop: 14,
-            padding: '12px 14px',
-            borderRadius: 14,
-            background: 'rgba(56, 189, 248, 0.1)',
-            border: '1px solid rgba(56, 189, 248, 0.25)',
-            color: '#7dd3fc',
-            fontSize: 12.5,
-            lineHeight: 1.55,
-            textAlign: 'center',
-            overflowWrap: 'break-word',
-          }}
-          >
-            Google sign-in is not configured yet. Add a GOOGLE_CLIENT_ID on the server and it will appear here automatically.
-          </div>
-        )}
-
-        {err && (
-          <div
-            role="alert"
-            style={{
-              marginTop: 14,
-              padding: '12px 14px',
-              borderRadius: 14,
-              background: 'rgba(255, 68, 88, 0.12)',
-              border: '1px solid rgba(255, 68, 88, 0.35)',
-              color: '#ff6b7a',
-              fontSize: 13,
-              fontWeight: 600,
-              lineHeight: 1.5,
-              overflowWrap: 'break-word',
-            }}
-          >
-            {err}
-          </div>
-        )}
-
-        {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 6px' }}>
-          <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
-          <span style={{
-            fontSize: 12,
-            fontWeight: 800,
-            color: '#94a3b8',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-          }}
-          >
-            Or continue with email
-          </span>
-          <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
-        </div>
-
-        {/* Email sign-in toggle */}
-        <button
-          type="button"
-          onClick={() => {
-            setShowEmailForm(v => !v)
-            setErr('')
-          }}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: 16,
-            border: 'none',
-            background: 'transparent',
-            color: '#64748b',
-            fontSize: 15,
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            minHeight: 48,
-          }}
-          aria-expanded={showEmailForm}
-          aria-controls="email-signin-form"
-        >
-          {showEmailForm ? 'Hide email sign-in' : 'Use student email & password instead'}
-        </button>
-
-        {showEmailForm && (
-          <form onSubmit={submit} id="email-signin-form" style={{ marginTop: 18 }}>
-            <label className="field-label">Student Email</label>
-            <input
-              type="email"
-              className="modern-input"
+          <div className="campus-request">
+            Don’t see your .edu.gh domain?{' '}
+            <button
+              type="button"
               style={{
-                background: '#f3f5fa',
-                color: '#11141d',
-                borderColor: 'rgba(17, 20, 29, 0.12)',
-                minHeight: 48,
-                fontSize: 16,
+                background: 'none',
+                border: 'none',
+                color: '#ff4f5e',
+                fontWeight: 900,
+                fontSize: 'inherit',
+                cursor: 'pointer',
+                padding: 0,
               }}
-              placeholder="you@university.edu.gh"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
+            >
+              Request your campus
+            </button>
+          </div>
+        </div>
+      </section>
 
-            <label className="field-label">Password</label>
-            <div style={{ position: 'relative', minHeight: 48 }}>
-              <input
-                type={showPw ? 'text' : 'password'}
-                className="modern-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                style={{
-                  background: '#f3f5fa',
-                  color: '#11141d',
-                  borderColor: 'rgba(17, 20, 29, 0.12)',
-                  paddingRight: 72,
-                  minHeight: 48,
-                  fontSize: 16,
-                }}
-                required
-              />
+      {/* Section 4: Safety */}
+      <section className="section" id="safety">
+        <div className="section-inner">
+          <div className="section-label">Campus Trust &amp; Privacy</div>
+          <h2 className="section-heading">Built for campus trust and privacy.</h2>
+          <p className="section-subheading">
+            Your safety and privacy come first. Every feature is designed around the university student experience.
+          </p>
+          <div className="safety-grid">
+            <div className="safety-card">
+              <div className="safety-card-icon">
+                <ShieldIcon size={18} />
+              </div>
+              <h3 className="safety-card-title">Institutional Verification</h3>
+              <p className="safety-card-desc">
+                Every profile is tied to an active university email domain — no outsiders.
+              </p>
+            </div>
+            <div className="safety-card">
+              <div className="safety-card-icon">
+                <CheckIcon size={18} />
+              </div>
+              <h3 className="safety-card-title">Double Opt-In Chat</h3>
+              <p className="safety-card-desc">
+                No unsolicited DMs — messaging only opens when both students match.
+              </p>
+            </div>
+            <div className="safety-card">
+              <div className="safety-card-icon" style={{ background: 'rgba(148, 163, 184, 0.14)', borderColor: 'rgba(148, 163, 184, 0.30)' }}>
+                <span style={{ color: '#94a3b8' }}><HeartIcon size={18} /></span>
+              </div>
+              <h3 className="safety-card-title">Intent &amp; Visibility Controls</h3>
+              <p className="safety-card-desc">
+                Filter who sees you by campus or mode, and block or report anyone anytime.
+              </p>
+            </div>
+            <div className="safety-card">
+              <div className="safety-card-icon" style={{ background: 'rgba(148, 163, 184, 0.14)', borderColor: 'rgba(148, 163, 184, 0.30)' }}>
+                <span style={{ color: '#94a3b8' }}><HeartIcon size={18} /></span>
+              </div>
+              <h3 className="safety-card-title">Meet Smart on Campus</h3>
+              <p className="safety-card-desc">
+                First meetups in busy public campus spots — libraries, student centers, cafés.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 5: Bottom CTA */}
+      <section className="bottom-cta">
+        <div className="bottom-cta-inner">
+          <h2 className="bottom-cta-heading">Your next campus connection starts here.</h2>
+          <p className="bottom-cta-desc">
+            Whether it’s a new friendship, a study partner, or someone special, there’s a whole campus community waiting to connect.
+          </p>
+          <button
+            type="button"
+            className="pill-btn pill-btn-secondary"
+            style={{ color: '#0a0a0d', background: '#fff', boxShadow: '0 10px 24px rgba(0,0,0,0.32)' }}
+            onClick={() => openAuth('signup')}
+          >
+            Join Campmatch Today
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="landing-footer">
+        <div className="footer-brand">
+          <CampmatchLogo iconSize={24} fontSize={17} gap={6} />
+        </div>
+        <div className="footer-links">
+          <a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); setAuthModalOpen(false); }}>
+            How It Works
+          </a>
+          <a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); setAuthModalOpen(false); }}>
+            Safety
+          </a>
+          <a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); setAuthModalOpen(false); }}>
+            Supported Campuses
+          </a>
+          <a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); setLegalModal('privacy'); }}>
+            Privacy Policy
+          </a>
+          <a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); setLegalModal('terms'); }}>
+            Terms of Service
+          </a>
+          <a href="#" className="footer-link" onClick={(e) => { e.preventDefault(); }}>
+            Support
+          </a>
+        </div>
+        <div className="footer-copy">
+          © {new Date().getFullYear()} Campmatch. Built for university students in Ghana.
+        </div>
+      </footer>
+
+      {/* Auth Modal */}
+      {authModalOpen && (
+        <div className="auth-modal-backdrop" onClick={() => setAuthModalOpen(false)}>
+          <div
+            className="auth-modal-body"
+            onClick={(e) => e.stopPropagation()}
+            style={{ paddingBottom: `calc(24px + env(safe-area-inset-bottom, 0px))` }}
+          >
+            <button
+              type="button"
+              className="auth-modal-close"
+              onClick={() => setAuthModalOpen(false)}
+              aria-label="Close"
+            >
+              <CloseXIcon size={24} />
+            </button>
+
+            <div className="auth-modal-tabs">
               <button
                 type="button"
-                onClick={() => setShowPw((v) => !v)}
-                style={{
-                  position: 'absolute',
-                  right: 14,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  border: 'none',
-                  background: 'none',
-                  color: '#94a3b8',
-                  fontSize: 13,
-                  fontWeight: 800,
-                  minHeight: 40,
-                  minWidth: 40,
-                }}
-                aria-label={showPw ? 'Hide password' : 'Show password'}
+                className={`auth-tab-btn ${authTab === 'signin' ? 'active' : ''}`}
+                onClick={() => setAuthTab('signin')}
+                aria-pressed={authTab === 'signin'}
               >
-                {showPw ? 'Hide' : 'Show'}
+                Sign in
+              </button>
+              <button
+                type="button"
+                className={`auth-tab-btn ${authTab === 'signup' ? 'active' : ''}`}
+                onClick={() => setAuthTab('signup')}
+                aria-pressed={authTab === 'signup'}
+              >
+                Create account
               </button>
             </div>
 
-            <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 22, minHeight: 48, width: '100%' }}>
-              {loading ? 'Signing in…' : 'Sign in'}
-            </button>
-          </form>
-          )}
+            <div className="auth-modal-header">
+              <h2 className="auth-modal-title">
+                {authTab === 'signup' ? 'Create your account' : 'Welcome back'}
+              </h2>
+              <p className="auth-modal-subtitle">
+                {authTab === 'signup'
+                  ? 'Join your verified campus community.'
+                  : 'Sign in to your Campmatch account.'}
+              </p>
+            </div>
 
-          <div style={{ marginTop: 22, textAlign: 'center', fontSize: 12, color: '#94a3b8', lineHeight: 1.5, overflowWrap: 'break-word' }}>
-            By continuing, you agree to our{' '}
-            <button
-              type="button"
-              onClick={() => setLegalModal('terms')}
-              style={{ border: 'none', background: 'none', color: '#ff4f5e', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 800 }}
-            >
-              Terms of Service
-            </button>{' '}
-            and{' '}
-            <button
-              type="button"
-              onClick={() => setLegalModal('privacy')}
-              style={{ border: 'none', background: 'none', color: '#ff4f5e', textDecoration: 'underline', padding: 0, fontSize: 12, fontWeight: 800 }}
-            >
-              Privacy Policy
-            </button>
-            {'.'}
+            {err && (
+              <div className="auth-modal-err" role="alert">
+                {err}
+              </div>
+            )}
+
+            {maintenance && (
+              <div style={{
+                marginBottom: 16,
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: 'rgba(245, 158, 11, 0.14)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                color: '#ffd84d',
+                fontSize: 12.5,
+                fontWeight: 700,
+                textAlign: 'center',
+              }}
+              >
+                Scheduled maintenance is active. Existing students can still sign in.
+              </div>
+            )}
+
+            <form onSubmit={submit} className="auth-modal-form">
+              <div className="auth-modal-google-btn-wrapper">
+                {googleStatus === 'ready' && (
+                  <div id="google-btn" ref={googleButtonRef} style={{ width: '100%' }} />
+                )}
+              </div>
+
+              <div className="auth-modal-or-divider">
+                <div />
+                <span>Or continue with email</span>
+                <div />
+              </div>
+
+              <label className="auth-modal-field-label">Student Email</label>
+              <input
+                type="email"
+                className="auth-modal-input"
+                placeholder="name@ug.edu.gh"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+
+              <label className="auth-modal-field-label">Password</label>
+              <div className="auth-modal-pw-wrapper">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  className="auth-modal-input"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={authTab === 'signup' ? 'new-password' : 'current-password'}
+                  required
+                />
+                <button
+                  type="button"
+                  className="auth-modal-pw-toggle"
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                >
+                  {showPw ? 'Hide' : 'Show'}
+                </button>
+              </div>
+
+              {authTab === 'signup' && (
+                <>
+                  <label className="auth-modal-field-label">Confirm Password</label>
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    className="auth-modal-input"
+                    placeholder="••••••••"
+                    value={confirmPw}
+                    onChange={(e) => setConfirmPw(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                </>
+              )}
+
+              <button
+                type="submit"
+                className="auth-modal-btn"
+                disabled={loading}
+              >
+                {loading ? 'Signing in…' : authTab === 'signup' ? 'Create account' : 'Sign in'}
+              </button>
+            </form>
+
+            <div className="auth-modal-domain-hint">
+              Accepted domains include {domainHint}. Verification is required for all student accounts.
+            </div>
+
+            <div className="auth-modal-footer-note">
+              By continuing, you agree to our{' '}
+              <button
+                type="button"
+                onClick={() => setLegalModal('terms')}
+                style={{ background: 'none', border: 'none', color: '#ff4f5e', fontWeight: 800, padding: 0, cursor: 'pointer', fontSize: 'inherit' }}
+              >
+                Terms of Service
+              </button>{' '}
+              and{' '}
+              <button
+                type="button"
+                onClick={() => setLegalModal('privacy')}
+                style={{ background: 'none', border: 'none', color: '#ff4f5e', fontWeight: 800, padding: 0, cursor: 'pointer', fontSize: 'inherit' }}
+              >
+                Privacy Policy
+              </button>
+              .
+            </div>
           </div>
         </div>
+      )}
 
       {legalModal && (
-        <div className="sheet-backdrop" onClick={() => setLegalModal(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 19, fontWeight: 900, marginBottom: 12, overflowWrap: 'break-word', color: '#11141d' }}>
-              {legalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+        <div className="auth-modal-backdrop" onClick={() => setLegalModal(null)}>
+          <div
+            className="auth-modal-body"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '90dvh', overflowY: 'auto', paddingBottom: `calc(24px + env(safe-area-inset-bottom, 0px))` }}
+          >
+            <button
+              type="button"
+              className="auth-modal-close"
+              onClick={() => setLegalModal(null)}
+              aria-label="Close"
+            >
+              <CloseXIcon size={24} />
+            </button>
+            <div className="auth-modal-header">
+              <h2 className="auth-modal-title">
+                {legalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+              </h2>
             </div>
-            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: '#64748b', overflowWrap: 'break-word' }}>
+            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: '#c4c5d1', marginTop: 12 }}>
               {legalModal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
             </div>
-            <button className="btn-brand" style={{ marginTop: 20, minHeight: 44 }} onClick={() => setLegalModal(null)}>
+            <button
+              type="button"
+              className="auth-modal-btn"
+              style={{ marginTop: 24 }}
+              onClick={() => setLegalModal(null)}
+            >
               Close
             </button>
           </div>
         </div>
       )}
+
       {install.visible && (
         <InstallPrompt
           platform={install.platform}
