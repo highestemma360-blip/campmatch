@@ -12,24 +12,21 @@ function loadGoogleScript(): Promise<void> {
   if (typeof window !== 'undefined' && window.google?.accounts?.id) {
     return Promise.resolve()
   }
-  // index.html already loads the GSI script via a plain <script> tag.
-  // Poll for window.google.accounts.id instead of creating a duplicate script tag.
   return new Promise((resolve, reject) => {
-    let attempts = 0
-    const maxAttempts = 100 // 10 seconds
-    const check = () => {
-      if (typeof window !== 'undefined' && window.google?.accounts?.id) {
-        resolve()
-        return
-      }
-      attempts++
-      if (attempts >= maxAttempts) {
-        reject(new Error('Google script failed to load'))
-        return
-      }
-      setTimeout(check, 100)
+    const existing = document.querySelector<HTMLScriptElement>('script[data-campmatch-gsi]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Google script failed')), { once: true })
+      return
     }
-    check()
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.dataset.campmatchGsi = '1'
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Google script failed'))
+    document.head.appendChild(script)
   })
 }
 
@@ -183,21 +180,15 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         credentials: 'include',
         body: JSON.stringify({ email: email.trim(), password }),
       })
-      const contentType = r.headers.get('content-type') || ''
-      const isJson = contentType.includes('application/json')
-      const d = isJson ? await r.json().catch(() => ({})) : {}
+      const d = await r.json().catch(() => ({}))
       if (!r.ok) {
-        if (!isJson) {
-          setErr(`Server returned HTML instead of JSON (${r.status}). Backend may be misconfigured.`)
-        } else {
-          setErr(typeof d.detail === 'string' ? d.detail : `Authentication failed (${r.status}).`)
-        }
+        setErr(typeof d.detail === 'string' ? d.detail : `Authentication failed (${r.status}).`)
       } else {
         setAuthModalOpen(false)
         onAuth(d.access_token || d.token)
       }
-    } catch (err: any) {
-      setErr(`Network error: ${err.message}. Check your connection and try again.`)
+    } catch {
+      setErr('Unable to reach server. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -746,5 +737,3 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     </div>
   )
 }
- 
- 
