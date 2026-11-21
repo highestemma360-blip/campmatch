@@ -911,6 +911,59 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.5;
 }
 
+/* ============================================================================
+   SCROLL REVEAL ANIMATIONS — Premium editorial motion
+   GPU-composited only (transform + opacity). Respects reduced motion.
+   ============================================================================ */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered reveals for grids/steps */
+.reveal-stagger > .reveal {
+  transition-delay: var(--stagger-delay, 0ms);
+}
+
+.reveal-stagger > .reveal.visible {
+  transition-delay: var(--stagger-delay, 0ms);
+}
+
+/* Stagger delay utilities */
+.stagger-1 { --stagger-delay: 60ms; }
+.stagger-2 { --stagger-delay: 120ms; }
+.stagger-3 { --stagger-delay: 180ms; }
+.stagger-4 { --stagger-delay: 240ms; }
+.stagger-5 { --stagger-delay: 300ms; }
+
+/* Hairline surface borders on cards/sections */
+.hairline {
+  border: 1px solid var(--border);
+}
+
+/* Refined press feedback on all interactive buttons */
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Crisp focus states for keyboard navigation */
+.btn:focus-visible,
+.auth-modal-input:focus-visible,
+.auth-tab-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--brand-coral);
+  border-color: var(--brand-coral);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -927,5 +980,11 @@ h1, h2, h3, h4, h5, h6 {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .reveal,
+  .reveal.visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }

@@ -217,6 +217,29 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     }
   }, [authModalOpen, lockBodyScroll, unlockBodyScroll])
 
+  // Scroll reveal: add .visible to .reveal elements as they enter the viewport.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -80px 0px' },
+    )
+    const timer = setTimeout(() => {
+      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
+    }, 100)
+    return () => {
+      clearTimeout(timer)
+      observer.disconnect()
+    }
+  }, [])
+
   const openAuth = (tab: 'signin' | 'signup') => {
     setAuthTab(tab)
     setEmail('')
@@ -251,9 +274,9 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       )}
 
       {/* Hero — single brand lockup, no top bar clutter */}
-      <section className="hero-section">
+      <section className="hero-section reveal">
         <div className="hero-brand">
-          <CampmatchLogo iconSize={56} fontSize={40} gap={16} />
+          <CampmatchLogo iconSize={26} fontSize={20} gap={10} />
         </div>
         <div className="hero-content">
           <h1 className="display-headline">
@@ -306,29 +329,29 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       </section>
 
       {/* Section 1: Three Ways to Connect — editorial list */}
-      <section className="section connect-section" id="connect">
+      <section className="section connect-section reveal" id="connect">
         <div className="section-inner">
           <div className="eyebrow">What Campmatch Offers</div>
           <h2 className="section-heading">More than just dating on campus.</h2>
           <p className="subheadline">
             Choose how you want to connect. Every connection starts with a verified student badge.
           </p>
-          <div className="connect-list">
-            <div className="connect-item">
+          <div className="connect-list reveal-stagger">
+            <div className="connect-item reveal stagger-1">
               <span className="connect-item-number">01</span>
               <h3 className="connect-item-title">Campus Dating</h3>
               <p className="connect-item-desc">
                 Meet verified students on your campus or nearby universities for genuine relationships.
               </p>
             </div>
-            <div className="connect-item">
+            <div className="connect-item reveal stagger-2">
               <span className="connect-item-number">02</span>
               <h3 className="connect-item-title">New Friends</h3>
               <p className="connect-item-desc">
                 Fresh on campus or looking to expand your circle? Connect by hall, faculty, or shared interests.
               </p>
             </div>
-            <div className="connect-item">
+            <div className="connect-item reveal stagger-3">
               <span className="connect-item-number">03</span>
               <h3 className="connect-item-title">Study Partners</h3>
               <p className="connect-item-desc">
@@ -340,15 +363,15 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       </section>
 
       {/* Section 2: How .edu.gh Verification Works */}
-      <section className="section">
+      <section className="section reveal">
         <div className="section-inner">
           <div className="eyebrow">Student Verification</div>
           <h2 className="section-heading">Real students. Zero outsiders.</h2>
           <p className="subheadline">
             Campmatch is designed for university students in Ghana. Our student-focused verification helps create a community where students can connect with greater confidence.
           </p>
-          <div className="verify-flow">
-            <div className="verify-step">
+          <div className="verify-flow reveal-stagger">
+            <div className="verify-step reveal stagger-1">
               <div className="verify-step-number">01</div>
               <div className="verify-step-content">
                 <h3 className="verify-step-title">Enter your university email</h3>
@@ -357,7 +380,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 </p>
               </div>
             </div>
-            <div className="verify-step">
+            <div className="verify-step reveal stagger-2">
               <div className="verify-step-number">02</div>
               <div className="verify-step-content">
                 <h3 className="verify-step-title">Confirm your verification code</h3>
@@ -366,7 +389,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 </p>
               </div>
             </div>
-            <div className="verify-step">
+            <div className="verify-step reveal stagger-3">
               <div className="verify-step-number">03</div>
               <div className="verify-step-content">
                 <h3 className="verify-step-title">Choose your intent and connect</h3>
@@ -380,39 +403,39 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       </section>
 
       {/* Section 3: Ghanaian Campuses — typographic strip */}
-      <section className="section">
+      <section className="section reveal">
         <div className="section-inner">
           <div className="eyebrow">Supported Campuses</div>
           <h2 className="section-heading">Built for universities across Ghana.</h2>
           <p className="subheadline">
             We support institutional .edu.gh domains from universities and technical colleges nationwide.
           </p>
-          <div className="campus-list">
-            <span className="campus-item">UG Legon</span>
-            <span className="campus-item">KNUST</span>
-            <span className="campus-item">UCC</span>
-            <span className="campus-item">UMaT</span>
-            <span className="campus-item">Ashesi</span>
-            <span className="campus-item">UEW</span>
-            <span className="campus-item">UDS</span>
-            <span className="campus-item">Technical Universities</span>
+          <div className="campus-list reveal-stagger">
+            <span className="campus-item reveal stagger-1">UG Legon</span>
+            <span className="campus-item reveal stagger-2">KNUST</span>
+            <span className="campus-item reveal stagger-3">UCC</span>
+            <span className="campus-item reveal stagger-4">UMaT</span>
+            <span className="campus-item reveal stagger-5">Ashesi</span>
+            <span className="campus-item reveal">UEW</span>
+            <span className="campus-item reveal">UDS</span>
+            <span className="campus-item reveal">Technical Universities</span>
           </div>
-          <div className="campus-request">
+          <div className="campus-request reveal">
             Don’t see your .edu.gh domain? Request your campus.
           </div>
         </div>
       </section>
 
       {/* Section 4: Campus Safety & Privacy */}
-      <section className="section">
+      <section className="section reveal">
         <div className="section-inner">
           <div className="eyebrow">Campus Trust &amp; Privacy</div>
           <h2 className="section-heading">Built for campus trust and privacy.</h2>
           <p className="subheadline">
             Your safety and privacy come first. Every feature is designed around the university student experience.
           </p>
-          <div className="safety-list">
-            <div className="safety-item">
+          <div className="safety-list reveal-stagger">
+            <div className="safety-item reveal stagger-1">
               <div className="safety-item-content">
                 <h3 className="safety-item-title">Institutional .edu.gh verification</h3>
                 <p className="safety-item-desc">
@@ -420,7 +443,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 </p>
               </div>
             </div>
-            <div className="safety-item">
+            <div className="safety-item reveal stagger-2">
               <div className="safety-item-content">
                 <h3 className="safety-item-title">Double opt-in chat</h3>
                 <p className="safety-item-desc">
@@ -428,7 +451,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 </p>
               </div>
             </div>
-            <div className="safety-item">
+            <div className="safety-item reveal stagger-3">
               <div className="safety-item-content">
                 <h3 className="safety-item-title">Visibility &amp; controls</h3>
                 <p className="safety-item-desc">
@@ -436,7 +459,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 </p>
               </div>
             </div>
-            <div className="safety-item">
+            <div className="safety-item reveal stagger-4">
               <div className="safety-item-content">
                 <h3 className="safety-item-title">Meet smart on campus</h3>
                 <p className="safety-item-desc">
@@ -449,8 +472,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       </section>
 
       {/* Section 5: Bottom CTA */}
-      <section className="bottom-cta">
-        <div className="bottom-cta-inner">
+      <section className="bottom-cta reveal">
+        <div className="bottom-cta-inner reveal">
           <h2 className="bottom-cta-heading">Your next campus connection starts here.</h2>
           <button
             type="button"
@@ -463,7 +486,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="landing-footer">
+      <footer className="landing-footer reveal">
         <div className="footer-brand">
           <CampmatchLogo iconSize={24} fontSize={17} gap={6} />
         </div>
