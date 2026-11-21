@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy.orm import Session
 
 from . import models, database
@@ -214,6 +215,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
         response.headers["Permissions-Policy"] = "geolocation=(self), microphone=(), camera=()"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
@@ -230,6 +232,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers["Cache-Control"] = "public, max-age=604800, immutable"
         return response
 
+
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)

@@ -77,6 +77,8 @@ function StudentApp({
   onTokenUpdated?: (token: string) => void
 } = {}) {
   const [token, setToken] = useState(() => (initialToken || safeGetItem('token') || ''))
+  const [authLoading, setAuthLoading] = useState(Boolean(initialToken || safeGetItem('token') || ''))
+  const [authError, setAuthError] = useState<string | null>(null)
   const [theme, setTheme] = useState(() => safeGetItem('theme') || 'dark')
   const [tab, setTab] = useState<NavTab>('swipe')
   const [needsSetup, setNeedsSetup] = useState(false)
@@ -234,6 +236,51 @@ function StudentApp({
       metaTheme.setAttribute('content', theme === 'dark' ? '#08090D' : '#FFFFFF')
     }
   }, [theme])
+
+  // Verify token on mount / when token changes, before deciding landing vs app.
+  useEffect(() => {
+    let active = true
+
+    async function verifyAuth() {
+      if (!token) {
+        setAuthLoading(false)
+        setAuthError(null)
+        return
+      }
+      setAuthLoading(true)
+      setAuthError(null)
+      try {
+        const r = await fetch('/api/me', {
+          headers: { Authorization: 'Bearer ' + token },
+          credentials: 'include',
+        })
+        if (!r.ok) {
+          if (active) {
+            setAuthError('Session expired. Please sign in again.')
+            setToken('')
+            localStorage.removeItem('token')
+            localStorage.removeItem('refresh_token')
+            onTokenUpdated?.('')
+          }
+        }
+      } catch {
+        if (active) {
+          setAuthError('Unable to verify session. Please sign in again.')
+          setToken('')
+          localStorage.removeItem('token')
+          localStorage.removeItem('refresh_token')
+          onTokenUpdated?.('')
+        }
+      } finally {
+        if (active) setAuthLoading(false)
+      }
+    }
+
+    verifyAuth()
+    return () => {
+      active = false
+    }
+  }, [token, onTokenUpdated])
 
   useEffect(() => {
     fetch('/api/plus-status')
@@ -960,6 +1007,69 @@ function StudentApp({
     onTokenUpdated?.('')
   }
 
+  // Auth loading: never show landing or app until we know the session state.
+  if (authLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100dvh',
+        background: '#0a0a0d',
+        color: '#fff',
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginBottom: 16,
+        }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: '50%',
+            border: '2px solid rgba(255, 79, 94, 0.3)',
+            borderTopColor: '#ff4f5e',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span style={{ fontSize: 15, fontWeight: 600, color: '#c4c5d1' }}>
+            {authError ? 'Signing in…' : 'Verifying session…'}
+          </span>
+        </div>
+        {authError && (
+          <button
+            type="button"
+            onClick={() => {
+              setToken('')
+              localStorage.removeItem('token')
+              localStorage.removeItem('refresh_token')
+              setAuthError(null)
+              onTokenUpdated?.('')
+            }}
+            style={{
+              marginTop: 16,
+              padding: '10px 20px',
+              border: 'none',
+              borderRadius: 10,
+              background: 'transparent',
+              color: '#ff4f5e',
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            Sign in again
+          </button>
+        )}
+        <style>
+          {`
+            @keyframes spin { to { transform: rotate(360deg); } }
+          `}
+        </style>
+      </div>
+    )
+  }
+
   if (!token) {
     return (
       <AuthPage
@@ -971,6 +1081,7 @@ function StudentApp({
           if (refreshToken) {
             localStorage.setItem('refresh_token', refreshToken)
           }
+          setAuthLoading(true)
         }}
       />
     )
