@@ -5,6 +5,16 @@ import threading
 import asyncio
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+# Prevent FastAPI's internal EmailStr dependency from crashing on Python 3.14
+# when email_validator is not available (Render's cargo registry is read-only,
+# so pydantic-core wheels can't build and email_validator wheels may be missing).
+try:
+    import email_validator  # noqa: F401
+except ImportError:
+    import pydantic.types
+    pydantic.types.EmailStr = str  # stub so type annotation resolves as plain string
+
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
