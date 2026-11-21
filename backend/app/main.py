@@ -486,7 +486,7 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query("")):
         hub.disconnect(user_id, ws)
 
 
-frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist-v2"))
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
 if os.path.exists(frontend_dist):
     assets_dir = os.path.join(frontend_dist, "assets")
     if os.path.exists(assets_dir):
