@@ -77,7 +77,7 @@ function StudentApp({
   onTokenUpdated?: (token: string) => void
 } = {}) {
   const [token, setToken] = useState(() => (initialToken || safeGetItem('token') || ''))
-  const [authLoading, setAuthLoading] = useState(Boolean(initialToken || safeGetItem('token') || ''))
+  const [authLoading, setAuthLoading] = useState(Boolean(!initialToken && (safeGetItem('token') || '')))
   const [authError, setAuthError] = useState<string | null>(null)
   const [theme, setTheme] = useState(() => safeGetItem('theme') || 'dark')
   const [tab, setTab] = useState<NavTab>('swipe')
@@ -238,6 +238,13 @@ function StudentApp({
   }, [theme])
 
   // Verify token on mount / when token changes, before deciding landing vs app.
+  // onTokenUpdated is wrapped in a ref so it doesn't cause effect re-runs.
+  const onTokenUpdatedRef = useRef(onTokenUpdated)
+  onTokenUpdatedRef.current = onTokenUpdated
+
+  // Track whether we just authenticated (initialToken provided) vs loading stored token
+  const justAuthedRef = useRef(Boolean(initialToken))
+
   useEffect(() => {
     let active = true
 
@@ -247,7 +254,10 @@ function StudentApp({
         setAuthError(null)
         return
       }
-      setAuthLoading(true)
+      // Only show loading spinner on initial page load (stored token), not after fresh login
+      if (!justAuthedRef.current) {
+        setAuthLoading(true)
+      }
       setAuthError(null)
       try {
         const r = await fetch('/api/me', {
@@ -256,20 +266,30 @@ function StudentApp({
         })
         if (!r.ok) {
           if (active) {
-            setAuthError('Session expired. Please sign in again.')
-            setToken('')
-            localStorage.removeItem('token')
-            localStorage.removeItem('refresh_token')
-            onTokenUpdated?.('')
+            // If we just authenticated via onAuth, the token IS valid - don't clear it
+            if (!justAuthedRef.current) {
+              setAuthError('Session expired. Please sign in again.')
+              setToken('')
+              localStorage.removeItem('token')
+              localStorage.removeItem('refresh_token')
+              onTokenUpdatedRef.current?.('')
+            } else {
+              // Just logged in - /api/me may be temporarily slow, don't fall back
+              setAuthError(null)
+            }
           }
         }
       } catch {
         if (active) {
-          setAuthError('Unable to verify session. Please sign in again.')
-          setToken('')
-          localStorage.removeItem('token')
-          localStorage.removeItem('refresh_token')
-          onTokenUpdated?.('')
+          if (!justAuthedRef.current) {
+            setAuthError('Unable to verify session. Please sign in again.')
+            setToken('')
+            localStorage.removeItem('token')
+            localStorage.removeItem('refresh_token')
+            onTokenUpdatedRef.current?.('')
+          } else {
+            setAuthError(null)
+          }
         }
       } finally {
         if (active) setAuthLoading(false)
@@ -280,7 +300,7 @@ function StudentApp({
     return () => {
       active = false
     }
-  }, [token, onTokenUpdated])
+  }, [token])
 
   useEffect(() => {
     fetch('/api/plus-status')
@@ -1275,7 +1295,7 @@ function StudentApp({
                     setTab('swipe')
                   }}
                 >
-                  <CampmatchLogo iconSize={27} fontSize={21} gap={8} />
+                  <CampmatchLogo iconSize={24} fontSize={17} gap={6} />
                 </div>
 
                 <div className="mode-pills desktop-only-modes">

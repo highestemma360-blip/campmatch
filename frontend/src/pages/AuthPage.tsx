@@ -541,14 +541,16 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               >
                 Sign in
               </button>
-              <button
-                type="button"
-                className={`auth-tab-btn ${authTab === 'signup' ? 'active' : ''}`}
-                onClick={() => setAuthTab('signup')}
-                aria-pressed={authTab === 'signup'}
-              >
-                Create account
-              </button>
+              {!googleEnabled && (
+                <button
+                  type="button"
+                  className={`auth-tab-btn ${authTab === 'signup' ? 'active' : ''}`}
+                  onClick={() => setAuthTab('signup')}
+                  aria-pressed={authTab === 'signup'}
+                >
+                  Create account
+                </button>
+              )}
             </div>
 
             <div className="auth-modal-header">
