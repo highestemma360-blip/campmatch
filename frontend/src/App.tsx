@@ -1439,18 +1439,20 @@ function StudentApp({
                 />
               )}
 
-              <nav className="bottom-nav mobile-only-nav" aria-label="Main navigation">
+              <nav className="bottom-nav" aria-label="Main navigation">
                 <button
+                  type="button"
                   className={`nav-tab-btn ${tab === 'swipe' ? 'active' : ''}`}
                   onClick={() => setTab('swipe')}
                   aria-label="Discover"
                   aria-current={tab === 'swipe' ? 'true' : undefined}
                 >
-                  <FlameIcon size={24} />
+                  <FlameIcon size={20} />
                   <span>Discover</span>
                 </button>
 
                 <button
+                  type="button"
                   className={`nav-tab-btn ${tab === 'explore' ? 'active' : ''}`}
                   onClick={() => {
                     setTab('explore')
@@ -1459,11 +1461,12 @@ function StudentApp({
                   aria-label="Explore"
                   aria-current={tab === 'explore' ? 'true' : undefined}
                 >
-                  <CompassIcon size={24} />
+                  <CompassIcon size={20} />
                   <span>Explore</span>
                 </button>
 
                 <button
+                  type="button"
                   className={`nav-tab-btn ${tab === 'likes' ? 'active' : ''}`}
                   onClick={() => {
                     setTab('likes')
@@ -1472,12 +1475,15 @@ function StudentApp({
                   aria-label="Likes"
                   aria-current={tab === 'likes' ? 'true' : undefined}
                 >
-                  {likesItems.length > 0 && <span className="nav-badge gold">{likesItems.length}</span>}
-                  <HeartIcon size={24} />
+                  {likesItems.length > 0 && (
+                    <span className="nav-badge">{likesItems.length}</span>
+                  )}
+                  <HeartIcon size={20} />
                   <span>Likes</span>
                 </button>
 
                 <button
+                  type="button"
                   className={`nav-tab-btn ${tab === 'matches' ? 'active' : ''}`}
                   onClick={() => {
                     setTab('matches')
@@ -1489,17 +1495,18 @@ function StudentApp({
                   {(totalUnread + newMatchesCount) > 0 && (
                     <span className="nav-badge">{totalUnread || newMatchesCount}</span>
                   )}
-                  <ChatBubbleIcon size={24} />
+                  <ChatBubbleIcon size={20} />
                   <span>Chats</span>
                 </button>
 
                 <button
+                  type="button"
                   className={`nav-tab-btn ${tab === 'profile' ? 'active' : ''}`}
                   onClick={() => setTab('profile')}
                   aria-label="Profile"
                   aria-current={tab === 'profile' ? 'true' : undefined}
                 >
-                  <UserIcon size={24} />
+                  <UserIcon size={20} />
                   <span>Profile</span>
                 </button>
               </nav>
