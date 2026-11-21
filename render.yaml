@@ -2,6 +2,7 @@ services:
   - type: web
     name: campmatch
     runtime: python
+    pythonVersion: "3.12.x"
     buildCommand: |
       cd frontend && npm install && npm run build
       cd ../backend && pip install -r requirements.txt

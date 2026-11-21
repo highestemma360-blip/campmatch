@@ -6,15 +6,6 @@ import asyncio
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-# Prevent FastAPI's internal EmailStr dependency from crashing on Python 3.14.
-# FastAPI's openapi/models.py uses Optional[EmailStr] for Contact.email, but
-# pydantic v1's EmailStr requires the email_validator package whose API changed
-# in v2.x and is incompatible with pydantic v1. FastAPI's internal Contact model
-# does not actually validate emails — it only needs the type annotation to exist
-# for OpenAPI schema generation. So we stub EmailStr to str unconditionally.
-import pydantic.types
-pydantic.types.EmailStr = str  # stub so type annotation resolves as plain string
-
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
