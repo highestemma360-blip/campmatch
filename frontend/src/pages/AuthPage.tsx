@@ -58,7 +58,10 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     let cancelled = false
 
     fetch('/api/auth-config')
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {
+        if (!r.ok) return null
+        return r.json()
+      })
       .then((d) => {
         if (!d) return
         if (Array.isArray(d.schools) && d.schools.length) setSchools(d.schools)
@@ -142,7 +145,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || !password) {
-      setErr('Enter your email and password.')
+      setErr('Please enter your email and password.')
       return
     }
     setErr('')
@@ -221,356 +224,221 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       )}
 
-      {/* Hero content — centered, generous spacing, nothing compressed */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 420,
-          margin: '0 auto',
-          position: 'relative',
-          zIndex: 1,
-          padding: '0 12px',
-          overflowWrap: 'break-word',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-        }}
-      >
-        {/* Brand lockup */}
-        <div
-          style={{
-            color: '#fff',
-            position: 'relative',
-            zIndex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 18,
-            marginBottom: 30,
-          }}
-        >
-          <CampmatchLogo iconSize={50} fontSize={38} gap={14} />
+      {/* Hero Section — Mobile First */}
+      <div className="hero-section">
+        <div className="hero-brand">
+          <CampmatchLogo iconSize={48} fontSize={36} gap={14} />
+        </div>
 
-          <span
-            style={{
-              display: 'block',
-              fontSize: 30,
-              fontWeight: 900,
-              letterSpacing: '-0.02em',
-              lineHeight: 1.18,
-              color: '#fff',
-            }}
-          >
+        <div className="hero-content">
+          <h1 className="hero-title">
             Meet students from{' '}
-            <span
-              style={{
-                background: 'linear-gradient(90deg, #FF4F5E, #FF7534, #FFA800)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              your campus.
-            </span>
-          </span>
+            <span className="gradient-text">your campus.</span>
+          </h1>
+          <p className="hero-subtitle">
+            Verified university students in Ghana — for dates, new friends, and study partners.
+          </p>
 
-          <p
+          <div className="social-proof">
+            <VerifiedBadge size={16} />
+            <span>{schools.length > 1 ? `${schools.length} universities` : 'Verified students only'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Sign-In Card */}
+      <div className="signin-card">
+        {maintenance && (
+          <div
             style={{
-              color: '#c3c9d8',
-              fontSize: 16,
-              lineHeight: 1.6,
-              margin: 0,
-              width: '100%',
+              marginBottom: 16,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(245, 158, 11, 0.14)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              color: '#ffd84d',
+              fontSize: 12.5,
+              fontWeight: 700,
               overflowWrap: 'break-word',
             }}
           >
-            Verified university students in Ghana — for dates, new friends, and study
-            partners.
-          </p>
+            Scheduled maintenance is active. Existing students can still sign in.
+          </div>
+        )}
+
+        <div className="form-header">
+          <h2 className="form-title">Sign in</h2>
+          <p className="form-subtitle">Join your campus community</p>
         </div>
 
-        {/* Social proof — verified badge + campus count */}
-        <div
-          style={{
-            display: 'inline-flex',
+        {/* Primary CTA — Continue with Google */}
+        <div className="google-btn-wrapper">
+          <div id="google-btn" ref={googleButtonRef} style={{ width: '100%' }} />
+        </div>
+
+        {googleStatus === 'ready' && (
+          <div style={{
+            marginTop: 10,
+            display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#c3c9d8',
-            marginBottom: 26,
+            justifyContent: 'center',
+            gap: 6,
+            fontSize: 12.5,
+            color: '#64748b',
+            overflowWrap: 'break-word',
           }}
-        >
-          <VerifiedBadge size={16} />
-          <span>{schools.length > 1 ? `${schools.length} universities` : 'Verified students only'}</span>
+          >
+            <ShieldIcon size={14} /> Non-school Gmail accounts blocked automatically.
+          </div>
+        )}
+
+        {googleStatus === 'unavailable' && (
+          <div style={{
+            marginTop: 14,
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'rgba(56, 189, 248, 0.1)',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+            color: '#7dd3fc',
+            fontSize: 12.5,
+            lineHeight: 1.55,
+            textAlign: 'center',
+            overflowWrap: 'break-word',
+          }}
+          >
+            Google sign-in is not configured yet. Add a GOOGLE_CLIENT_ID on the server and it will appear here automatically.
+          </div>
+        )}
+
+        {err && (
+          <div
+            role="alert"
+            style={{
+              marginTop: 14,
+              padding: '12px 14px',
+              borderRadius: 14,
+              background: 'rgba(255, 68, 88, 0.12)',
+              border: '1px solid rgba(255, 68, 88, 0.35)',
+              color: '#ff6b7a',
+              fontSize: 13,
+              fontWeight: 600,
+              lineHeight: 1.5,
+              overflowWrap: 'break-word',
+            }}
+          >
+            {err}
+          </div>
+        )}
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 6px' }}>
+          <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
+          <span style={{
+            fontSize: 12,
+            fontWeight: 800,
+            color: '#94a3b8',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+          }}
+          >
+            Or continue with email
+          </span>
+          <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
         </div>
 
-        {/* Sign-in card — elevated surface, clear hierarchy */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid rgba(17, 20, 29, 0.12)',
-            borderRadius: 24,
-            padding: '26px 22px',
-            boxShadow: '0 24px 48px rgba(17, 20, 29, 0.14)',
-            color: '#11141d',
-            position: 'relative',
-            zIndex: 1,
-            width: '100%',
+        {/* Email sign-in toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            setShowEmailForm(v => !v)
+            setErr('')
           }}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: 16,
+            border: 'none',
+            background: 'transparent',
+            color: '#64748b',
+            fontSize: 15,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            minHeight: 48,
+          }}
+          aria-expanded={showEmailForm}
+          aria-controls="email-signin-form"
         >
-          {maintenance && (
-            <div
-              style={{
-                marginBottom: 16,
-                padding: '10px 12px',
-                borderRadius: 12,
-                background: 'rgba(245, 158, 11, 0.14)',
-                border: '1px solid rgba(245, 158, 11, 0.35)',
-                color: '#ffd84d',
-                fontSize: 12.5,
-                fontWeight: 700,
-                overflowWrap: 'break-word',
-              }}
-            >
-              Scheduled maintenance is active. Existing students can still sign in.
-            </div>
-          )}
+          {showEmailForm ? 'Hide email sign-in' : 'Use student email & password instead'}
+        </button>
 
-          {/* Card heading */}
-          <div style={{ marginBottom: 6 }}>
-            <span
+        {showEmailForm && (
+          <form onSubmit={submit} id="email-signin-form" style={{ marginTop: 18 }}>
+            <label className="field-label">Student Email</label>
+            <input
+              type="email"
+              className="modern-input"
               style={{
-                fontSize: 21,
-                fontWeight: 900,
-                letterSpacing: '-0.02em',
+                background: '#f3f5fa',
                 color: '#11141d',
-                display: 'block',
+                borderColor: 'rgba(17, 20, 29, 0.12)',
+                minHeight: 48,
+                fontSize: 16,
               }}
-            >
-              Sign in
-            </span>
-            <span
-              style={{
-                fontSize: 14,
-                color: '#64748b',
-                marginTop: 2,
-                display: 'block',
-                fontWeight: 600,
-              }}
-            >
-              Join your campus community
-            </span>
-          </div>
+              placeholder="you@university.edu.gh"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
 
-          {/* Primary CTA — Continue with Google, brand-colored, full width */}
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              marginTop: 24,
-              minHeight: 48,
-            }}
-          >
-            <div id="google-btn" ref={googleButtonRef} style={{ width: '100%' }} />
-          </div>
-
-          {googleStatus === 'ready' && (
-            <div
-              style={{
-                marginTop: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                fontSize: 12.5,
-                color: '#64748b',
-                overflowWrap: 'break-word',
-              }}
-            >
-              <ShieldIcon size={14} /> Non-school Gmail accounts blocked automatically.
-            </div>
-          )}
-
-          {googleStatus === 'unavailable' && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: '12px 14px',
-                borderRadius: 14,
-                background: 'rgba(56, 189, 248, 0.1)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                color: '#7dd3fc',
-                fontSize: 12.5,
-                lineHeight: 1.55,
-                textAlign: 'center',
-                overflowWrap: 'break-word',
-              }}
-            >
-              Google sign-in is not configured yet. Add a GOOGLE_CLIENT_ID on the server and
-              it will appear here automatically.
-            </div>
-          )}
-
-          {err && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: '12px 14px',
-                borderRadius: 14,
-                background: 'rgba(255, 68, 88, 0.12)',
-                border: '1px solid rgba(255, 68, 88, 0.35)',
-                color: '#ff6b7a',
-                fontSize: 13,
-                fontWeight: 600,
-                lineHeight: 1.5,
-                overflowWrap: 'break-word',
-              }}
-              role="alert"
-            >
-              {err}
-            </div>
-          )}
-
-          {/* Divider — "Or continue with email" */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 6px' }}>
-            <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: '#94a3b8',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-              }}
-            >
-              Or continue with email
-            </span>
-            <div style={{ flex: 1, borderTop: '1px solid rgba(17, 20, 29, 0.12)' }} />
-          </div>
-
-          {/* Email sign-in toggle — progressive disclosure */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowEmailForm(v => !v)
-              setErr('')
-            }}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: 16,
-              border: 'none',
-              background: 'transparent',
-              color: '#64748b',
-              fontSize: 15,
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              minHeight: 48,
-            }}
-            aria-expanded={showEmailForm}
-            aria-controls="email-signin-form"
-          >
-            {showEmailForm ? 'Hide email sign-in' : 'Use student email & password instead'}
-          </button>
-
-          {showEmailForm && (
-            <form onSubmit={submit} id="email-signin-form" style={{ marginTop: 18 }}>
-              <label
-                className="field-label"
-                style={{
-                  color: '#64748b',
-                  marginTop: 0,
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  display: 'block',
-                  marginBottom: 6,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                }}
-              >
-                Student Email
-              </label>
+            <label className="field-label">Password</label>
+            <div style={{ position: 'relative', minHeight: 48 }}>
               <input
-                type="email"
+                type={showPw ? 'text' : 'password'}
                 className="modern-input"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 style={{
                   background: '#f3f5fa',
                   color: '#11141d',
                   borderColor: 'rgba(17, 20, 29, 0.12)',
+                  paddingRight: 72,
                   minHeight: 48,
                   fontSize: 16,
                 }}
-                placeholder="you@university.edu.gh"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
                 required
               />
-
-              <label
-                className="field-label"
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
                 style={{
-                  color: '#64748b',
-                  marginTop: 18,
-                  fontSize: 12.5,
+                  position: 'absolute',
+                  right: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  border: 'none',
+                  background: 'none',
+                  color: '#94a3b8',
+                  fontSize: 13,
                   fontWeight: 800,
-                  display: 'block',
-                  marginBottom: 6,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
+                  minHeight: 40,
+                  minWidth: 40,
                 }}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
               >
-                Password
-              </label>
-              <div style={{ position: 'relative', minHeight: 48 }}>
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  className="modern-input"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  style={{
-                    background: '#f3f5fa',
-                    color: '#11141d',
-                    borderColor: 'rgba(17, 20, 29, 0.12)',
-                    paddingRight: 72,
-                    minHeight: 48,
-                    fontSize: 16,
-                  }}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  style={{
-                    position: 'absolute',
-                    right: 14,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    border: 'none',
-                    background: 'none',
-                    color: '#94a3b8',
-                    fontSize: 13,
-                    fontWeight: 800,
-                    minHeight: 40,
-                    minWidth: 40,
-                  }}
-                  aria-label={showPw ? 'Hide password' : 'Show password'}
-                >
-                  {showPw ? 'Hide' : 'Show'}
-                </button>
-              </div>
-
-              <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 22, minHeight: 48, width: '100%' }}>
-                {loading ? 'Signing in…' : 'Sign in'}
+                {showPw ? 'Hide' : 'Show'}
               </button>
-            </form>
+            </div>
+
+            <button className="btn-brand btn-tactile" type="submit" disabled={loading} style={{ marginTop: 22, minHeight: 48, width: '100%' }}>
+              {loading ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
           )}
 
           <div style={{ marginTop: 22, textAlign: 'center', fontSize: 12, color: '#94a3b8', lineHeight: 1.5, overflowWrap: 'break-word' }}>
@@ -590,10 +458,9 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             >
               Privacy Policy
             </button>
-            .
+            {'.'}
           </div>
         </div>
-      </div>
 
       {legalModal && (
         <div className="sheet-backdrop" onClick={() => setLegalModal(null)}>
