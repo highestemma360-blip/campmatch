@@ -269,7 +269,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # app.add_middleware(TimeoutMiddleware)
 
-default_origins = ["https://campmatch.onrender.com", "http://localhost:5173", "http://localhost:8000"]
+default_origins = ["https://campmatch-7f53.onrender.com", "https://campmatch.onrender.com", "http://localhost:5173", "http://localhost:8000"]
 extra_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 
 app.add_middleware(
