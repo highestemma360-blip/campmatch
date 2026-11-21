@@ -19,7 +19,7 @@ import json
 import logging
 import os
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -196,7 +196,7 @@ class AIAdminWorker:
                 db.query(AdminAuditLog)
                 .filter(AdminAuditLog.target_user_id == user.id)
                 .filter(AdminAuditLog.action == "ai_fake_profile_flag")
-                .filter(AdminAuditLog.created_at > datetime.utcnow() - timedelta(hours=24))
+                .filter(AdminAuditLog.created_at > datetime.now(timezone.utc) - timedelta(hours=24))
                 .first()
             )
             if existing_audit:
@@ -224,7 +224,7 @@ class AIAdminWorker:
         from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
-        since = datetime.utcnow() - timedelta(hours=6)
+        since = datetime.now(timezone.utc) - timedelta(hours=6)
         recent = (
             db.query(Message)
             .filter(Message.created_at >= since, Message.is_deleted == False)
@@ -245,7 +245,7 @@ class AIAdminWorker:
                     db.query(Report)
                     .filter(Report.reported_id == msg.sender_id)
                     .filter(Report.reason == "suspected_scam")
-                    .filter(Report.created_at > datetime.utcnow() - timedelta(hours=24))
+                    .filter(Report.created_at > datetime.now(timezone.utc) - timedelta(hours=24))
                     .first()
                 )
                 if existing:
@@ -278,7 +278,7 @@ class AIAdminWorker:
         from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
-        since = datetime.utcnow() - timedelta(hours=24)
+        since = datetime.now(timezone.utc) - timedelta(hours=24)
         from .models import Payment
         rapid = (
             db.query(Payment)
@@ -294,7 +294,7 @@ class AIAdminWorker:
                     db.query(AdminAuditLog)
                     .filter(AdminAuditLog.target_user_id == user_id)
                     .filter(AdminAuditLog.action == "ai_suspicious_payment")
-                    .filter(AdminAuditLog.created_at > datetime.utcnow() - timedelta(hours=24))
+                    .filter(AdminAuditLog.created_at > datetime.now(timezone.utc) - timedelta(hours=24))
                     .first()
                 )
                 if existing:
@@ -314,7 +314,7 @@ class AIAdminWorker:
         from .security import get_bool_setting
         if not get_bool_setting(db, "ai_admin_enabled", True):
             return
-        since = datetime.utcnow() - timedelta(days=7)
+        since = datetime.now(timezone.utc) - timedelta(days=7)
         recently_banned = (
             db.query(User)
             .filter(User.is_deleted == False, User.ban_type == "temporary")
@@ -443,10 +443,10 @@ class AIAdminWorker:
         if action == "temp_ban" and ban_days > 0:
             reported_user.is_active = False
             reported_user.ban_type = "temporary"
-            reported_user.banned_until = datetime.utcnow() + timedelta(days=ban_days)
+            reported_user.banned_until = datetime.now(timezone.utc) + timedelta(days=ban_days)
             reported_user.ban_reason = reason
             reported_user.banned_by = None
-            reported_user.banned_at = datetime.utcnow()
+            reported_user.banned_at = datetime.now(timezone.utc)
             db.commit()
             db.add(AdminAuditLog(
                 admin_id=None, action=f"ai_temp_ban_{ban_days}d",
@@ -508,7 +508,7 @@ class AIAdminWorker:
             db.commit()
             appeal.status = "approved"
             appeal.admin_note = f"AI admin appeal granted: {reason}"
-            appeal.resolved_at = datetime.utcnow()
+            appeal.resolved_at = datetime.now(timezone.utc)
             db.commit()
             try:
                 hub.send_to_user(reporter.id, {
@@ -520,7 +520,7 @@ class AIAdminWorker:
         else:
             appeal.status = "denied"
             appeal.admin_note = f"AI admin appeal denied: {reason}"
-            appeal.resolved_at = datetime.utcnow()
+            appeal.resolved_at = datetime.now(timezone.utc)
             db.commit()
         db.add(AdminAuditLog(
             admin_id=None, action=f"ai_appeal_{action}",

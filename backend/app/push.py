@@ -12,7 +12,7 @@ import json
 import logging
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 
 log = logging.getLogger("campmatch.push")
 
@@ -141,7 +141,7 @@ def schedule_push(user_ids, payload, db) -> None:
             return
         try:
             with SessionLocal() as s:
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 if expired:
                     s.query(PushSubscription).filter(PushSubscription.id.in_(expired)).update(
                         {"is_active": False}, synchronize_session=False

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -46,7 +46,7 @@ def get_matches(user: User = Depends(get_current_user), db: Session = Depends(ge
         .all()
     )
     out = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for m in matches:
         other_id = m.user2_id if m.user1_id == user.id else m.user1_id
         if other_id in blocked_ids:
@@ -235,7 +235,7 @@ async def extend_match(match_id: int, user: User = Depends(get_current_user), db
         raise HTTPException(403, "Access denied.")
     if m.extended:
         return {"ok": True, "extended": True, "expires_at": m.expires_at.isoformat() if m.expires_at else None}
-    base_time = max(datetime.utcnow(), m.expires_at or datetime.utcnow())
+    base_time = max(datetime.now(timezone.utc), m.expires_at or datetime.now(timezone.utc))
     m.expires_at = base_time + timedelta(hours=24)
     m.extended = True
     db.commit()
@@ -256,7 +256,7 @@ async def unmatch(match_id: int, user: User = Depends(get_current_user), db: Ses
         raise HTTPException(403, "Access denied.")
     m.is_active = False
     m.unmatched_by = user.id
-    m.unmatched_at = datetime.utcnow()
+    m.unmatched_at = datetime.now(timezone.utc)
     db.commit()
 
     other_id = m.user2_id if m.user1_id == user.id else m.user1_id
@@ -277,7 +277,7 @@ async def block_user(data: BlockIn, user: User = Depends(get_current_user), db: 
     if m:
         m.is_active = False
         m.unmatched_by = user.id
-        m.unmatched_at = datetime.utcnow()
+        m.unmatched_at = datetime.now(timezone.utc)
         await hub.send_to_user(data.blocked_id, {"type": "match_removed", "match_id": m.id})
 
     db.commit()
@@ -313,7 +313,7 @@ async def report_user(data: ReportIn, user: User = Depends(get_current_user), db
     if m:
         m.is_active = False
         m.unmatched_by = user.id
-        m.unmatched_at = datetime.utcnow()
+        m.unmatched_at = datetime.now(timezone.utc)
         await hub.send_to_user(data.reported_id, {"type": "match_removed", "match_id": m.id})
 
     db.commit()

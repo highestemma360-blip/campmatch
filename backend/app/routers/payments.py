@@ -4,7 +4,7 @@ import hmac
 import time
 import json
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -106,11 +106,11 @@ async def _grant_plus_for_payment(payment: Payment, db: Session):
         return
     days = payment.duration_days or get_int_setting(db, "plus_duration_days", 30)
     payment.status = "success"
-    payment.completed_at = datetime.utcnow()
+    payment.completed_at = datetime.now(timezone.utc)
 
     user = db.query(User).filter(User.id == payment.user_id).first()
     if user:
-        base_until = max(datetime.utcnow(), user.premium_until or datetime.utcnow())
+        base_until = max(datetime.now(timezone.utc), user.premium_until or datetime.now(timezone.utc))
         user.is_premium = True
         user.premium_until = base_until + timedelta(days=days)
     db.commit()

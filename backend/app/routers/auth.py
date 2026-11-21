@@ -113,10 +113,10 @@ def _sanitize_input(value: str) -> str:
 
 
 def _is_account_locked(user: User) -> bool:
-    if user.locked_until and user.locked_until > datetime.utcnow():
+    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
         return True
     # Auto-unlock if lockout expired
-    if user.locked_until and user.locked_until <= datetime.utcnow():
+    if user.locked_until and user.locked_until <= datetime.now(timezone.utc):
         user.locked_until = None
         user.failed_login_attempts = 0
         user.locked_reason = ""
@@ -129,7 +129,7 @@ def _record_failed_login(db: Session, user: User | None, request: Request, email
     if user:
         user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
         if user.failed_login_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
-            user.locked_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
             user.locked_reason = f"Too many failed login attempts. Locked for {LOCKOUT_DURATION_MINUTES} minutes."
         db.commit()
     _record_login_log(db, request, email, user.id if user else None)
@@ -252,7 +252,7 @@ def signup(data: SignupIn, db: Session = Depends(get_db)):
         original_email=email_clean,
         password_hash=hash_password(data.password),
         school=detect_school(email_clean),
-        last_active=datetime.utcnow(),
+        last_active=datetime.now(timezone.utc),
         is_admin=False,
         token_version=1,
     )
@@ -283,7 +283,7 @@ def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
 
     # Check account lockout BEFORE password verification (prevents user enumeration via timing)
     if user and _is_account_locked(user):
-        remaining = int((user.locked_until - datetime.utcnow()).total_seconds() / 60) + 1
+        remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() / 60) + 1
         raise HTTPException(
             423,
             f"Account is locked due to multiple failed login attempts. Try again in {remaining} minute(s).",
@@ -311,7 +311,7 @@ def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
 
     if not user.school:
         user.school = detect_school(email_clean)
-    user.last_active = datetime.utcnow()
+    user.last_active = datetime.now(timezone.utc)
     db.commit()
     _record_login_log(db, request, email_clean, user.id)
     access, refresh = create_token_pair(user.id, user.token_version or 1)
@@ -427,7 +427,7 @@ async def google_login(data: GoogleAuthIn, request: Request, db: Session = Depen
             password_hash=hash_password(secrets.token_urlsafe(32)),
             name=clean_name,
             school=detect_school(email),
-            last_active=datetime.utcnow(),
+            last_active=datetime.now(timezone.utc),
             is_admin=False,
             token_version=1,
         )
@@ -441,7 +441,7 @@ async def google_login(data: GoogleAuthIn, request: Request, db: Session = Depen
             raise HTTPException(403, _ban_error_message(user))
         if not user.school:
             user.school = detect_school(email)
-        user.last_active = datetime.utcnow()
+        user.last_active = datetime.now(timezone.utc)
         db.commit()
 
     _record_login_log(db, request, email, user.id)
@@ -499,7 +499,7 @@ def admin_portal_login(data: AdminLoginIn, request: Request, db: Session = Depen
                 admin_user.is_admin = True
                 admin_user.is_active = True
                 admin_user.is_deleted = False
-                admin_user.last_active = datetime.utcnow()
+                admin_user.last_active = datetime.now(timezone.utc)
                 db.commit()
 
             _record_login_log(db, request, admin_email, admin_user.id)
@@ -520,7 +520,7 @@ def admin_portal_login(data: AdminLoginIn, request: Request, db: Session = Depen
         User.is_active == True,
     ).first()
     if db_admin and verify_password(submitted_pw, db_admin.password_hash):
-        db_admin.last_active = datetime.utcnow()
+        db_admin.last_active = datetime.now(timezone.utc)
         db.commit()
         _record_login_log(db, request, db_admin.email, db_admin.id)
         return {

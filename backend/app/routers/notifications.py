@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 def _is_visible_to(n: Notification, user: User) -> bool:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if not n.is_active:
         return False
     if n.expires_at and n.expires_at < now:

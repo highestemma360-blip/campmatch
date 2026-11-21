@@ -136,9 +136,9 @@ def store_refresh_token(db: Session, user_id: int, refresh_token_jwt: str,
     # Decode to get expiry (use naive UTC for SQLite compatibility)
     try:
         payload = jwt.decode(refresh_token_jwt, SECRET, algorithms=[ALGORITHM])
-        expires_at = datetime.utcfromtimestamp(payload["exp"])
+        expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
     except Exception:
-        expires_at = datetime.utcnow() + timedelta(days=7)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
 
     rt = RefreshToken(
         user_id=user_id,
@@ -174,7 +174,7 @@ def verify_refresh_token(db: Session, refresh_token_jwt: str) -> User | None:
     )
     if not rt:
         return None
-    if rt.expires_at < datetime.utcnow():
+    if rt.expires_at < datetime.now(timezone.utc):
         rt.is_active = False
         db.commit()
         return None
@@ -194,7 +194,7 @@ def revoke_all_refresh_tokens(db: Session, user_id: int):
     """Revoke all refresh tokens for a user (logout everywhere / password change)."""
     db.query(RefreshToken).filter(
         RefreshToken.user_id == user_id, RefreshToken.is_active == True
-    ).update({RefreshToken.is_active: False, "revoked_at": datetime.utcnow()})
+    ).update({RefreshToken.is_active: False, "revoked_at": datetime.now(timezone.utc)})
     db.commit()
 
 
@@ -202,7 +202,7 @@ def revoke_refresh_token(db: Session, refresh_token_jwt: str):
     """Revoke a single refresh token (logout)."""
     token_hash = hash_token(refresh_token_jwt)
     db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).update(
-        {RefreshToken.is_active: False, "revoked_at": datetime.utcnow()}
+        {RefreshToken.is_active: False, "revoked_at": datetime.now(timezone.utc)}
     )
     db.commit()
 
@@ -245,7 +245,7 @@ def lift_expired_ban(user: User) -> bool:
         and not user.is_active
         and (user.ban_type or "") == "temporary"
         and user.banned_until is not None
-        and user.banned_until < datetime.utcnow()
+        and user.banned_until < datetime.now(timezone.utc)
     ):
         user.is_active = True
         user.ban_type = ""

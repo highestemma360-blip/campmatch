@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column,
     Integer,
@@ -54,8 +54,8 @@ class User(Base):
     photo_urls = Column(Text)
     profile_complete = Column(Boolean, default=False)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_active = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    last_active = Column(DateTime, default=datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     snoozed = Column(Boolean, default=False)
@@ -117,7 +117,7 @@ class Swipe(Base):
     swiped_id = Column(Integer, ForeignKey("users.id"), index=True)
     liked = Column(Boolean, nullable=False)
     super_liked = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), index=True)
     __table_args__ = (UniqueConstraint("swiper_id", "swiped_id"),)
 
 
@@ -126,7 +126,7 @@ class Match(Base):
     id = Column(Integer, primary_key=True)
     user1_id = Column(Integer, ForeignKey("users.id"), index=True)
     user2_id = Column(Integer, ForeignKey("users.id"), index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     expires_at = Column(DateTime, nullable=True)
     extended = Column(Boolean, default=False)
     is_super = Column(Boolean, default=False)
@@ -142,7 +142,7 @@ class Message(Base):
     match_id = Column(Integer, ForeignKey("matches.id"), index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), index=True)
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     read = Column(Boolean, default=False)
     reaction = Column(String(16), default="")
     is_deleted = Column(Boolean, default=False)
@@ -153,7 +153,7 @@ class Block(Base):
     id = Column(Integer, primary_key=True)
     blocker_id = Column(Integer, ForeignKey("users.id"), index=True)
     blocked_id = Column(Integer, ForeignKey("users.id"), index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     __table_args__ = (UniqueConstraint("blocker_id", "blocked_id"),)
 
 
@@ -175,7 +175,7 @@ class Payment(Base):
     status = Column(String(20), default="pending")
     description = Column(String(200))
     duration_days = Column(Integer, default=30)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
 
 
@@ -188,7 +188,7 @@ class Report(Base):
     details = Column(Text, default="")
     status = Column(String(20), default="open")
     admin_note = Column(Text, default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     resolved = Column(Boolean, default=False)
     resolved_at = Column(DateTime, nullable=True)
 
@@ -202,7 +202,7 @@ class ImageModerationLog(Base):
     reject_code = Column(String(50), default="")
     reason = Column(String(255), default="")
     metrics_json = Column(Text, default="{}")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     stored_path = Column(String(255), default="")
     review_status = Column(String(20), default="auto")  # auto | pending | approved | declined
@@ -220,7 +220,7 @@ class PushSubscription(Base):
     auth = Column(String(255))
     user_agent = Column(String(255), default="")
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     last_used_at = Column(DateTime, nullable=True)
 
 
@@ -231,7 +231,7 @@ class AdminAuditLog(Base):
     action = Column(String(100), nullable=False)
     target_user_id = Column(Integer, nullable=True)
     details = Column(Text, default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
 
 class WebhookEvent(Base):
@@ -239,7 +239,7 @@ class WebhookEvent(Base):
     id = Column(Integer, primary_key=True)
     event_id = Column(String(120), unique=True, index=True, nullable=False)
     event_type = Column(String(60), default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
 
 class ExploreRoom(Base):
@@ -254,7 +254,7 @@ class ExploreRoom(Base):
     accent = Column(String(20), default="#FB7185")
     sort_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
 
 class Notification(Base):
@@ -268,7 +268,7 @@ class Notification(Base):
     target_user_id = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True, index=True)
     created_by = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     expires_at = Column(DateTime, nullable=True)
 
 
@@ -277,7 +277,7 @@ class NotificationRead(Base):
     id = Column(Integer, primary_key=True)
     notification_id = Column(Integer, ForeignKey("notifications.id"), index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    read_at = Column(DateTime, default=datetime.utcnow)
+    read_at = Column(DateTime, default=datetime.now(timezone.utc))
     __table_args__ = (UniqueConstraint("notification_id", "user_id"),)
 
 
@@ -289,7 +289,7 @@ class LoginLog(Base):
     ip_address = Column(String(64), index=True, default="")
     location = Column(String(120), default="")
     user_agent = Column(String(255), default="")
-    logged_at = Column(DateTime, default=datetime.utcnow, index=True)
+    logged_at = Column(DateTime, default=datetime.now(timezone.utc), index=True)
 
 
 class Appeal(Base):
@@ -300,7 +300,7 @@ class Appeal(Base):
     reason = Column(Text, default="")
     status = Column(String(20), default="open")  # open | approved | denied
     admin_note = Column(Text, default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     resolved_at = Column(DateTime, nullable=True)
     resolved_by = Column(Integer, nullable=True)  # None = AI admin
 
@@ -312,7 +312,7 @@ class RefreshToken(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     token_hash = Column(String(255), index=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     revoked_at = Column(DateTime, nullable=True)
     device_info = Column(String(255), default="")
     ip_address = Column(String(64), default="")
@@ -329,7 +329,7 @@ class Story(Base):
     caption = Column(Text, default="")
     duration_hours = Column(Integer, default=24)  # 6, 12, or 24 for Plus users
     expires_at = Column(DateTime, nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     view_count = Column(Integer, default=0)
     is_active = Column(Boolean, default=True, index=True)
 
@@ -340,5 +340,5 @@ class StoryView(Base):
     id = Column(Integer, primary_key=True)
     story_id = Column(Integer, ForeignKey("stories.id"), index=True, nullable=False)
     viewer_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
-    viewed_at = Column(DateTime, default=datetime.utcnow)
+    viewed_at = Column(DateTime, default=datetime.now(timezone.utc))
     __table_args__ = (UniqueConstraint("story_id", "viewer_id"),)

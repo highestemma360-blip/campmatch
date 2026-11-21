@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from math import radians, cos, sin, asin, sqrt
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -147,7 +147,7 @@ def get_deck(
         for s in db.query(Swipe).filter(Swipe.swiped_id == user.id, Swipe.liked == True).all()
     }
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     plus_enabled = get_bool_setting(db, "plus_enabled", False)
     scored = []
     scored_outside = []
@@ -366,7 +366,7 @@ async def swipe(
                 match = Match(
                     user1_id=u1,
                     user2_id=u2,
-                    expires_at=datetime.utcnow() + timedelta(hours=24),
+                    expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
                     is_super=bool(super_like or mutual.super_liked),
                     is_active=True,
                 )
@@ -374,7 +374,7 @@ async def swipe(
                 is_new_match = True
             else:
                 existing_match.is_active = True
-                existing_match.expires_at = datetime.utcnow() + timedelta(hours=24)
+                existing_match.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
                 match = existing_match
                 is_new_match = True
 
@@ -481,7 +481,7 @@ def rewind_last_swipe(user: User = Depends(get_current_user), db: Session = Depe
 
 @router.post("/boost")
 def activate_boost(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if user.boosted_until and user.boosted_until > now:
         return {"ok": True, "boosted_until": user.boosted_until.isoformat(), "already_active": True}
     user.boosted_until = now + timedelta(minutes=30)

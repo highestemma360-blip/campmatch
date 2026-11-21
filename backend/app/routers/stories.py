@@ -5,7 +5,7 @@ Normal users: stories expire after 24 hours.
 Plus users: can choose 6h, 12h, or 24h duration.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Header
 from sqlalchemy.orm import Session
@@ -69,7 +69,7 @@ def _auth_user(authorization: str | None, db: Session) -> User:
 
 
 def _is_plus(user: User) -> bool:
-    return bool(user.is_premium and user.premium_until and user.premium_until > datetime.utcnow())
+    return bool(user.is_premium and user.premium_until and user.premium_until > datetime.now(timezone.utc))
 
 
 def _allowed_durations(is_plus_user: bool) -> List[int]:
@@ -100,7 +100,7 @@ def create_story(
         {Story.is_active: False}
     )
 
-    expires_at = datetime.utcnow() + timedelta(hours=data.duration_hours)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=data.duration_hours)
     story = Story(
         user_id=user.id,
         media_url=data.media_url,
@@ -138,7 +138,7 @@ def get_stories_feed(
     """Get active stories from users the viewer follows / is connected with.
     For MVP, returns all active non-expired stories."""
     viewer = _auth_user(authorization, db)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Get active, non-expired stories (excluding viewer's own)
     stories = (
@@ -186,7 +186,7 @@ def get_my_stories(
 ):
     """Get the current user's active stories."""
     user = _auth_user(authorization, db)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     stories = (
         db.query(Story)
@@ -221,7 +221,7 @@ def view_story(
 ):
     """Record that the current user viewed a story."""
     viewer = _auth_user(authorization, db)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     story = db.query(Story).filter(Story.id == story_id).first()
     if not story:

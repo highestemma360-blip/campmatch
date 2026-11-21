@@ -3,7 +3,7 @@ import os
 import re
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from fastapi.responses import FileResponse
@@ -88,7 +88,7 @@ def build_platform_settings_snapshot(db: Session) -> dict:
 
 @router.get("/stats")
 def stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     day_ago = now - timedelta(hours=24)
 
     total_active_users = db.query(User).filter(User.is_deleted == False).count()
@@ -318,10 +318,10 @@ async def ban_user(
 
     user.is_active = False
     user.ban_type = "temporary"
-    user.banned_until = datetime.utcnow() + timedelta(days=ban_days)
+    user.banned_until = datetime.now(timezone.utc) + timedelta(days=ban_days)
     user.ban_reason = data.reason.strip()[:255]
     user.banned_by = admin.id
-    user.banned_at = datetime.utcnow()
+    user.banned_at = datetime.now(timezone.utc)
     db.commit()
 
     db.add(AdminAuditLog(
@@ -417,10 +417,10 @@ async def report_action(
         ban_days = max(1, min(7, int(data.ban_days)))
         target.is_active = False
         target.ban_type = "temporary"
-        target.banned_until = datetime.utcnow() + timedelta(days=ban_days)
+        target.banned_until = datetime.now(timezone.utc) + timedelta(days=ban_days)
         target.ban_reason = data.reason or report.reason
         target.banned_by = admin.id
-        target.banned_at = datetime.utcnow()
+        target.banned_at = datetime.now(timezone.utc)
         db.commit()
         try:
             hub.send_to_user(target.id, {
@@ -444,7 +444,7 @@ async def report_action(
     report.status = "resolved"
     report.admin_note = data.reason or f"Admin {action}: {report.reason}"
     report.resolved = True
-    report.resolved_at = datetime.utcnow()
+    report.resolved_at = datetime.now(timezone.utc)
     db.commit()
 
     db.add(AdminAuditLog(
@@ -509,7 +509,7 @@ async def appeal_action(
 
     appeal.status = "approved"
     appeal.admin_note = data.reason
-    appeal.resolved_at = datetime.utcnow()
+    appeal.resolved_at = datetime.now(timezone.utc)
     appeal.resolved_by = admin.id
     db.commit()
 
@@ -761,7 +761,7 @@ async def admin_update_user(
         u.is_premium = bool(data.is_premium)
         if u.is_premium:
             days = data.plus_days or 30
-            u.premium_until = datetime.utcnow() + timedelta(days=days)
+            u.premium_until = datetime.now(timezone.utc) + timedelta(days=days)
         else:
             u.premium_until = None
         notes.append(f"is_premium={u.is_premium}")
@@ -774,7 +774,7 @@ async def admin_update_user(
         notes.append(f"is_admin={u.is_admin}")
     if data.boost_minutes is not None:
         if data.boost_minutes > 0:
-            u.boosted_until = datetime.utcnow() + timedelta(minutes=data.boost_minutes)
+            u.boosted_until = datetime.now(timezone.utc) + timedelta(minutes=data.boost_minutes)
         else:
             u.boosted_until = None
         notes.append(f"boost={data.boost_minutes}m")
@@ -816,9 +816,9 @@ async def ban_user(user_id: int, data: BanUserIn, admin: User = Depends(require_
     mode = "permanent" if data.mode == "permanent" else "temporary"
     u.ban_type = mode
     u.ban_reason = data.reason.strip()[:255]
-    u.banned_at = datetime.utcnow()
+    u.banned_at = datetime.now(timezone.utc)
     u.banned_by = admin.id
-    u.banned_until = None if mode == "permanent" else (datetime.utcnow() + timedelta(days=max(1, min(365, int(data.days or 7)))))
+    u.banned_until = None if mode == "permanent" else (datetime.now(timezone.utc) + timedelta(days=max(1, min(365, int(data.days or 7)))))
     u.is_active = False
     u.snoozed = True
     u.token_version = (u.token_version or 1) + 1
@@ -852,7 +852,7 @@ async def toggle_premium(user_id: int, admin: User = Depends(require_admin), db:
     if not u:
         raise HTTPException(404)
     u.is_premium = not u.is_premium
-    u.premium_until = (datetime.utcnow() + timedelta(days=30)) if u.is_premium else None
+    u.premium_until = (datetime.now(timezone.utc) + timedelta(days=30)) if u.is_premium else None
     log_audit(db, admin.id, "toggle_premium", target_user_id=u.id, details=f"is_premium={u.is_premium}")
     db.commit()
     await hub.send_to_user(
@@ -906,7 +906,7 @@ async def admin_soft_delete_user(user_id: int, admin: User = Depends(require_adm
         u.email = f"deleted_{u.id}_{int(time.time())}__{orig}"
         u.is_deleted = True
         u.is_active = False
-        u.deleted_at = datetime.utcnow()
+        u.deleted_at = datetime.now(timezone.utc)
         u.deletion_reason = "Removed by administrator"
         u.token_version = (u.token_version or 1) + 1
         log_audit(db, admin.id, "admin_soft_delete", target_user_id=u.id, details=orig)
@@ -1007,7 +1007,7 @@ async def act_on_report(
     if not r:
         raise HTTPException(404)
     r.resolved = True
-    r.resolved_at = datetime.utcnow()
+    r.resolved_at = datetime.now(timezone.utc)
     r.admin_note = data.admin_note.strip()[:500]
     r.status = "dismissed" if data.action == "dismiss" else "resolved"
 
@@ -1016,12 +1016,12 @@ async def act_on_report(
         if target and target.id != admin.id:
             if data.action == "ban_temporary":
                 target.ban_type = "temporary"
-                target.banned_until = datetime.utcnow() + timedelta(days=max(1, min(365, int(data.days or 7))))
+                target.banned_until = datetime.now(timezone.utc) + timedelta(days=max(1, min(365, int(data.days or 7))))
             else:  # ban_permanent / legacy suspend_user
                 target.ban_type = "permanent"
                 target.banned_until = None
             target.ban_reason = (data.reason or f"Reported: {r.reason}")[:255]
-            target.banned_at = datetime.utcnow()
+            target.banned_at = datetime.now(timezone.utc)
             target.banned_by = admin.id
             target.is_active = False
             target.snoozed = True
@@ -1040,7 +1040,7 @@ def resolve_report(report_id: int, admin: User = Depends(require_admin), db: Ses
         raise HTTPException(404)
     r.resolved = True
     r.status = "resolved"
-    r.resolved_at = datetime.utcnow()
+    r.resolved_at = datetime.now(timezone.utc)
     log_audit(db, admin.id, "report_resolve", target_user_id=r.reported_id, details=f"report #{r.id}")
     db.commit()
     return {"ok": True}
@@ -1132,7 +1132,7 @@ def approve_review(log_id: int, data: ModerationReviewIn, admin: User = Depends(
     if len(existing) >= 6:
         row.review_status = "declined"
         row.review_note = (data.note or "Photo limit reached; could not approve.")[:255]
-        row.reviewed_at = datetime.utcnow()
+        row.reviewed_at = datetime.now(timezone.utc)
         row.reviewed_by = admin.id
         db.commit()
         raise HTTPException(400, "Student already has the maximum of 6 photos.")
@@ -1143,7 +1143,7 @@ def approve_review(log_id: int, data: ModerationReviewIn, admin: User = Depends(
     row.accepted = True
     row.review_status = "approved"
     row.review_note = data.note.strip()[:255]
-    row.reviewed_at = datetime.utcnow()
+    row.reviewed_at = datetime.now(timezone.utc)
     row.reviewed_by = admin.id
     log_audit(db, admin.id, "moderation_approve", target_user_id=user.id, details=f"photo #{row.id}")
     db.commit()
@@ -1158,7 +1158,7 @@ def decline_review(log_id: int, data: ModerationReviewIn, admin: User = Depends(
     row.accepted = False
     row.review_status = "declined"
     row.review_note = data.note.strip()[:255]
-    row.reviewed_at = datetime.utcnow()
+    row.reviewed_at = datetime.now(timezone.utc)
     row.reviewed_by = admin.id
     log_audit(db, admin.id, "moderation_decline", target_user_id=row.user_id, details=f"photo #{row.id}")
     db.commit()
@@ -1195,12 +1195,12 @@ async def manual_approve_payment(payment_id: int, admin: User = Depends(require_
         raise HTTPException(404)
     if p.status != "success":
         p.status = "success"
-        p.completed_at = datetime.utcnow()
+        p.completed_at = datetime.now(timezone.utc)
         u = db.query(User).filter(User.id == p.user_id).first()
         if u:
             days = get_int_setting(db, "plus_duration_days", 30)
             u.is_premium = True
-            u.premium_until = max(datetime.utcnow(), u.premium_until or datetime.utcnow()) + timedelta(days=days)
+            u.premium_until = max(datetime.now(timezone.utc), u.premium_until or datetime.now(timezone.utc)) + timedelta(days=days)
             await hub.send_to_user(u.id, {"type": "plus_activated", "is_premium": True})
         log_audit(db, admin.id, "manual_approve_payment", target_user_id=p.user_id, details=p.reference)
         db.commit()
@@ -1381,7 +1381,7 @@ def _clean_notification_payload(data: NotificationIn) -> dict:
     days = data.expires_in_days
     expires_at = None
     if days is not None and int(days) > 0:
-        expires_at = datetime.utcnow() + timedelta(days=min(365, int(days)))
+        expires_at = datetime.now(timezone.utc) + timedelta(days=min(365, int(days)))
     return {
         "title": title[:140],
         "body": data.body.strip()[:4000],
@@ -1505,7 +1505,7 @@ async def update_notification(
         n.is_active = bool(data.is_active)
     if data.expires_in_days is not None:
         n.expires_at = (
-            datetime.utcnow() + timedelta(days=min(365, int(data.expires_in_days)))
+            datetime.now(timezone.utc) + timedelta(days=min(365, int(data.expires_in_days)))
             if int(data.expires_in_days) > 0
             else None
         )
@@ -1535,7 +1535,7 @@ class BulkDeleteNotificationsIn(BaseModel):
 
 @router.post("/notifications/delete-bulk")
 def bulk_delete_notifications(data: BulkDeleteNotificationsIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     q = db.query(Notification)
     if data.mode == "expired":
         q = q.filter(Notification.expires_at.isnot(None), Notification.expires_at < now)
@@ -1830,7 +1830,7 @@ def export_records(admin: User = Depends(require_admin), db: Session = Depends(g
 
     users = db.query(User).all()
     payload = {
-        "exported_at": datetime.utcnow().isoformat(),
+        "exported_at": datetime.now(timezone.utc).isoformat(),
         "users": [
             {
                 "id": u.id,

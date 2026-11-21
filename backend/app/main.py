@@ -3,7 +3,7 @@ import json
 import time
 import threading
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
@@ -124,7 +124,7 @@ def purge_expired_messages() -> int:
     try:
         with SessionLocal() as s:
             days = get_int_setting(s, "message_retention_days", 30)
-            cutoff = datetime.utcnow() - timedelta(days=max(1, days))
+            cutoff = datetime.now(timezone.utc) - timedelta(days=max(1, days))
             rows = (
                 s.query(Message)
                 .filter(Message.created_at < cutoff, Message.is_deleted == False)  # noqa: E712

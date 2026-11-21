@@ -1,9 +1,9 @@
 import os
 import shutil
 import glob
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -59,8 +59,11 @@ if IS_SQLITE:
 else:
     engine = create_engine(DB_PATH, pool_pre_ping=True)
 
+class Base(DeclarativeBase):
+    pass
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
 
 def get_db():
@@ -111,7 +114,7 @@ def backup_sqlite(reason: str = "manual", keep: int = 12) -> dict:
 
     try:
         os.makedirs(BACKUP_DIR, exist_ok=True)
-        stamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         safe_reason = "".join(ch for ch in reason if ch.isalnum() or ch in ("-", "_"))[:24] or "manual"
         target = os.path.join(BACKUP_DIR, f"campmatch-{stamp}-{safe_reason}.db")
         shutil.copy2(path, target)
@@ -127,7 +130,7 @@ def backup_sqlite(reason: str = "manual", keep: int = 12) -> dict:
             "ok": True,
             "file": os.path.basename(target),
             "bytes": os.path.getsize(target),
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as exc:  # pragma: no cover - defensive
         return {"ok": False, "reason": str(exc)}
@@ -144,7 +147,7 @@ def list_backups() -> list[dict]:
             {
                 "file": os.path.basename(path),
                 "bytes": stat.st_size,
-                "created_at": datetime.utcfromtimestamp(stat.st_mtime).isoformat(),
+                "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
             }
         )
     return items

@@ -4,7 +4,7 @@ import json
 import re
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header, Query
 from sqlalchemy.orm import Session
@@ -125,7 +125,7 @@ def compute_swipe_quota(user: User, db: Session) -> dict:
     super_free = get_int_setting(db, "free_daily_super_likes", 3)
     super_plus = get_int_setting(db, "plus_daily_super_likes", 10)
 
-    window_start = datetime.utcnow() - timedelta(hours=24)
+    window_start = datetime.now(timezone.utc) - timedelta(hours=24)
     recent_swipes = (
         db.query(Swipe)
         .filter(Swipe.swiper_id == user.id, Swipe.created_at >= window_start)
@@ -181,7 +181,7 @@ def serialize_user(user: User, full: bool = False, db: Optional[Session] = None)
     ]
     completion = int(round((sum(1 for c in checks if c) / len(checks)) * 100))
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     is_boosted = bool(user.boosted_until and user.boosted_until > now)
     is_online = hub.is_online(user.id)
     active_recently = is_online or bool(user.last_active and (now - user.last_active).total_seconds() < 1800)
@@ -264,10 +264,10 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
     if user.photo_required and len(photos) > 0:
         user.photo_required = False
         if user.photo_approved_at is None:
-            user.photo_approved_at = datetime.utcnow()
+            user.photo_approved_at = datetime.now(timezone.utc)
         db.commit()
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if user.is_premium and user.premium_until and user.premium_until < now and not user.is_admin:
         user.is_premium = False
     user.last_active = now
@@ -434,7 +434,7 @@ async def upload_photos(
 
         # Mark the first approved photo timestamp.
         if user.photo_approved_at is None:
-            user.photo_approved_at = datetime.utcnow()
+            user.photo_approved_at = datetime.now(timezone.utc)
             user.photo_required = False
 
     if accepted_urls:
@@ -525,7 +525,7 @@ async def delete_my_account(
     elif data.confirm_text.strip().upper() != "DELETE":
         raise HTTPException(400, "Type DELETE or enter your password to confirm account deletion.")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     orig = user.original_email or user.email
     user.original_email = orig
     user.email = f"deleted_{user.id}_{int(time.time())}__{orig}"
