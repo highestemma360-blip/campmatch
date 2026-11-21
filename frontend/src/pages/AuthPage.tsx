@@ -12,21 +12,24 @@ function loadGoogleScript(): Promise<void> {
   if (typeof window !== 'undefined' && window.google?.accounts?.id) {
     return Promise.resolve()
   }
+  // index.html already loads the GSI script via a plain <script> tag.
+  // Poll for window.google.accounts.id instead of creating a duplicate script tag.
   return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>('script[data-campmatch-gsi]')
-    if (existing) {
-      existing.addEventListener('load', () => resolve(), { once: true })
-      existing.addEventListener('error', () => reject(new Error('Google script failed')), { once: true })
-      return
+    let attempts = 0
+    const maxAttempts = 100 // 10 seconds
+    const check = () => {
+      if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+        resolve()
+        return
+      }
+      attempts++
+      if (attempts >= maxAttempts) {
+        reject(new Error('Google script failed to load'))
+        return
+      }
+      setTimeout(check, 100)
     }
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
-    script.dataset.campmatchGsi = '1'
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Google script failed'))
-    document.head.appendChild(script)
+    check()
   })
 }
 
