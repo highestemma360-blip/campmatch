@@ -232,7 +232,7 @@ def check_student_email(data: EmailCheckIn, db: Session = Depends(get_db)):
 
 
 @router.post("/signup")
-def signup(data: SignupIn, db: Session = Depends(get_db)):
+def signup(data: SignupIn, request: Request, db: Session = Depends(get_db)):
     email_clean = data.email.lower().strip()
     if get_bool_setting(db, "maintenance_mode", False):
         raise HTTPException(503, "Platform is temporarily under maintenance. Please try again shortly.")
