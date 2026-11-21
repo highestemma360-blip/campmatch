@@ -183,15 +183,21 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         credentials: 'include',
         body: JSON.stringify({ email: email.trim(), password }),
       })
-      const d = await r.json().catch(() => ({}))
+      const contentType = r.headers.get('content-type') || ''
+      const isJson = contentType.includes('application/json')
+      const d = isJson ? await r.json().catch(() => ({})) : {}
       if (!r.ok) {
-        setErr(typeof d.detail === 'string' ? d.detail : `Authentication failed (${r.status}).`)
+        if (!isJson) {
+          setErr(`Server returned HTML instead of JSON (${r.status}). Backend may be misconfigured.`)
+        } else {
+          setErr(typeof d.detail === 'string' ? d.detail : `Authentication failed (${r.status}).`)
+        }
       } else {
         setAuthModalOpen(false)
         onAuth(d.access_token || d.token)
       }
-    } catch {
-      setErr('Unable to reach server. Check your connection and try again.')
+    } catch (err: any) {
+      setErr(`Network error: ${err.message}. Check your connection and try again.`)
     } finally {
       setLoading(false)
     }
