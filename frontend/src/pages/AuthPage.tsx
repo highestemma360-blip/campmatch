@@ -59,13 +59,13 @@ export function AuthPage({ onAuth }: AuthPageProps) {
   useEffect(() => {
     let cancelled = false
 
-    fetch('/api/auth-config')
+    fetch('/api/auth-config', { credentials: 'include' })
       .then(async (r) => {
         if (!r.ok) return null
         return r.json()
       })
       .then((d) => {
-        if (!d) return
+        if (!d || cancelled) return
         if (Array.isArray(d.schools) && d.schools.length) setSchools(d.schools)
         if (Array.isArray(d.domains)) setDomains(d.domains)
         setMaintenance(Boolean(d.maintenance_mode))
@@ -102,6 +102,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               const r = await fetch('/api/google', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ credential: response.credential }),
               })
               const d = await r.json().catch(() => ({}))
@@ -122,18 +123,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             }
           },
         })
-
-        if (googleButtonRef.current && googleStatus === 'ready') {
-          window.google.accounts.id.renderButton(googleButtonRef.current, {
-            type: 'standard',
-            theme: 'filled_black',
-            size: 'large',
-            shape: 'pill',
-            logo_alignment: 'left',
-            text: 'continue_with',
-            width: '100%',
-          })
-        }
         setGoogleStatus('ready')
       } catch {
         if (!cancelled) setGoogleStatus('unavailable')
@@ -143,7 +132,21 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     return () => {
       cancelled = true
     }
-  }, [googleStatus])
+  }, [])
+
+  // Render Google Sign-In button once the client is ready and the ref exists.
+  useEffect(() => {
+    if (googleStatus !== 'ready' || !googleButtonRef.current) return
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      type: 'standard',
+      theme: 'filled_black',
+      size: 'large',
+      shape: 'pill',
+      logo_alignment: 'left',
+      text: 'continue_with',
+      width: '100%',
+    })
+  }, [googleStatus, googleButtonRef.current])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -161,6 +164,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       const adminRes = await fetch('/api/admin-auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ username: email.trim(), password }),
       })
       if (adminRes.ok) {
@@ -169,15 +173,16 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         onAuth(d.access_token || d.token, true)
         return
       }
-      const endpoint = authTab === 'signup' ? '/api/register' : '/api/login'
+      const endpoint = authTab === 'signup' ? '/api/signup' : '/api/login'
       const r = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email: email.trim(), password }),
       })
-      const d = await r.json()
+      const d = await r.json().catch(() => ({}))
       if (!r.ok) {
-        setErr(typeof d.detail === 'string' ? d.detail : 'Authentication failed.')
+        setErr(typeof d.detail === 'string' ? d.detail : `Authentication failed (${r.status}).`)
       } else {
         setAuthModalOpen(false)
         onAuth(d.access_token || d.token)
