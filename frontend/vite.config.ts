@@ -6,9 +6,6 @@ export default defineConfig({
   build: {
     outDir: 'dist-v2',
   },
-  define: {
-    __BUILD_VERSION__: JSON.stringify('v4-' + Date.now()),
-  },
   server: {
     port: 5173,
     proxy: {
