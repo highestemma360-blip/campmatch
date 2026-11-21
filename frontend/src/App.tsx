@@ -606,7 +606,11 @@ function StudentApp({
     try {
       const r = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })
       if (!r.ok) {
-        handleLogout()
+        // If we just authenticated via Google/email, trust the new token.
+        // Let verifyAuth handle token invalidation, not loadMe.
+        if (!justAuthedRef.current) {
+          handleLogout()
+        }
         return
       }
       const u: CurrentUser = await r.json()
