@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campmatch — Design System Preview (Dark)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; line-height: 1.5; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0a0a0d;
+      color: #ffffff;
+      padding: 24px;
+    }
+    h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+    h2 { font-size: 24px; font-weight: 700; margin: 32px 0 12px; }
+    h3 { font-size: 20px; font-weight: 600; margin: 24px 0 8px; }
+    p { font-size: 16px; color: #c4c5d1; margin-bottom: 16px; }
+    .section { max-width: 900px; margin: 0 auto 48px; }
+    .grid { display: grid; gap: 16px; }
+    .grid-cols-2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+    /* Tokens (dark) */
+    :root {
+      --coral-500: #ff4f5e;
+      --coral-600: #ff3b4d;
+      --coral-dark: #d41c2d;
+      --nope-red: #ff4458;
+      --like-green: #22c55e;
+      --super-blue: #00b8ff;
+      --boost-purple: #9333ea;
+      --gold: #ffaa00;
+      --amber: #f59e0b;
+      --bg-canvas: #0a0a0d;
+      --bg-card: #121217;
+      --bg-elevated: #1e1e26;
+      --bg-subtle: #2a2b35;
+      --input-bg: #141720;
+      --text-primary: #ffffff;
+      --text-secondary: #c4c5d1;
+      --text-muted: #7a7b86;
+      --border-subtle: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.16);
+      --shadow-card: 0 22px 52px rgba(0,0,0,0.58);
+      --shadow-btn: 0 10px 24px rgba(0,0,0,0.42);
+    }
+
+    .token-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--bg-card); }
+    .swatch { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-subtle); flex-shrink: 0; }
+    .token-name { font-size: 14px; font-weight: 600; color: #ffffff; width: 140px; }
+    .token-value { font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #94a3b8; margin-left: auto; }
+
+    /* Buttons */
+    .btn-group { display: flex; flex-direction: column; gap: 8px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 12px; font-size: 16px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; }
+    .btn-primary { background: var(--coral-500); color: #fff; box-shadow: var(--shadow-btn); }
+    .btn-primary:active { background: var(--coral-600); transform: scale(0.98); }
+    .btn-secondary { background: transparent; color: var(--text-primary); border: 1px solid var(--border-strong); }
+    .btn-secondary:active { background: var(--bg-subtle); }
+    .btn-ghost { background: transparent; color: var(--text-primary); padding: 12px 16px; }
+    .btn-ghost:active { background: var(--bg-subtle); }
+    .btn-destructive { background: var(--coral-dark); color: #fff; }
+    .btn-icon { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-subtle); color: var(--text-primary); border: 1px solid var(--border-subtle); cursor: pointer; }
+    .btn-icon:active { background: var(--bg-elevated); }
+
+    /* Cards */
+    .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-card); }
+    .card:active { border-color: var(--border-strong); transform: scale(0.98); }
+    .card-img { width: 100%; height: 200px; border-radius: 12px; background: var(--bg-subtle); object-fit: cover; margin-bottom: 12px; }
+    .card-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .card-sub { font-size: 14px; color: var(--text-secondary); }
+
+    /* Inputs */
+    .input-wrap { display: flex; flex-direction: column; gap: 6px; width: 300px; }
+    .input-label { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+    input { padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--input-bg); font-size: 14px; color: var(--text-primary); }
+    input:focus { outline: none; border-color: var(--coral-500); box-shadow: 0 0 0 3px rgba(255,79,94,0.2); }
+    input.error { border-color: var(--coral-dark); }
+    .input-helper { font-size: 12px; color: var(--coral-dark); }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--bg-subtle); color: var(--text-primary); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: var(--bg-elevated); border-radius: 12px; padding: 4px; }
+    .tab { padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border: none; background: transparent; }
+    .tab.active { color: var(--coral-500); background: #121217; box-shadow: var(--shadow-card); }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 48px 24px; }
+    .empty-icon { width: 64px; height: 64px; border-radius: 16px; background: var(--coral-500); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; margin: 0 auto 16px; }
+    .empty-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+    .empty-desc { font-size: 16px; color: var(--text-secondary); margin-bottom: 24px; max-width: 320px; margin-left: auto; margin-right: auto; }
+
+    /* Gradients */
+    .grad { height: 120px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 18px; }
+    .brand-grad { background: linear-gradient(135deg, #ff4c5e 0%, #ff7334 52%, #ffaa00 100%); }
+    .gold-grad { background: linear-gradient(135deg, #ffd84d 0%, #f59e0b 100%); }
+    .super-grad { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); }
+    .boost-grad { background: linear-gradient(135deg, #a855f7 0%, #6b21a8 100%); }
+
+    /* Swipe action colors */
+    .swipe-row { display: flex; gap: 12px; }
+    .swipe-pill { padding: 8px 14px; border-radius: 20px; font-size: 14px; font-weight: 600; color: #fff; }
+    .like-pill { background: var(--like-green); }
+    .nope-pill { background: var(--nope-red); }
+    .super-pill { background: var(--super-blue); }
+    .boost-pill { background: var(--boost-purple); }
+
+  </style>
+</head>
+<body>
+
+  <div class="section">
+    <h1>Campmatch Design System</h1>
+    <p>Dark theme · Google Stitch DESIGN.md format · Coral brand #ff4f5e</p>
+  </div>
+
+  <div class="section">
+    <h2>1 · Color Palette</h2>
+    <div class="grid grid-cols-2">
+      <div class="token-row"><div class="swatch" style="background:#ff4f5e"></div><div class="token-name">--coral-500</div><div class="token-value">#ff4f5e</div></div>
+      <div class="token-row"><div class="swatch" style="background:#ff3b4d"></div><div class="token-name">--coral-600</div><div class="token-value">#ff3b4d</div></div>
+      <div class="token-row"><div class="swatch" style="background:#d41c2d"></div><div class="token-name">--coral-dark</div><div class="token-value">#d41c2d</div></div>
+      <div class="token-row"><div class="swatch" style="background:#ff4458"></div><div class="token-name">--nope-red</div><div class="token-value">#ff4458</div></div>
+      <div class="token-row"><div class="swatch" style="background:#22c55e"></div><div class="token-name">--like-green</div><div class="token-value">#22c55e</div></div>
+      <div class="token-row"><div class="swatch" style="background:#00b8ff"></div><div class="token-name">--super-blue</div><div class="token-value">#00b8ff</div></div>
+      <div class="token-row"><div class="swatch" style="background:#9333ea"></div><div class="token-name">--boost-purple</div><div class="token-value">#9333ea</div></div>
+      <div class="token-row"><div class="swatch" style="background:#ffaa00"></div><div class="token-name">--gold</div><div class="token-value">#ffaa00</div></div>
+      <div class="token-row"><div class="swatch" style="background:#f59e0b"></div><div class="token-name">--amber</div><div class="token-value">#f59e0b</div></div>
+      <div class="token-row"><div class="swatch" style="background:#121217"></div><div class="token-name">--bg-card</div><div class="token-value">#121217</div></div>
+      <div class="token-row"><div class="swatch" style="background:#ffffff"></div><div class="token-name">--text-primary</div><div class="token-value">#ffffff</div></div>
+      <div class="token-row"><div class="swatch" style="background:#c4c5d1"></div><div class="token-name">--text-secondary</div><div class="token-value">#c4c5d1</div></div>
+    </div>
+
+    <h3>Gradients</h3>
+    <div class="grid grid-cols-2" style="max-width: 500px;">
+      <div class="grad brand-grad">--brand-grad</div>
+      <div class="grad gold-grad">--gold-grad</div>
+      <div class="grad super-grad">--super-grad</div>
+      <div class="grad boost-grad">--boost-grad</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2 · Typography</h2>
+    <div style="font-size:32px;font-weight:700;letter-spacing:-0.02em;">Display — 32px / 700</div>
+    <div style="font-size:24px;font-weight:700;">H1 — 24px / 700</div>
+    <div style="font-size:20px;font-weight:600;">H2 — 20px / 600</div>
+    <div style="font-size:18px;font-weight:600;">H3 — 18px / 600</div>
+    <div style="font-size:16px;font-weight:400;">Body — 16px / 400</div>
+    <div style="font-size:14px;font-weight:400;color:#c4c5d1;">Small — 14px / 400</div>
+    <div style="font-size:12px;font-weight:500;color:#7a7b86;">Tiny — 12px / 500</div>
+  </div>
+
+  <div class="section">
+    <h2>3 · Buttons</h2>
+    <div class="btn-group">
+      <button class="btn btn-primary">Primary (coral)</button>
+      <button class="btn btn-secondary">Secondary</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-destructive">Destructive</button>
+      <button class="btn-icon" title="Close">✕</button>
+    </div>
+    <p class="input-label">Padding 12px vertical / 20px horizontal · radius 12px · 16px / 600 · touch target ≥44dp</p>
+  </div>
+
+  <div class="section">
+    <h2>4 · Cards</h2>
+    <div class="grid grid-cols-2">
+      <div class="card">
+        <img class="card-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 500'%3E%3Crect width='400' height='500' fill='%232a2b35'/%3E%3Ccircle cx='200' cy='185' r='68' fill='%233a3b4a'/%3E%3Cpath d='M90 420c18-68 62-104 110-104s92 36 110 104' fill='%233a3b4a'/%3E%3C/svg%3E" alt="avatar">
+        <div class="card-title">Ama, 21</div>
+        <div class="card-sub">UG · Software &amp; Coding · Afrobeats</div>
+      </div>
+      <div class="card">
+        <div class="empty-icon">💬</div>
+        <div class="card-title">No matches yet</div>
+        <div class="card-sub">Keep swiping — your next match is nearby.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>5 · Inputs</h2>
+    <div class="input-wrap">
+      <label class="input-label">Email</label>
+      <input type="email" placeholder="you@st.umat.edu.gh">
+      <span class="input-helper">Only .edu.gh student domains accepted</span>
+    </div>
+    <div class="input-wrap" style="margin-top:16px;">
+      <label class="input-label">Password</label>
+      <input type="password" placeholder="••••••••" class="error">
+      <span class="input-helper">Password must be at least 8 characters</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>6 · Badges &amp; Swipe Actions</h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <span class="badge">Verified</span>
+      <span class="badge">Plus</span>
+      <span class="badge">Online</span>
+      <span class="badge">Study</span>
+    </div>
+    <div class="swipe-row" style="margin-top:16px;">
+      <span class="swipe-pill like-pill">Like →</span>
+      <span class="swipe-pill nope-pill">← Nope</span>
+      <span class="swipe-pill super-pill">Super Like</span>
+      <span class="swipe-pill boost-pill">Boost</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>7 · Navigation Tabs</h2>
+    <div class="tabs">
+      <button class="tab active">Swipe</button>
+      <button class="tab">Explore</button>
+      <button class="tab">Likes</button>
+      <button class="tab">Matches</button>
+      <button class="tab">Profile</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>8 · Empty State</h2>
+    <div class="empty">
+      <div class="empty-icon">🎯</div>
+      <div class="empty-title">No matches yet</div>
+      <div class="empty-desc">Keep swiping — your next match is nearby.</div>
+      <button class="btn btn-primary">Start Swiping</button>
+    </div>
+  </div>
+
+</body>
+</html>
