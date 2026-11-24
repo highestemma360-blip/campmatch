@@ -8,6 +8,7 @@ export class RealtimeClient {
   private reconnectDelay = 1000
   private pingTimer: number | null = null
   private closedManually = false
+  private sendQueue: Record<string, any>[] = []
 
   constructor(listener: RealtimeListener) {
     this.listener = listener
@@ -19,6 +20,7 @@ export class RealtimeClient {
     this.token = token
     this.closedManually = false
     this.reconnectDelay = 1000
+    this.sendQueue = []
     this.openSocket()
   }
 
@@ -34,6 +36,9 @@ export class RealtimeClient {
       ws.onopen = () => {
         this.listener({ type: 'ws_status', connected: true })
         this.reconnectDelay = 1000
+        // Flush any messages queued while disconnected
+        const queued = this.sendQueue.splice(0, this.sendQueue.length)
+        for (const payload of queued) this.ws?.send(JSON.stringify(payload))
         this.pingTimer = window.setInterval(() => {
           this.send({ type: 'ping' })
         }, 25000)
@@ -61,8 +66,7 @@ export class RealtimeClient {
       }
 
       ws.onerror = () => {
-        const delay = this.reconnectDelay
-        this.reconnectDelay = Math.min(delay * 2, 30000)
+        // onclose will handle reconnect; avoid incrementing backoff twice
         ws.close()
       }
     } catch {
@@ -73,8 +77,13 @@ export class RealtimeClient {
   }
 
   send(payload: Record<string, any>) {
+    const str = JSON.stringify(payload)
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(payload))
+      this.ws.send(str)
+    } else {
+      // Queue for delivery once the socket reconnects (craft floor: no silent drops)
+      this.sendQueue.push(payload)
+      if (this.sendQueue.length > 50) this.sendQueue.shift()
     }
   }
 
