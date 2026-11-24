@@ -164,6 +164,26 @@ npm run dev
 ```
 The Vite dev server runs on `http://localhost:5173` and proxies `/api`, `/uploads`, and `/ws` to `http://localhost:8000`.
 
+## Design System (DESIGN.md)
+
+The repo includes a Google Stitch `DESIGN.md` at the project root defining the color palette (coral #ff4f5e signature), typography, component stylings, layout, depth, do's/don'ts, responsive breakpoints, and an agent prompt guide. Visual catalogs live at `frontend/public/preview.html` (light) and `preview-dark.html` (dark). AI agents generating UI should read `DESIGN.md` so output stays visually consistent with Campmatch.
+
+## End-to-End Tests (Playwright)
+
+Playwright E2E specs live in `tests/e2e/` and cover auth (domain rejection, signup), swipes (deck, like/nope), chat (matches, messaging), photos (upload/rejection), PWA/push, payments, and admin.
+
+```bash
+# Install Playwright (once)
+npx playwright install chromium
+
+# Start dev servers, then run tests
+cd backend && SECRET_KEY=dev-secret uvicorn app.main:app --port 8000   # terminal 1
+cd frontend && npm run dev                                            # terminal 2
+
+# From repo root
+npx playwright test
+```
+
 ## Production Deployment (Render)
 
 Deploy using `render.yaml`. Render builds `frontend/dist`, installs Python requirements, mounts a persistent disk at `/var/data` (storing the SQLite database, uploads, and rolling backups across deploys), and serves the API, WebSockets, SPA, and the `/admin` portal from a single web service.
