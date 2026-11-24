@@ -1308,10 +1308,18 @@ h1, h2, h3, h4, h5, h6 {
   padding-top: 10px;
   background: var(--surface-elevated);
   border-top: 1px solid var(--border);
-  position: sticky;
+  position: fixed;
   bottom: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  z-index: 60;
   width: 100%;
+}
+
+/* Keep scrollable content above the fixed bottom nav */
+.main-stage,
+.stage-inner {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 16px));
 }
 
 .nav-tab-btn {

@@ -30,7 +30,7 @@ export function FloatingWhatsAppBtn({
     <div
       style={{
         position: "fixed",
-        bottom: "calc(92px + env(safe-area-inset-bottom, 20px))",
+        bottom: "calc(88px + env(safe-area-inset-bottom, 20px))",
         right: 24,
         zIndex: 9999,
         display: "flex",
