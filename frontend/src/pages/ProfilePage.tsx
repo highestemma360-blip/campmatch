@@ -870,7 +870,7 @@ export function ProfilePage({
         </SettingsSection>
 
         {/* Footer */}
-        <div style={{ padding: '30px 16px', textAlign: 'center', color: '#656770', fontSize: 12 }}>
+        <div className="pin-bottom" style={{ padding: '30px 16px', textAlign: 'center', color: '#656770', fontSize: 12 }}>
           <div style={{ marginBottom: 4 }}>Campmatch v1.0.0</div>
           <div style={{ color: 'var(--text-muted)' }}>For verified university students in Ghana</div>
         </div>
@@ -879,7 +879,15 @@ export function ProfilePage({
   }
   // ---------------------------------------------------------------------------
   return (
-    <div className="scroll-pane" style={{ padding: '0 0 32px' }}>
+    <div
+      className="scroll-pane"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100dvh',
+        padding: '0 0 32px',
+      }}
+    >
       {/* Tinder Curved Hero Card with Circular Progress Ring & 3-Button Action Row */}
       <div
         style={{

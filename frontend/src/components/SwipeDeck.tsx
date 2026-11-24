@@ -197,7 +197,7 @@ export function SwipeDeck({
   const cardWidth = 330
   const cardHeight = 520
 
-  const cardTransform = `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x / 20}deg)`
+  const cardTransform = `translate(-50%, -50%) translate(${drag.x}px, ${drag.y}px) rotate(${drag.x / 20}deg)`
   const cardTransition = drag.active ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
 
   const tintOpacity = Math.min(1, Math.abs(drag.x) / 200)
@@ -217,7 +217,8 @@ export function SwipeDeck({
               <div
                 className="swipe-card behind-2"
                 style={{
-                  transform: 'scale(0.9) translateY(22px)',
+                  transform:
+                    'translate(-50%, -50%) scale(0.9) translateY(22px)',
                   opacity: 0.85,
                 }}
               >
@@ -235,8 +236,8 @@ export function SwipeDeck({
                 style={{
                   transform:
                     Math.abs(drag.x) > 10 || Math.abs(drag.y) > 10
-                      ? `scale(${Math.min(1, 0.955 + Math.min(1, Math.hypot(drag.x, drag.y) / 210) * 0.045)}) translateY(${Math.max(0, 11 - Math.min(11, Math.hypot(drag.x, drag.y) / 20))}px)`
-                      : undefined,
+                      ? `translate(-50%, -50%) scale(${Math.min(1, 0.955 + Math.min(1, Math.hypot(drag.x, drag.y) / 210) * 0.045)}) translateY(${Math.max(0, 11 - Math.min(11, Math.hypot(drag.x, drag.y) / 20))}px)`
+                      : 'translate(-50%, -50%)',
                 }}
               >
                 <img
