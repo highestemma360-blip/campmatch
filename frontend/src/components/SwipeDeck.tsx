@@ -201,7 +201,7 @@ export function SwipeDeck({
   const cardTransition = drag.active ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
 
   const tintOpacity = Math.min(1, Math.abs(drag.x) / 200)
-  const tintBackground = drag.x > 0 ? '#22c55e' : drag.x < 0 ? '#ef4444' : 'transparent'
+  const tintBackground = drag.x > 0 ? 'var(--like-green)' : drag.x < 0 ? 'var(--nope-red)' : 'transparent'
 
   const likeOpacity = Math.min(1, Math.max(0, drag.x / 150))
   const nopeOpacity = Math.min(1, Math.max(0, -drag.x / 150))
@@ -280,14 +280,16 @@ export function SwipeDeck({
                         e.stopPropagation()
                         setPhotoIdx(i => (i - 1 + topCard.photo_urls.length) % topCard.photo_urls.length)
                       }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
                       style={{
                         position: 'absolute',
                         top: 0, bottom: 0, left: 0, width: '20%',
-                        background: 'linear-gradient(to right, rgba(0,0,0,0.35), transparent)',
+                        background: 'linear-gradient(to right, rgba(0,0,0,0.45), transparent)',
                         border: 'none',
                         color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 9, opacity: 0, transition: 'opacity 0.2s ease',
+                        zIndex: 9, opacity: 0.55, transition: 'opacity 0.2s ease',
                       }}
                     >
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -301,14 +303,16 @@ export function SwipeDeck({
                         e.stopPropagation()
                         setPhotoIdx(i => (i + 1) % topCard.photo_urls.length)
                       }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
                       style={{
                         position: 'absolute',
                         top: 0, bottom: 0, right: 0, width: '20%',
-                        background: 'linear-gradient(to left, rgba(0,0,0,0.35), transparent)',
+                        background: 'linear-gradient(to left, rgba(0,0,0,0.45), transparent)',
                         border: 'none',
                         color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 9, opacity: 0, transition: 'opacity 0.2s ease',
+                        zIndex: 9, opacity: 0.55, transition: 'opacity 0.2s ease',
                       }}
                     >
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
