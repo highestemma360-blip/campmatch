@@ -131,7 +131,7 @@ function SettingsField({ label, type, value, onChange }: { label: string; type: 
 }
 
 interface ProfilePageProps {
-  me: CurrentUser
+  me?: CurrentUser
   token: string
   rooms?: ExploreVibe[]
   theme: string
@@ -152,7 +152,44 @@ interface ProfilePageProps {
 }
 
 export function ProfilePage({
-  me,
+  me = {
+    name: '',
+    age: 0,
+    email: '',
+    profile_complete: false,
+    completion_pct: 0,
+    is_admin: false,
+    snoozed: false,
+    photo_urls: [],
+    photo_required: false,
+    photo_approved: false,
+    explore_vibes: [],
+    interests: [],
+    prompts: [],
+    min_age: 18,
+    max_age: 30,
+    preferred_levels: '',
+    show_me: 'everyone',
+    max_distance_km: 50,
+    verified_only: false,
+    is_premium: false,
+    is_verified: false,
+    level: '',
+    course: '',
+    school: '',
+    hall: '',
+    looking_for: '',
+    opening_move: '',
+    zodiac: '',
+    height: '',
+    spotify_anthem: '',
+    is_boosted: false,
+    boosted_until: null,
+    online: false,
+    active_recently: false,
+    swipe_quota: undefined,
+    announcement_banner: undefined,
+  } as unknown as CurrentUser,
   token,
   rooms,
   theme,
