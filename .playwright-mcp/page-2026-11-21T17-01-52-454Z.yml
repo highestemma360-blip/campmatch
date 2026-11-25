@@ -1,0 +1,97 @@
+- generic [ref=f8e3]:
+  - generic [ref=f8e4]:
+    - generic [ref=f8e5]: Campmatch
+    - generic [ref=f8e10]:
+      - heading "Meet students from your campus." [level=1] [ref=f8e11]
+      - paragraph [ref=f8e12]: Verified university students in Ghana — for dates, new friends, and study partners.
+      - generic [ref=f8e13]:
+        - button "Create account" [ref=f8e14] [cursor=pointer]
+        - button "Sign in" [ref=f8e15] [cursor=pointer]
+      - button "Find your people across Ghana’s campuses →" [ref=f8e16]
+  - generic [ref=f8e18]:
+    - generic [ref=f8e19]: What Campmatch Offers
+    - heading "More than just dating on campus." [level=2] [ref=f8e20]
+    - paragraph [ref=f8e21]: Choose how you want to connect. Every connection starts with a verified student badge.
+    - generic [ref=f8e22]:
+      - generic [ref=f8e23]:
+        - generic [ref=f8e24]: "01"
+        - heading "Campus Dating" [level=3] [ref=f8e25]
+        - paragraph [ref=f8e26]: Meet verified students on your campus or nearby universities for genuine relationships.
+      - generic [ref=f8e27]:
+        - generic [ref=f8e28]: "02"
+        - heading "New Friends" [level=3] [ref=f8e29]
+        - paragraph [ref=f8e30]: Fresh on campus or looking to expand your circle? Connect by hall, faculty, or shared interests.
+      - generic [ref=f8e31]:
+        - generic [ref=f8e32]: "03"
+        - heading "Study Partners" [level=3] [ref=f8e33]
+        - paragraph [ref=f8e34]: Pair up with classmates or students in your course for library sessions, projects, and exam prep.
+  - generic [ref=f8e36]:
+    - generic [ref=f8e37]: Student Verification
+    - heading "Real students. Zero outsiders." [level=2] [ref=f8e38]
+    - paragraph [ref=f8e39]: Campmatch is designed for university students in Ghana. Our student-focused verification helps create a community where students can connect with greater confidence.
+    - generic [ref=f8e40]:
+      - generic [ref=f8e41]:
+        - generic [ref=f8e42]: "01"
+        - generic [ref=f8e43]:
+          - heading "Enter your university email" [level=3] [ref=f8e44]
+          - paragraph [ref=f8e45]: Sign up with your institutional email (e.g., student@st.umat.edu.gh, name@ug.edu.gh).
+      - generic [ref=f8e46]:
+        - generic [ref=f8e47]: "02"
+        - generic [ref=f8e48]:
+          - heading "Confirm your verification code" [level=3] [ref=f8e49]
+          - paragraph [ref=f8e50]: Enter the one-time code sent to your university inbox to unlock your verified student badge.
+      - generic [ref=f8e51]:
+        - generic [ref=f8e52]: "03"
+        - generic [ref=f8e53]:
+          - heading "Choose your intent and connect" [level=3] [ref=f8e54]
+          - paragraph [ref=f8e55]: Select Dating, Friends, or Study. Set campus filters and start matching mutually with verified students.
+  - generic [ref=f8e57]:
+    - generic [ref=f8e58]: Supported Campuses
+    - heading "Built for universities across Ghana." [level=2] [ref=f8e59]
+    - paragraph [ref=f8e60]: We support institutional .edu.gh domains from universities and technical colleges nationwide.
+    - generic [ref=f8e61]:
+      - generic [ref=f8e62]: UG Legon
+      - generic [ref=f8e63]: KNUST
+      - generic [ref=f8e64]: UCC
+      - generic [ref=f8e65]: UMaT
+      - generic [ref=f8e66]: Ashesi
+      - generic [ref=f8e67]: UEW
+      - generic [ref=f8e68]: UDS
+      - generic [ref=f8e69]: Technical Universities
+    - generic [ref=f8e70]: Don’t see your .edu.gh domain? Request your campus.
+  - generic [ref=f8e72]:
+    - generic [ref=f8e73]: Campus Trust & Privacy
+    - heading "Built for campus trust and privacy." [level=2] [ref=f8e74]
+    - paragraph [ref=f8e75]: Your safety and privacy come first. Every feature is designed around the university student experience.
+    - generic [ref=f8e76]:
+      - generic [ref=f8e78]:
+        - heading "Institutional .edu.gh verification" [level=3] [ref=f8e79]
+        - paragraph [ref=f8e80]: Every profile is tied to an active university email domain — no outsiders.
+      - generic [ref=f8e82]:
+        - heading "Double opt-in chat" [level=3] [ref=f8e83]
+        - paragraph [ref=f8e84]: No unsolicited DMs — messaging only opens when both students match.
+      - generic [ref=f8e86]:
+        - heading "Visibility & controls" [level=3] [ref=f8e87]
+        - paragraph [ref=f8e88]: Filter who sees you by campus or mode, and block or report anyone anytime.
+      - generic [ref=f8e90]:
+        - heading "Meet smart on campus" [level=3] [ref=f8e91]
+        - paragraph [ref=f8e92]: First meetups in busy public campus spots — libraries, student centers, cafés.
+  - generic [ref=f8e94]:
+    - heading "Your next campus connection starts here." [level=2] [ref=f8e95]
+    - button "Join Campmatch Today" [ref=f8e96] [cursor=pointer]
+  - contentinfo [ref=f8e97]:
+    - generic [ref=f8e98]: Campmatch
+    - generic [ref=f8e103]:
+      - link "How It Works" [ref=f8e104] [cursor=pointer]:
+        - /url: "#"
+      - link "Safety" [ref=f8e105] [cursor=pointer]:
+        - /url: "#"
+      - link "Supported Campuses" [ref=f8e106] [cursor=pointer]:
+        - /url: "#"
+      - link "Privacy Policy" [ref=f8e107] [cursor=pointer]:
+        - /url: "#"
+      - link "Terms of Service" [ref=f8e108] [cursor=pointer]:
+        - /url: "#"
+      - link "Support" [ref=f8e109] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=f8e110]: © 2026 Campmatch. Built for university students in Ghana.
