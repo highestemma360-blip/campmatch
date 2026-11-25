@@ -102,6 +102,8 @@ import { MatchesListView, ChatConversationView } from './pages/MatchesChatPage'
 
 import { ProfilePage } from './pages/ProfilePage'
 
+import { ProfileCardView } from './pages/ProfileCardView'
+
 import { AdminPortal } from './pages/AdminPortal'
 
 import { PhotoRequirementPage } from './pages/PhotoRequirementPage'
@@ -432,6 +434,7 @@ function StudentApp({
   const [reportTarget, setReportTarget] = useState<ProfileCard | null>(null)
 
   const [toast, setToast] = useState<string | null>(null)
+  const [viewMyCard, setViewMyCard] = useState(false)
 
 
 
@@ -3124,6 +3127,14 @@ function StudentApp({
 
 
 
+              {viewMyCard && (
+                <ProfileCardView
+                  me={me ?? null}
+                  token={token}
+                  onClose={() => setViewMyCard(false)}
+                />
+              )}
+              
               {tab === 'profile' && (
 
                 <ProfilePage
@@ -3149,11 +3160,8 @@ function StudentApp({
                   onRemovePhoto={handleRemovePhoto}
 
                   onPreviewMyCard={() => {
-
-                    setPreviewingSelf(true)
-
-                    setInspectedProfile(me)
-
+                    setViewMyCard(true)
+                    setPreviewingSelf(false)
                   }}
 
                   onOpenPlus={() => setShowPlusModal(true)}

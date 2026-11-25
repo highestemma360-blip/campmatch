@@ -285,11 +285,14 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
         <div className="hero-content">
           <h1 className="display-headline">
-            Meet students from{' '}
-            <span className="coral-accent">your campus.</span>
+            Verified student matching for{' '}
+            <span className="coral-accent">Ghana campuses.</span>
           </h1>
           <p className="hero-subtitle subheadline">
-            Verified university students in Ghana — for dates, new friends, and study partners.
+            Campmatch is for verified university students at UG Legon, KNUST, UCC,
+            UMaT, UEW, UDS, Ashesi, and technical colleges across Ghana. Sign in with
+            your .edu.gh email to match with students in your hall, faculty, and
+            Explore rooms.
           </p>
           <div className="hero-ctas">
             {googleEnabled ? (
@@ -328,78 +331,89 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             const el = document.querySelector('.connect-section')
             el?.scrollIntoView({ behavior: 'smooth' })
           }}>
-            Find your people across Ghana’s campuses →
+            Browse Explore rooms →
           </div>
         </div>
       </section>
 
-      {/* Section 1: Three Ways to Connect — editorial list */}
+      {/* Section 1: How you connect on campus */}
       <section className="section connect-section reveal" id="connect">
         <div className="section-inner">
-          <div className="eyebrow">What Campmatch Offers</div>
-          <h2 className="section-heading">More than just dating on campus.</h2>
+          <h2 className="section-heading">Match with students in your hall and faculty.</h2>
           <p className="subheadline">
-            Choose how you want to connect. Every connection starts with a verified student badge.
+            Opt into Explore rooms for your vibe, swipe through verified students, and
+            chat only after you match. No outsiders, no fake profiles.
           </p>
           <div className="connect-list reveal-stagger">
             <div className="connect-item reveal stagger-1">
-              <span className="connect-item-number">01</span>
-              <h3 className="connect-item-title">Campus Dating</h3>
+              <h3 className="connect-item-title">Sign in with .edu.gh</h3>
               <p className="connect-item-desc">
-                Meet verified students on your campus or nearby universities for genuine relationships.
+                Register with your institutional email (student@st.umat.edu.gh,
+                name@ug.edu.gh). Your profile is tied to your university domain.
               </p>
             </div>
             <div className="connect-item reveal stagger-2">
-              <span className="connect-item-number">02</span>
-              <h3 className="connect-item-title">New Friends</h3>
+              <h3 className="connect-item-title">Opt into Explore rooms</h3>
               <p className="connect-item-desc">
-                Fresh on campus or looking to expand your circle? Connect by hall, faculty, or shared interests.
+                Choose rooms like Study Buddy, Food Date, Long Term, Night Stand, Walk
+                Around, or Escort Tonight. Your card appears only in rooms you join.
               </p>
             </div>
             <div className="connect-item reveal stagger-3">
-              <span className="connect-item-number">03</span>
-              <h3 className="connect-item-title">Study Partners</h3>
+              <h3 className="connect-item-title">Match and chat</h3>
               <p className="connect-item-desc">
-                Pair up with classmates or students in your course for library sessions, projects, and exam prep.
+                Swipe through verified students in your rooms. When you both like, the
+                chat opens — no unsolicited DMs, no outsiders.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Section 2: How .edu.gh Verification Works */}
+      {/* Section 2: Verification */}
       <section className="section reveal">
         <div className="section-inner">
-          <div className="eyebrow">Student Verification</div>
-          <h2 className="section-heading">Real students. Zero outsiders.</h2>
+          <h2 className="section-heading">Every profile is tied to a real .edu.gh email.</h2>
           <p className="subheadline">
-            Campmatch is designed for university students in Ghana. Our student-focused verification helps create a community where students can connect with greater confidence.
+            Campmatch is built for Ghana university students. We verify your institutional
+            email domain and screen profile photos so every card you swipe is a real
+            student — not a bot, not a scammer.
           </p>
           <div className="verify-flow reveal-stagger">
             <div className="verify-step reveal stagger-1">
-              <div className="verify-step-number">01</div>
               <div className="verify-step-content">
                 <h3 className="verify-step-title">Enter your university email</h3>
                 <p className="verify-step-desc">
-                  Sign up with your institutional email (e.g., student@st.umat.edu.gh, name@ug.edu.gh).
+                  Sign up with your institutional .edu.gh email (e.g.,
+                  student@st.umat.edu.gh, name@ug.edu.gh). Personal Gmail, Yahoo, and
+                  Outlook addresses are not accepted.
                 </p>
               </div>
             </div>
             <div className="verify-step reveal stagger-2">
-              <div className="verify-step-number">02</div>
               <div className="verify-step-content">
-                <h3 className="verify-step-title">Confirm your verification code</h3>
+                <h3 className="verify-step-title">Verify your email</h3>
                 <p className="verify-step-desc">
-                  Enter the one-time code sent to your university inbox to unlock your verified student badge.
+                  Enter the confirmation code sent to your university inbox to unlock
+                  your verified student badge.
                 </p>
               </div>
             </div>
             <div className="verify-step reveal stagger-3">
-              <div className="verify-step-number">03</div>
+              <div className="verify-step-content">
+                <h3 className="verify-step-title">Upload a real photo</h3>
+                <p className="verify-step-desc">
+                  Your profile photo is screened automatically — blank, black, blurry,
+                  or explicit images are rejected before they're saved.
+                </p>
+              </div>
+            </div>
+            <div className="verify-step reveal stagger-4">
               <div className="verify-step-content">
                 <h3 className="verify-step-title">Choose your intent and connect</h3>
                 <p className="verify-step-desc">
-                  Select Dating, Friends, or Study. Set campus filters and start matching mutually with verified students.
+                  Select Dating, Friends, or Study. Set campus filters and start
+                  matching mutually with verified students in your Explore rooms.
                 </p>
               </div>
             </div>
@@ -410,10 +424,11 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       {/* Section 3: Ghanaian Campuses — typographic strip */}
       <section className="section reveal">
         <div className="section-inner">
-          <div className="eyebrow">Supported Campuses</div>
           <h2 className="section-heading">Built for universities across Ghana.</h2>
           <p className="subheadline">
-            We support institutional .edu.gh domains from universities and technical colleges nationwide.
+            We support institutional .edu.gh domains from universities and technical
+            colleges nationwide. If your domain isn't listed, request it and we'll add
+            it.
           </p>
           <div className="campus-list reveal-stagger">
             <span className="campus-item reveal stagger-1">UG Legon</span>
@@ -423,6 +438,8 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             <span className="campus-item reveal stagger-5">Ashesi</span>
             <span className="campus-item reveal stagger-5">UEW</span>
             <span className="campus-item reveal stagger-5">UDS</span>
+            <span className="campus-item reveal stagger-5">GIMPA</span>
+            <span className="campus-item reveal stagger-5">UPSA</span>
             <span className="campus-item reveal stagger-5">Technical Universities</span>
           </div>
           <div className="campus-request reveal">
@@ -434,17 +451,18 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       {/* Section 4: Campus Safety & Privacy */}
       <section className="section reveal">
         <div className="section-inner">
-          <div className="eyebrow">Campus Trust &amp; Privacy</div>
-          <h2 className="section-heading">Built for campus trust and privacy.</h2>
+          <h2 className="section-heading">No outsiders. No unsolicited DMs.</h2>
           <p className="subheadline">
-            Your safety and privacy come first. Every feature is designed around the university student experience.
+            Every feature is designed around the university student experience — from
+            verification to visibility controls.
           </p>
           <div className="safety-list reveal-stagger">
             <div className="safety-item reveal stagger-1">
               <div className="safety-item-content">
                 <h3 className="safety-item-title">Institutional .edu.gh verification</h3>
                 <p className="safety-item-desc">
-                  Every profile is tied to an active university email domain — no outsiders.
+                  Every profile is tied to an active university email domain — no
+                  outsiders, no fake accounts.
                 </p>
               </div>
             </div>
@@ -460,15 +478,17 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               <div className="safety-item-content">
                 <h3 className="safety-item-title">Visibility &amp; controls</h3>
                 <p className="safety-item-desc">
-                  Filter who sees you by campus or mode, and block or report anyone anytime.
+                  Filter who sees you by campus or mode, block or report anyone anytime,
+                  and opt out of Explore rooms whenever you want.
                 </p>
               </div>
             </div>
             <div className="safety-item reveal stagger-4">
               <div className="safety-item-content">
-                <h3 className="safety-item-title">Meet smart on campus</h3>
+                <h3 className="safety-item-title">Photo screening</h3>
                 <p className="safety-item-desc">
-                  First meetups in busy public campus spots — libraries, student centers, cafés.
+                  Uploaded photos are screened automatically — blank, black, blurry, or
+                  explicit images are rejected before they're stored.
                 </p>
               </div>
             </div>
@@ -479,13 +499,13 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       {/* Section 5: Bottom CTA */}
       <section className="bottom-cta reveal">
         <div className="bottom-cta-inner reveal">
-          <h2 className="bottom-cta-heading">Your next campus connection starts here.</h2>
+          <h2 className="bottom-cta-heading">Join your campus community.</h2>
           <button
             type="button"
             className="btn btn-primary btn-full"
             onClick={() => openAuth('signup')}
           >
-            Join Campmatch Today
+            Create your account
           </button>
         </div>
       </section>
