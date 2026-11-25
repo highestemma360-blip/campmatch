@@ -883,22 +883,22 @@ export function ProfilePage({
         {/* === SETTINGS - CAMP MATCH SPECIFIC === */}
         <SettingsSection title="Account">
           <SettingsRow icon={<UserIcon size={18} />} label="Edit profile" trailing={<ChevronDownIcon size={16} />} onClick={openEditor} />
-          <SettingsRow icon={<BoltIcon size={18} />} label="Change password" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<BoltIcon size={18} />} label="Change password" trailing={<ChevronDownIcon size={16} />} onClick={openEditor} />
         </SettingsSection>
 
         <SettingsSection title="Discovery">
-          <SettingsRow icon={<CompassIcon size={18} />} label="Discovery preferences" trailing={<ChevronDownIcon size={16} />} onClick={() => setScreen('hub')} />
-          <SettingsRow icon={<MapPinIcon size={18} />} label="Location services" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<CompassIcon size={18} />} label="Discovery preferences" trailing={<ChevronDownIcon size={16} />} onClick={onOpenFilters} />
+          <SettingsRow icon={<MapPinIcon size={18} />} label="Location services" trailing={<ChevronDownIcon size={16} />} onClick={() => window.alert('Location services use your device GPS for distance-based discovery.')} />
         </SettingsSection>
 
         <SettingsSection title="Notifications">
           <SettingsRow icon={<BellIcon size={18} />} label="Phone alerts" trailing={<ChevronDownIcon size={16} />} onClick={handleTogglePush} />
-          <SettingsRow icon={<ShieldIcon size={18} />} label="Safety & blocking" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<ShieldIcon size={18} />} label="Safety & blocking" trailing={<ChevronDownIcon size={16} />} onClick={() => window.alert('Blocked users and safety reports are managed from your matches and chats.')} />
         </SettingsSection>
 
         <SettingsSection title="Campus">
-          <SettingsRow icon={<MegaphoneIcon size={18} />} label="Campus announcements" trailing={<ChevronDownIcon size={16} />} />
-          <SettingsRow icon={<ChatBubbleIcon size={18} />} label="Help & support" trailing={<ChevronDownIcon size={16} />} />
+          <SettingsRow icon={<MegaphoneIcon size={18} />} label="Campus announcements" trailing={<ChevronDownIcon size={16} />} onClick={() => window.alert('Campus announcements appear in your Notifications sheet.')} />
+          <SettingsRow icon={<ChatBubbleIcon size={18} />} label="Help & support" trailing={<ChevronDownIcon size={16} />} onClick={() => window.alert('Open the floating WhatsApp button (green circle, bottom right) for support.')} />
         </SettingsSection>
 
         <SettingsSection title="Account actions">
