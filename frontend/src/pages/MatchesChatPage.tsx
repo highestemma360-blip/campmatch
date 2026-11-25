@@ -11,6 +11,7 @@ import {
   ClockIcon,
   ShuffleIcon,
 } from '../components/Icons'
+import { StoryViewer } from '../components/StoryComponents'
 
 interface MatchesListViewProps {
   matches: MatchSummary[]
@@ -19,6 +20,7 @@ interface MatchesListViewProps {
   onOpenLikes: () => void
   compactSidebar?: boolean
   stories?: { user_id: number; viewed_by_me: boolean }[]
+  onViewed?: (storyId: number) => void
 }
 
 export function MatchesListView({
@@ -28,8 +30,11 @@ export function MatchesListView({
   onOpenLikes,
   compactSidebar = false,
   stories = [],
+  onViewed,
 }: MatchesListViewProps) {
   const [search, setSearch] = useState('')
+  const [showStoryViewer, setShowStoryViewer] = useState(false)
+  const [currentStory, setCurrentStory] = useState<any>(null)
 
   // Build a lookup: user_id -> { viewed_by_me }
   const storyMap = new Map(
@@ -42,6 +47,10 @@ export function MatchesListView({
 
   function storyViewed(userId: number): boolean {
     return storyMap.get(userId)?.viewed_by_me ?? false
+  }
+
+  function getStoryForUser(userId: number): any | null {
+    return stories.find(s => s.user_id === userId) || null
   }
 
   const filtered = matches.filter(m =>
@@ -173,6 +182,14 @@ export function MatchesListView({
                       fontSize: 10,
                       fontWeight: 900,
                     }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const story = getStoryForUser(m.user.id)
+                      if (story) {
+                        setCurrentStory(story)
+                        setShowStoryViewer(true)
+                      }
+                    }}
                   >
                     ●
                   </span>
@@ -272,6 +289,14 @@ export function MatchesListView({
                       fontSize: 9,
                       fontWeight: 900,
                     }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const story = getStoryForUser(m.user.id)
+                      if (story) {
+                        setCurrentStory(story)
+                        setShowStoryViewer(true)
+                      }
+                    }}
                   >
                     ●
                   </span>
@@ -325,6 +350,17 @@ export function MatchesListView({
             </div>
           ))}
         </div>
+      )}
+      {showStoryViewer && currentStory && (
+        <StoryViewer
+          story={currentStory}
+          viewerId="me"
+          onClose={() => setShowStoryViewer(false)}
+          onDelete={() => setShowStoryViewer(false)}
+          onViewed={(storyId: string) => {
+            if (onViewed) onViewed(parseInt(storyId, 10))
+          }}
+        />
       )}
     </div>
   )

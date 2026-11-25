@@ -2790,6 +2790,10 @@ function StudentApp({
 
           stories={stories}
 
+          onViewed={(storyId: number) => {
+            setStories(prev => prev.map(s => s.id === storyId ? { ...s, viewed_by_me: true } : s))
+          }}
+
           onOpenChat={openChat}
 
           onOpenLikes={() => {
@@ -3105,6 +3109,10 @@ function StudentApp({
                   likesCount={likesItems.length}
 
                   stories={stories}
+
+                  onViewed={(storyId: number) => {
+                    setStories(prev => prev.map(s => s.id === storyId ? { ...s, viewed_by_me: true } : s))
+                  }}
 
                   onOpenChat={openChat}
 
