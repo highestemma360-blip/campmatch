@@ -148,6 +148,7 @@ def get_deck(
     }
 
     now = datetime.now(timezone.utc)
+    now_naive = now.replace(tzinfo=None)
     plus_enabled = get_bool_setting(db, "plus_enabled", False)
     scored = []
     scored_outside = []
@@ -155,7 +156,7 @@ def get_deck(
         if not matches_vibe(u, user, vibe):
             continue
         dist = haversine(user.lat, user.lng, u.lat, u.lng) if user.lat is not None else 9999
-        is_boosted = 1 if (u.boosted_until and u.boosted_until > now) else 0
+        is_boosted = 1 if (u.boosted_until and u.boosted_until > now_naive) else 0
         inc = incoming.get(u.id)
         super_liked_me = 1 if (inc and inc.super_liked) else 0
         comp = compatibility_score(user, u)

@@ -182,9 +182,13 @@ def serialize_user(user: User, full: bool = False, db: Optional[Session] = None)
     completion = int(round((sum(1 for c in checks if c) / len(checks)) * 100))
 
     now = datetime.now(timezone.utc)
-    is_boosted = bool(user.boosted_until and user.boosted_until > now)
+    now_naive = now.replace(tzinfo=None)
+    is_boosted = bool(user.boosted_until and user.boosted_until > now_naive)
     is_online = hub.is_online(user.id)
-    active_recently = is_online or bool(user.last_active and (now - user.last_active).total_seconds() < 1800)
+    last_active = user.last_active
+    if last_active and last_active.tzinfo is not None:
+        last_active = last_active.replace(tzinfo=None)
+    active_recently = is_online or bool(last_active and (now_naive - last_active).total_seconds() < 1800)
 
     display_email = user.original_email or user.email
     data = {
@@ -268,7 +272,8 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
         db.commit()
 
     now = datetime.now(timezone.utc)
-    if user.is_premium and user.premium_until and user.premium_until < now and not user.is_admin:
+    now_naive = now.replace(tzinfo=None)
+    if user.is_premium and user.premium_until and user.premium_until < now_naive and not user.is_admin:
         user.is_premium = False
     user.last_active = now
     db.commit()
