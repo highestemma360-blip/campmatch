@@ -182,7 +182,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) {
-        setErr(typeof d.detail === 'string' ? d.detail : `Authentication failed (${r.status}).`)
+        setErr(typeof d.detail === 'string' ? d.detail : 'Authentication failed.')
       } else {
         setAuthModalOpen(false)
         onAuth(d.access_token || d.token)
@@ -421,9 +421,9 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             <span className="campus-item reveal stagger-3">UCC</span>
             <span className="campus-item reveal stagger-4">UMaT</span>
             <span className="campus-item reveal stagger-5">Ashesi</span>
-            <span className="campus-item reveal">UEW</span>
-            <span className="campus-item reveal">UDS</span>
-            <span className="campus-item reveal">Technical Universities</span>
+            <span className="campus-item reveal stagger-5">UEW</span>
+            <span className="campus-item reveal stagger-5">UDS</span>
+            <span className="campus-item reveal stagger-5">Technical Universities</span>
           </div>
           <div className="campus-request reveal">
             Don’t see your .edu.gh domain? Request your campus.
@@ -672,7 +672,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               <button
                 type="button"
                 onClick={() => setLegalModal('terms')}
-                style={{ background: 'none', border: 'none', color: '#ff4f5e', fontWeight: 800, padding: 0, cursor: 'pointer', fontSize: 'inherit' }}
+                style={{ border: 'none', background: 'none', color: '#ff4f5e', fontWeight: 800, padding: 0, cursor: 'pointer', fontSize: 'inherit' }}
               >
                 Terms of Service
               </button>{' '}
@@ -680,7 +680,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
               <button
                 type="button"
                 onClick={() => setLegalModal('privacy')}
-                style={{ background: 'none', border: 'none', color: '#ff4f5e', fontWeight: 800, padding: 0, cursor: 'pointer', fontSize: 'inherit' }}
+                style={{ border: 'none', background: 'none', color: '#ff4f5e', fontWeight: 800, padding: 0, cursor: 'pointer', fontSize: 'inherit' }}
               >
                 Privacy Policy
               </button>
@@ -710,7 +710,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
                 {legalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
               </h2>
             </div>
-            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: 'var(--text-secondary)', marginTop: 12 }}>
+            <div style={{ whiteSpace: 'pre-line', fontSize: 13.5, lineHeight: 1.6, color: '#c4c5d1', marginTop: 12 }}>
               {legalModal === 'terms' ? TERMS_SUMMARY : PRIVACY_SUMMARY}
             </div>
             <button
@@ -723,16 +723,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
             </button>
           </div>
         </div>
-      )}
-
-      {install.visible && (
-        <InstallPrompt
-          platform={install.platform}
-          canPrompt={install.canPrompt}
-          onInstall={install.install}
-          onClose={install.close}
-          nextReminderSeconds={install.nextReminderSeconds}
-        />
       )}
     </div>
   )

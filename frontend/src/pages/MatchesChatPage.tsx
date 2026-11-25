@@ -18,6 +18,7 @@ interface MatchesListViewProps {
   onOpenChat: (m: MatchSummary) => void
   onOpenLikes: () => void
   compactSidebar?: boolean
+  stories?: { user_id: number; viewed_by_me: boolean }[]
 }
 
 export function MatchesListView({
@@ -26,8 +27,22 @@ export function MatchesListView({
   onOpenChat,
   onOpenLikes,
   compactSidebar = false,
+  stories = [],
 }: MatchesListViewProps) {
   const [search, setSearch] = useState('')
+
+  // Build a lookup: user_id -> { viewed_by_me }
+  const storyMap = new Map(
+    stories.map(s => [s.user_id, { viewed_by_me: s.viewed_by_me }])
+  )
+
+  function hasStory(userId: number): boolean {
+    return storyMap.has(userId)
+  }
+
+  function storyViewed(userId: number): boolean {
+    return storyMap.get(userId)?.viewed_by_me ?? false
+  }
 
   const filtered = matches.filter(m =>
     (m.user.name || '').toLowerCase().includes(search.toLowerCase())
@@ -140,6 +155,28 @@ export function MatchesListView({
                     <StarIcon size={11} />
                   </span>
                 )}
+                {hasStory(m.user.id) && !storyViewed(m.user.id) && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: 'var(--brand-grad)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid var(--bg-app)',
+                      fontSize: 10,
+                      fontWeight: 900,
+                    }}
+                  >
+                    ●
+                  </span>
+                )}
               </div>
               <span
                 style={{
@@ -216,6 +253,28 @@ export function MatchesListView({
                       height: 12,
                     }}
                   />
+                )}
+                {hasStory(m.user.id) && !storyViewed(m.user.id) && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      background: 'var(--brand-grad)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid var(--bg-app)',
+                      fontSize: 9,
+                      fontWeight: 900,
+                    }}
+                  >
+                    ●
+                  </span>
                 )}
               </div>
 

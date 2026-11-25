@@ -156,17 +156,24 @@ threading.Thread(target=_retention_loop, daemon=True).start()
 
 app = FastAPI(title="Campmatch", docs_url=None, redoc_url=None)
 
+# --- DDoS protection infrastructure ---
 rate_store = defaultdict(list)
 auth_rate_store = defaultdict(list)
-RATE_LIMIT_GENERAL = 240
-RATE_LIMIT_AUTH = 15
+endpoint_rate_store = defaultdict(list)
+connection_store = defaultdict(int)  # active concurrent connections per IP
+blocked_ips = {}  # ip -> block_until_timestamp
+RATE_LIMIT_GENERAL = 120  # requests per minute (stricter)
+RATE_LIMIT_AUTH = 10      # auth attempts per minute
+RATE_LIMIT_ENDPOINT = 30  # per-endpoint per minute
+BLOCK_DURATION = 300      # 5 minutes block for repeat offenders
+BLOCK_THRESHOLD = 5       # number of 429s before blocking
 _last_prune = time.time()
+_409_store = defaultdict(list)  # track 429 events per IP for blocking
 
 
 def _extract_client_ip(request: Request) -> str:
     xff = request.headers.get("x-forwarded-for", "")
     if xff:
-        # First hop in X-Forwarded-For is the originating client on Render/Cloudflare
         return xff.split(",")[0].strip()[:64]
     xri = request.headers.get("x-real-ip", "")
     if xri:
@@ -174,37 +181,108 @@ def _extract_client_ip(request: Request) -> str:
     return (request.client.host if request.client else None) or "unknown"
 
 
+def _is_blocked(ip: str, now: float) -> bool:
+    if ip in blocked_ips and now < blocked_ips[ip]:
+        return True
+    if ip in blocked_ips and now >= blocked_ips[ip]:
+        del blocked_ips[ip]
+    return False
+
+
+def _record_429(ip: str, now: float) -> None:
+    _409_store[ip] = [t for t in _409_store[ip] if now - t < 300]
+    _409_store[ip].append(now)
+    if len(_409_store[ip]) >= BLOCK_THRESHOLD:
+        blocked_ips[ip] = now + BLOCK_DURATION
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         global _last_prune
         path = request.url.path
+        now = time.time()
+
+        # Static assets bypass rate limiting
         if path.startswith("/uploads/") or path.startswith("/assets/") or path in ("/favicon.svg", "/logo.svg", "/manifest.webmanifest"):
             return await call_next(request)
 
-        now = time.time()
+        ip = _extract_client_ip(request)
+
+        # Reject blocked IPs immediately
+        if _is_blocked(ip, now):
+            return JSONResponse(
+                {"detail": "Too many requests. Please try again later."},
+                status_code=429,
+                headers={"Retry-After": str(BLOCK_DURATION)},
+            )
+
+        # Prune old entries once per minute
         if now - _last_prune > 60:
             _last_prune = now
-            for store in (rate_store, auth_rate_store):
+            for store in (rate_store, auth_rate_store, endpoint_rate_store):
                 empty_keys = [k for k, ts in store.items() if not ts or now - ts[-1] >= 60]
                 for k in empty_keys:
                     store.pop(k, None)
 
-        ip = _extract_client_ip(request)
+        # Track concurrent connections per IP (rough DDoS signal)
+        connection_store[ip] += 1
+        if connection_store[ip] > 50:
+            connection_store[ip] -= 1
+            _record_429(ip, now)
+            return JSONResponse(
+                {"detail": "Too many concurrent connections. Please slow down."},
+                status_code=429,
+                headers={"Retry-After": "30"},
+            )
 
-        if path in ("/api/login", "/api/signup", "/api/google", "/api/admin-auth/login") and request.method == "POST":
-            auth_rate_store[ip] = [t for t in auth_rate_store[ip] if now - t < 60]
-            if len(auth_rate_store[ip]) >= RATE_LIMIT_AUTH:
+        try:
+            # Auth endpoints: strict limit
+            if path in ("/api/login", "/api/signup", "/api/google", "/api/admin-auth/login") and request.method == "POST":
+                auth_rate_store[ip] = [t for t in auth_rate_store[ip] if now - t < 60]
+                if len(auth_rate_store[ip]) >= RATE_LIMIT_AUTH:
+                    connection_store[ip] -= 1
+                    _record_429(ip, now)
+                    return JSONResponse(
+                        {"detail": "Too many sign-in attempts. Please wait one minute and try again."},
+                        status_code=429,
+                        headers={"Retry-After": "60"},
+                    )
+                auth_rate_store[ip].append(now)
+
+            # General request limit
+            rate_store[ip] = [t for t in rate_store[ip] if now - t < 60]
+            if len(rate_store[ip]) >= RATE_LIMIT_GENERAL:
+                connection_store[ip] -= 1
+                _record_429(ip, now)
                 return JSONResponse(
-                    {"detail": "Too many sign-in attempts. Please wait one minute and try again."},
+                    {"detail": "Too many requests. Please wait a moment."},
                     status_code=429,
+                    headers={"Retry-After": "30"},
                 )
-            auth_rate_store[ip].append(now)
+            rate_store[ip].append(now)
 
-        rate_store[ip] = [t for t in rate_store[ip] if now - t < 60]
-        if len(rate_store[ip]) >= RATE_LIMIT_GENERAL:
-            return JSONResponse({"detail": "Too many requests. Please wait a moment."}, status_code=429)
-        rate_store[ip].append(now)
-        return await call_next(request)
+            # Per-endpoint limit (prevents hammering a single expensive endpoint)
+            ep_key = f"{ip}:{path}"
+            endpoint_rate_store[ep_key] = [t for t in endpoint_rate_store[ep_key] if now - t < 60]
+            if len(endpoint_rate_store[ep_key]) >= RATE_LIMIT_ENDPOINT:
+                connection_store[ip] -= 1
+                _record_429(ip, now)
+                return JSONResponse(
+                    {"detail": "Too many requests to this endpoint. Please wait a moment."},
+                    status_code=429,
+                    headers={"Retry-After": "30"},
+                )
+            endpoint_rate_store[ep_key].append(now)
+
+            response = await call_next(request)
+
+            # If the app returns 429, record it for potential blocking
+            if response.status_code == 429:
+                _record_429(ip, now)
+
+            return response
+        finally:
+            connection_store[ip] = max(0, connection_store[ip] - 1)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

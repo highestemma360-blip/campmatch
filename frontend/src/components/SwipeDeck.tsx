@@ -608,7 +608,7 @@ export function SwipeDeck({
             <button className="btn-ghost" onClick={onOpenFilters} style={{ minHeight: 44, padding: '10px 18px' }}>
               Discovery Settings
             </button>
-            <button className="btn-brand" onClick={onReload} style={{ minHeight: 44, padding: '10px 20px' }}>
+            <button className="btn-outline" onClick={onReload} style={{ minHeight: 44, padding: '10px 20px' }}>
               Refresh Deck
             </button>
           </div>

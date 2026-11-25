@@ -140,6 +140,161 @@ function safeSetItem(key: string, value: string): void {
 
 
 
+// ============================================================================
+// Error sanitization — never show raw stack traces, file paths, or technical
+// details to the user. Convert everything to a plain user-facing message.
+// ============================================================================
+
+function sanitizeError(err: unknown): string {
+
+  if (err === null || err === undefined) return 'Something went wrong.'
+
+  // If it's already a plain string, clean it up.
+  if (typeof err === 'string') {
+
+    let msg = err
+
+    // Remove stack traces.
+    msg = msg.replace(/\n\s*at\s.*/g, '')
+
+    // Remove file paths.
+    msg = msg.replace(/\([^)]*:\d+:\d+\)/g, '')
+
+    // Remove common technical prefixes.
+    msg = msg.replace(/^(Error|FetchError|TypeError|SyntaxError):\s*/i, '')
+
+    msg = msg.trim()
+
+    if (!msg) return 'Something went wrong.'
+
+    return msg
+
+  }
+
+  // If it's an Error object, extract the message only.
+  if (err instanceof Error) {
+
+    let msg = err.message
+
+    msg = msg.replace(/\n\s*at\s.*/g, '')
+
+    msg = msg.replace(/\([^)]*:\d+:\d+\)/g, '')
+
+    msg = msg.trim()
+
+    if (!msg) return 'Something went wrong.'
+
+    return msg
+
+  }
+
+  // If it's an object with a detail/message/msg field, use that.
+  if (typeof err === 'object' && !Array.isArray(err)) {
+
+    const obj = err as Record<string, unknown>
+
+    for (const key of ['detail', 'message', 'msg', 'error']) {
+
+      if (typeof obj[key] === 'string' && obj[key].trim()) {
+
+        return sanitizeError(obj[key])
+
+      }
+
+    }
+
+    return 'Something went wrong.'
+
+  }
+
+  return 'Something went wrong.'
+
+}
+
+
+
+// Track whether the user has unsaved form data (settings, profile edit, etc.).
+let _hasUnsavedFormData = false
+
+function setUnsavedFormData(val: boolean) {
+
+  _hasUnsavedFormData = val
+
+}
+
+
+
+// Prevent the browser back button from silently discarding form data.
+function _beforeUnloadHandler(e: BeforeUnloadEvent) {
+
+  if (_hasUnsavedFormData) {
+
+    e.preventDefault()
+
+    e.returnValue = ''
+
+  }
+
+}
+
+
+
+window.addEventListener('beforeunload', _beforeUnloadHandler)
+
+
+
+// ============================================================================
+// Keyboard handling — when an input is focused, scroll it into view so the
+// on-screen keyboard (mobile) never covers the field being edited.
+// ============================================================================
+
+function _installKeyboardAvoidance(): () => void {
+
+  if (typeof window === 'undefined') {
+
+    return () => {}
+
+  }
+
+  const focusHandler = (e: FocusEvent) => {
+
+    const target = e.target as HTMLElement
+
+    if (
+
+      target &&
+
+      (target.tagName === 'INPUT' ||
+
+        target.tagName === 'TEXTAREA' ||
+
+        target.tagName === 'SELECT' ||
+
+        target.isContentEditable)
+
+    ) {
+
+      // Defer so the keyboard has time to appear before we scroll.
+      setTimeout(() => {
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+
+      }, 150)
+
+    }
+
+  }
+
+  window.addEventListener('focusin', focusHandler, true)
+
+  return () => window.removeEventListener('focusin', focusHandler, true)
+
+}
+
+let _keyboardCleanup: (() => void) | null = null
+
+
+
 function StudentApp({
 
   initialToken,
@@ -243,6 +398,20 @@ function StudentApp({
   const [messages, setMessages] = useState<ChatMessage[]>([])
 
   const [partnerTyping, setPartnerTyping] = useState(false)
+
+  // Story state — ephemeral media from matched users (visible for 24h).
+  const [stories, setStories] = useState<{
+    id: number
+    user_id: number
+    media_url: string
+    media_type: string
+    caption: string
+    expires_at: string
+    created_at: string
+    view_count: number
+    is_active: boolean
+    viewed_by_me: boolean
+  }[]>([])
 
 
 
@@ -458,6 +627,14 @@ function StudentApp({
 
 
 
+  function safeShowToast(msg: unknown) {
+
+    showToast(sanitizeError(msg))
+
+  }
+
+
+
   useEffect(() => {
 
     document.documentElement.setAttribute('data-theme', theme)
@@ -473,6 +650,28 @@ function StudentApp({
     }
 
   }, [theme])
+
+  // Install keyboard avoidance so mobile keyboards never cover focused inputs.
+  useEffect(() => {
+
+    _keyboardCleanup = _installKeyboardAvoidance()
+
+    return () => {
+
+      if (_keyboardCleanup) _keyboardCleanup()
+
+    }
+
+  }, [])
+
+
+
+  // Track unsaved form data so the back button can warn before discarding.
+  useEffect(() => {
+
+    if (showFilters) setUnsavedFormData(true)
+
+  }, [showFilters])
 
 
 
@@ -1427,6 +1626,38 @@ function StudentApp({
 
     }
 
+    await loadStories()
+
+  }
+
+
+
+  async function loadStories() {
+
+    if (!token) return
+
+    try {
+
+      const r = await fetch('/api/stories/feed', {
+
+        headers: { Authorization: 'Bearer ' + token },
+
+      })
+
+      if (r.ok) {
+
+        const d = await r.json()
+
+        setStories(Array.isArray(d) ? d : [])
+
+      }
+
+    } catch {
+
+      // Stories are non-critical; keep the app usable if the request fails.
+
+    }
+
   }
 
 
@@ -1497,7 +1728,7 @@ function StudentApp({
 
         } else {
 
-          showToast(typeof d.detail === 'string' ? d.detail : d.detail?.message || 'Swipe failed.')
+          safeShowToast(d.detail || 'Swipe failed.')
 
         }
 
@@ -1555,7 +1786,7 @@ function StudentApp({
 
       } else {
 
-        showToast(typeof d.detail === 'string' ? d.detail : d.detail?.message || 'Nothing to rewind.')
+        safeShowToast(d.detail || 'Nothing to rewind.')
 
         setRewindAvailable(false)
 
@@ -1889,9 +2120,17 @@ function StudentApp({
 
       showToast('Profile saved.')
 
+      setUnsavedFormData(false)
+
       loadDeck(activeVibe?.id, merged.mode)
 
       loadExploreCounts()
+
+    } else {
+
+      const d = await r.json().catch(() => ({}))
+
+      safeShowToast(d.detail || 'Unable to save profile.')
 
     }
 
@@ -1927,7 +2166,7 @@ function StudentApp({
 
           : d.detail?.message || 'Photo did not pass verification.'
 
-      return { ok: false, error: msg }
+      return { ok: false, error: sanitizeError(msg) }
 
     }
 
@@ -1965,7 +2204,7 @@ function StudentApp({
 
     } else if (d.detail) {
 
-      showToast(d.detail)
+      safeShowToast(d.detail)
 
     }
 
@@ -1989,7 +2228,7 @@ function StudentApp({
 
     if (!r.ok) {
 
-      showToast(d.detail || 'Payment service is unavailable.')
+      safeShowToast(d.detail || 'Payment service is unavailable.')
 
       return
 
@@ -2055,7 +2294,7 @@ function StudentApp({
 
     if (!r.ok) {
 
-      throw new Error(d.detail || 'Account deletion failed.')
+      throw new Error(sanitizeError(d.detail || 'Account deletion failed.'))
 
     }
 
@@ -2541,6 +2780,8 @@ function StudentApp({
 
           compactSidebar
 
+          stories={stories}
+
           onOpenChat={openChat}
 
           onOpenLikes={() => {
@@ -2855,6 +3096,8 @@ function StudentApp({
 
                   likesCount={likesItems.length}
 
+                  stories={stories}
+
                   onOpenChat={openChat}
 
                   onOpenLikes={() => setTab('likes')}
@@ -3145,7 +3388,13 @@ function StudentApp({
 
           onSave={handleSaveProfile}
 
-          onClose={() => setShowFilters(false)}
+          onClose={() => {
+
+            setShowFilters(false)
+
+            setUnsavedFormData(false)
+
+          }}
 
         />
 

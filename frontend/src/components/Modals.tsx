@@ -838,7 +838,7 @@ export function DeleteAccountModal({ onConfirm, onClose }: DeleteAccountModalPro
     try {
       await onConfirm(reason, password, confirmText)
     } catch (e: any) {
-      setErr(e?.message || 'Unable to delete account.')
+      setErr('Unable to delete account. Please try again.')
     } finally {
       setBusy(false)
     }
