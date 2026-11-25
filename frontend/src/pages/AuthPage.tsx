@@ -67,7 +67,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       .then((d) => {
         if (!d || cancelled) return
         if (Array.isArray(d.schools) && d.schools.length) setSchools(d.schools)
-        if (Array.isArray(d.domains)) setDomains(d.domains)
+        if (Array.isArray(d.domains) && d.domains.length) setDomains(d.domains)
         setMaintenance(Boolean(d.maintenance_mode))
         setBanner(d.announcement_banner || '')
 
@@ -134,7 +134,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     }
   }, [])
 
-  // Render Google Sign-In button once the client is ready and the ref exists.
   useEffect(() => {
     if (googleStatus !== 'ready' || !googleButtonRef.current) return
     window.google.accounts.id.renderButton(googleButtonRef.current, {
@@ -182,7 +181,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) {
-        setErr(typeof d.detail === 'string' ? d.detail : 'Authentication failed.')
+        setErr(typeof d.detail === 'string' ? d.detail : `Authentication failed (${r.status}).`)
       } else {
         setAuthModalOpen(false)
         onAuth(d.access_token || d.token)
@@ -198,7 +197,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
     ? domains.map((d) => '@' + d.replace(/^@/, '')).slice(0, 3).join(', ')
     : 'approved university domains'
 
-  // Body scroll lock when modal open
   const lockBodyScroll = useCallback(() => {
     document.body.style.overflow = 'hidden'
     document.body.style.position = 'fixed'
@@ -221,29 +219,6 @@ export function AuthPage({ onAuth }: AuthPageProps) {
       unlockBodyScroll()
     }
   }, [authModalOpen, lockBodyScroll, unlockBodyScroll])
-
-  // Scroll reveal: add .visible to .reveal elements as they enter the viewport.
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible')
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -80px 0px' },
-    )
-    const timer = setTimeout(() => {
-      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
-    }, 100)
-    return () => {
-      clearTimeout(timer)
-      observer.disconnect()
-    }
-  }, [])
 
   const openAuth = (tab: 'signin' | 'signup') => {
     setAuthTab(tab)
@@ -278,21 +253,20 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       )}
 
-      {/* Hero — single brand lockup, no top bar clutter */}
+      {/* Hero — brand lockup, no top bar clutter */}
       <section className="hero-section reveal">
         <div className="hero-brand">
           <CampmatchLogo iconSize={26} fontSize={20} gap={10} />
         </div>
         <div className="hero-content">
           <h1 className="display-headline">
-            Verified student matching for{' '}
-            <span className="coral-accent">Ghana campuses.</span>
+            Meet students on{' '}
+            <span className="coral-accent">your campus.</span>
           </h1>
           <p className="hero-subtitle subheadline">
-            Campmatch is for verified university students at UG Legon, KNUST, UCC,
-            UMaT, UEW, UDS, Ashesi, and technical colleges across Ghana. Sign in with
-            your .edu.gh email to match with students in your hall, faculty, and
-            Explore rooms.
+            Verified university students at UG Legon, KNUST, UCC, UMaT, UEW, UDS,
+            and technical colleges across Ghana. Sign in with your .edu.gh email to
+            match with students in your hall, faculty, and Explore rooms.
           </p>
           <div className="hero-ctas">
             {googleEnabled ? (
@@ -336,7 +310,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       </section>
 
-      {/* Section 1: How you connect on campus */}
+      {/* Section 1: How you connect */}
       <section className="section connect-section reveal" id="connect">
         <div className="section-inner">
           <h2 className="section-heading">Match with students in your hall and faculty.</h2>
@@ -421,7 +395,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       </section>
 
-      {/* Section 3: Ghanaian Campuses — typographic strip */}
+      {/* Section 3: Supported Campuses */}
       <section className="section reveal">
         <div className="section-inner">
           <h2 className="section-heading">Built for universities across Ghana.</h2>
@@ -448,7 +422,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       </section>
 
-      {/* Section 4: Campus Safety & Privacy */}
+      {/* Section 4: Campus Safety */}
       <section className="section reveal">
         <div className="section-inner">
           <h2 className="section-heading">No outsiders. No unsolicited DMs.</h2>
@@ -496,7 +470,7 @@ export function AuthPage({ onAuth }: AuthPageProps) {
         </div>
       </section>
 
-      {/* Section 5: Bottom CTA */}
+      {/* Section 5: CTA */}
       <section className="bottom-cta reveal">
         <div className="bottom-cta-inner reveal">
           <h2 className="bottom-cta-heading">Join your campus community.</h2>
