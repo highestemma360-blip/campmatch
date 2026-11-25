@@ -346,9 +346,10 @@ def update_profile(data: ProfileIn, user: User = Depends(get_current_user), db: 
 
     if data.photo_urls is not None:
         existing_set = set(parse_list(user.photo_urls))
-        valid_reordered = [u for u in data.photo_urls if u in existing_set][:6]
-        if valid_reordered:
-            user.photo_urls = ",".join(valid_reordered)
+        new_urls = [u for u in data.photo_urls if u not in existing_set]
+        all_urls = list(existing_set) + new_urls
+        if all_urls:
+            user.photo_urls = ",".join(all_urls[:6])
 
     photos = parse_list(user.photo_urls)
     user.profile_complete = bool(len(photos) >= 1 and user.name and user.course)
