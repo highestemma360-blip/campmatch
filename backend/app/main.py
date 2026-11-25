@@ -28,6 +28,7 @@ from .routers import push as push_router
 from .routers import ai_features
 from .routers import stories as stories_router
 from .explore_rooms import seed_default_rooms
+from .seed import seed_test_users
 from .security import (
     bootstrap_defaults,
     decode_token,
@@ -89,6 +90,7 @@ with SessionLocal() as _startup_db:
             _startup_db.add(test_user)
             _startup_db.commit()
             print(f"[campmatch] Test account created: {test_email} / Test1234!")
+        seed_test_users(_startup_db, UPLOAD_DIR)
     except Exception as exc:  # never let startup seed data crash the API
         print(f"[campmatch] startup seed warning: {exc}")
 
