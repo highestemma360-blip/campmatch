@@ -18,7 +18,7 @@ A plain-text design system document. AI agents read this to generate UI that sta
 **Design philosophy:** Platform-native navigation patterns carry structure; identity lives in color, type, imagery, voice, motion, and one signature — the coral flame (#ff4f5e). Specificity over templates. Every screen has a signature object; no generic gradients, no shadow soup, no Lorem ipsum.
 
 **Craft floor (non-negotiable):**
-- **Access:** Controls reachable with one thumb; touch targets ≥44×44 dp; reach zones respected on phones.
+- **Access:** Controls reachable with one thumb; touch targets ≥44×44 dp; reach zones respected.
 - **Platform integrity:** Native tabs, back, modality, and entry points. iOS and Android conventions intact.
 - **State safety:** Empty, loading, error, success on every screen — real copy, clear next step.
 - **Honesty:** No deceptive patterns, no false urgency, no hidden costs.
@@ -80,7 +80,6 @@ A plain-text design system document. AI agents read this to generate UI that sta
 | `--text-tiny` | 12px | 500 | Badges, labels, timestamps |
 
 **Line height:** 1.5 for body, 1.25 for headings.
-
 **Letter tracking:** -0.02em for display, normal for body.
 
 **Voice:** Warm, direct, student-first. Short sentences. Campus slang where natural ("lectures", "hostel", "night market"). Never robotic.
@@ -149,8 +148,7 @@ A plain-text design system document. AI agents read this to generate UI that sta
 
 **Responsive behavior:** Bottom sheet → side rail at 960px. Swipe deck card width: full mobile, 420px max desktop. Modal: full-height mobile, 520px max-width desktop.
 
-**Touch targets:** Minimum 44×44 dp everywhere (buttons, icons, tabs, close). Icon-only buttons pad to 44dp.
-
+**Touch targets:** Minimum 44×44 dp everywhere (buttons, icons, tabs, close).
 **Reach zones:** Primary actions in bottom third on mobile. Destructive actions require confirmation or are placed away from thumb zone.
 
 ---
