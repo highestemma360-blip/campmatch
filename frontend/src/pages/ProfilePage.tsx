@@ -405,7 +405,7 @@ export function ProfilePage({
           style={{
             padding: '10px 14px',
             borderBottom: '1px solid var(--border-subtle)',
-            background: 'var(--bg-glass)',
+            background: 'var(--bg-elevated)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
