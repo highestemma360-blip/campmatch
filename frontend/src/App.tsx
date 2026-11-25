@@ -2094,7 +2094,13 @@ function StudentApp({
 
     if (!me) return
 
-    const merged: CurrentUser = { ...me, ...patch }
+    const merged: CurrentUser = {
+      ...me,
+      ...patch,
+      // Ensure name/course are never empty for backend validation
+      name: (patch.name || me.name || 'Student').trim(),
+      course: (patch.course || me.course || 'Student').trim(),
+    } as CurrentUser
 
     const r = await fetch('/api/profile', {
 
@@ -2121,6 +2127,8 @@ function StudentApp({
       showToast('Profile saved.')
 
       setUnsavedFormData(false)
+
+      await loadMe()
 
       loadDeck(activeVibe?.id, merged.mode)
 
